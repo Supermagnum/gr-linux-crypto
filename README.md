@@ -4,19 +4,19 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 
 ## What This Module Provides (Unique Features)
 
-### 1. **Kernel Keyring Integration** 🆕
+### 1. **Kernel Keyring Integration**
 - **Unique to Linux**: Direct integration with Linux kernel keyring
 - **Secure key storage**: Keys protected by kernel, not user space
 - **Key management**: Add, retrieve, link, unlink keys from kernel keyring
 - **No duplication**: This is NOT available in gr-openssl or gr-nacl
 
-### 2. **Hardware Security Module Integration** 🆕  
+### 2. **Hardware Security Module Integration**  
 - **Nitrokey support**: Hardware-based key storage and operations
 - **TPM integration**: Trusted Platform Module support
 - **Hardware acceleration**: Use hardware crypto when available
 - **No duplication**: This is NOT available in existing modules
 
-### 3. **Kernel Crypto API Integration** 🆕
+### 3. **Kernel Crypto API Integration**
 - **AF_ALG sockets**: Direct use of Linux kernel crypto subsystem
 - **Hardware acceleration**: CPU crypto instructions via kernel
 - **Performance**: Bypass user-space crypto libraries when possible
@@ -24,12 +24,12 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 
 ## What This Module Does NOT Provide (Avoiding Duplication)
 
-### ❌ **Basic OpenSSL Operations**
+### **Basic OpenSSL Operations**
 - **Use gr-openssl instead**: Symmetric encryption, hashing, HMAC
 - **Don't duplicate**: AES, SHA, RSA operations are already in gr-openssl
 - **Integration only**: Provide kernel keyring as key source for gr-openssl
 
-### ❌ **Modern Crypto (NaCl/libsodium)**
+### **Modern Crypto (NaCl/libsodium)**
 - **Use gr-nacl instead**: Curve25519, Ed25519, ChaCha20-Poly1305
 - **Don't duplicate**: Public-key crypto, authenticated encryption
 - **Integration only**: Provide hardware key storage for gr-nacl
@@ -143,7 +143,7 @@ sudo make install
 
 ## What You Actually Need to Extract/Create
 
-### 1. **gr-linux-keyring** 🆕 (NEW - but minimal!)
+### 1. **gr-linux-keyring** (NEW - but minimal!)
 ```
 Blocks needed:
 - keyring_key_source    # Load key from kernel keyring
@@ -152,14 +152,14 @@ Blocks needed:
 - tpm_interface         # Access TPM for key storage
 ```
 
-### 2. **Integration Helpers** 🔗
+### 2. **Integration Helpers**
 ```
 Python helpers:
 - keyring_helper.py     # keyctl wrapper
 - crypto_helpers.py    # Integration utilities
 ```
 
-### 3. **GNU Radio Companion Blocks** 📊
+### 3. **GNU Radio Companion Blocks**
 ```
 GRC blocks:
 - kernel_keyring_source.block.yml
@@ -179,11 +179,11 @@ GRC blocks:
 
 | Feature | gr-openssl | gr-nacl | gr-linux-crypto |
 |---------|------------|---------|-----------------|
-| OpenSSL operations | ✅ | ❌ | ❌ (use gr-openssl) |
-| Modern crypto (NaCl) | ❌ | ✅ | ❌ (use gr-nacl) |
-| Kernel keyring | ❌ | ❌ | ✅ (unique) |
-| Hardware security | ❌ | ❌ | ✅ (unique) |
-| Kernel crypto API | ❌ | ❌ | ✅ (unique) |
-| TPM integration | ❌ | ❌ | ✅ (unique) |
+| OpenSSL operations | Yes | No | No (use gr-openssl) |
+| Modern crypto (NaCl) | No | Yes | No (use gr-nacl) |
+| Kernel keyring | No | No | Yes (unique) |
+| Hardware security | No | No | Yes (unique) |
+| Kernel crypto API | No | No | Yes (unique) |
+| TPM integration | No | No | Yes (unique) |
 
 This module fills the gaps in the GNU Radio crypto ecosystem by providing Linux-specific infrastructure that existing modules don't cover.
