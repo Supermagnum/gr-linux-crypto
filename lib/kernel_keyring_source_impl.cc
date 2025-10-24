@@ -25,7 +25,7 @@
 #endif
 
 #include <gnuradio/io_signature.h>
-#include <linux_crypto/kernel_keyring_source_impl.h>
+#include <gnuradio/linux_crypto/kernel_keyring_source_impl.h>
 #include <cstring>
 #include <stdexcept>
 

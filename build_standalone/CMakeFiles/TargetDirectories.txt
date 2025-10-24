@@ -1,0 +1,3 @@
+/home/haaken/github-projects/gr-linux-crypto/build_standalone/CMakeFiles/gnuradio-linux-crypto.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone/CMakeFiles/edit_cache.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone/CMakeFiles/rebuild_cache.dir

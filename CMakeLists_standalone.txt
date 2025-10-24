@@ -1,0 +1,44 @@
+cmake_minimum_required(VERSION 3.16)
+project(gr-linux-crypto-standalone)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find required packages
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(KEYUTILS REQUIRED libkeyutils)
+
+# Find GNU Radio
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GNURADIO_RUNTIME REQUIRED gnuradio-runtime)
+pkg_check_modules(GNURADIO_BLOCKS REQUIRED gnuradio-blocks)
+
+# Include directories
+include_directories(${CMAKE_SOURCE_DIR}/lib)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${GNURADIO_RUNTIME_INCLUDE_DIRS})
+include_directories(${GNURADIO_BLOCKS_INCLUDE_DIRS})
+
+# Library sources
+set(gr_linux_crypto_sources
+    lib/kernel_keyring_source_impl.cc
+    lib/nitrokey_interface_impl.cc
+    lib/kernel_crypto_aes_impl.cc
+)
+
+# Create library
+add_library(gnuradio-linux-crypto SHARED ${gr_linux_crypto_sources})
+
+# Link libraries
+target_link_libraries(gnuradio-linux-crypto
+    ${GNURADIO_RUNTIME_LIBRARIES}
+    ${GNURADIO_BLOCKS_LIBRARIES}
+    ${KEYUTILS_LIBRARIES}
+)
+
+# Set library properties
+set_target_properties(gnuradio-linux-crypto PROPERTIES
+    VERSION 3.10.9
+    SOVERSION 3.10.9
+)
