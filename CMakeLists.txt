@@ -1,64 +1,36 @@
-# Copyright 2024 GNU Radio
+# Copyright 2024 Free Software Foundation, Inc.
 #
-# This file is part of gr-linux-crypto
+# This file is part of GNU Radio
 #
-# gr-linux-crypto is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3, or (at your option)
-# any later version.
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
-# gr-linux-crypto is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with gr-linux-crypto; see the file COPYING.  If not, write to
-# the Free Software Foundation, Inc., 51 Franklin Street,
-# Boston, MA 02110-1301, USA.
-
-########################################################################
-# Project setup
-########################################################################
-cmake_minimum_required(VERSION 3.16)
-project(gr-linux-crypto CXX C)
-
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Set build type
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release")
-    message(STATUS "Build type not specified: defaulting to release.")
-endif()
-
-########################################################################
-# Find GNU Radio
-########################################################################
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GNURADIO REQUIRED gnuradio)
-
-# Find GNU Radio components
-find_package(GnuradioRuntime REQUIRED)
-find_package(GnuradioBlocks REQUIRED)
 
 ########################################################################
 # Find dependencies
 ########################################################################
+include(GrBoost)
 
 # Required dependencies
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(KEYUTILS REQUIRED libkeyutils)
 
 # Optional dependencies for integration
-find_package(PkgConfig)
 pkg_check_modules(OPENSSL QUIET openssl)
 pkg_check_modules(SODIUM QUIET libsodium)
 
 # Optional hardware security module support
-find_package(PkgConfig)
 pkg_check_modules(NITROKEY QUIET libnitrokey)
+
+########################################################################
+# Register component
+########################################################################
+include(GrComponent)
+gr_register_component("gr-linux-crypto" ENABLE_GR_LINUX_CRYPTO KEYUTILS_FOUND ENABLE_GNURADIO_RUNTIME)
+
+########################################################################
+# Begin conditional configuration
+########################################################################
+if(ENABLE_GR_LINUX_CRYPTO)
 
 ########################################################################
 # Compiler setup
@@ -203,18 +175,8 @@ install(DIRECTORY include/gnuradio/linux_crypto/
 if(ENABLE_TESTING)
     enable_testing()
     
-    # Add test targets
-    add_executable(test_kernel_keyring
-        lib/test_kernel_keyring.cc
-    )
-    target_link_libraries(test_kernel_keyring
-        gnuradio-linux-crypto
-        ${GNURADIO_LIBRARIES}
-    )
-    
-    add_test(NAME test_kernel_keyring
-        COMMAND test_kernel_keyring
-    )
+    # Test targets will be added when test files are created
+    message(STATUS "  Testing enabled but no test files found")
 endif()
 
 ########################################################################
@@ -255,3 +217,5 @@ message(STATUS "  Examples: ${ENABLE_EXAMPLES}")
 message(STATUS "  Documentation: ${ENABLE_DOXYGEN}")
 message(STATUS "  Testing: ${ENABLE_TESTING}")
 message(STATUS "  Fuzzing: ${ENABLE_FUZZING}")
+
+endif(ENABLE_GR_LINUX_CRYPTO)
