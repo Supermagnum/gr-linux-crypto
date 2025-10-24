@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <vector>
 #include <string>
+#include <iostream>
+#include <cstdlib>
 
 #define MAX_SIZE 8192
 

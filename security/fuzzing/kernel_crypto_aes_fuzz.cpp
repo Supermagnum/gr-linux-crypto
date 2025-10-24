@@ -4,6 +4,9 @@
 #include <sys/socket.h>
 #include <linux/if_alg.h>
 #include <sys/ioctl.h>
+#include <errno.h>
+#include <iostream>
+#include <cstdlib>
 
 #define MAX_SIZE 8192
 
@@ -40,8 +43,8 @@ static bool test_kernel_crypto_aes(const uint8_t* data, size_t size) {
         // Set algorithm
         struct sockaddr_alg sa = {};
         sa.salg_family = AF_ALG;
-        strcpy(sa.salg_type, "skcipher");
-        strcpy(sa.salg_name, algorithms[i]);
+        strcpy((char*)sa.salg_type, "skcipher");
+        strcpy((char*)sa.salg_name, algorithms[i]);
         
         if (bind(sock, (struct sockaddr*)&sa, sizeof(sa)) < 0) {
             close(sock);

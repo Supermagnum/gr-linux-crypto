@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <keyutils.h>
+#include <errno.h>
+#include <iostream>
 
 #define MAX_SIZE 8192
 
@@ -32,40 +34,40 @@ static bool test_keyring_operations(const uint8_t* data, size_t size) {
     try {
         // Test adding key
         if (key_data_len > 0) {
-            key_id = keyctl(KEYCTL_ADD_KEY, key_type, description, 
+            key_id = syscall(__NR_keyctl,KEYCTL_ADD_KEY, key_type, description, 
                           key_data, key_data_len, KEY_SPEC_USER_KEYRING);
         }
         
         // Test searching for key
         if (key_id > 0) {
-            key_serial_t found_key = keyctl(KEYCTL_SEARCH, KEY_SPEC_USER_KEYRING,
+            key_serial_t found_key = syscall(__NR_keyctl,KEYCTL_SEARCH, KEY_SPEC_USER_KEYRING,
                                           key_type, description);
         }
         
         // Test reading key
         if (key_id > 0) {
             char buffer[1024];
-            long bytes_read = keyctl(KEYCTL_READ, key_id, buffer, sizeof(buffer));
+            long bytes_read = syscall(__NR_keyctl,KEYCTL_READ, key_id, buffer, sizeof(buffer));
         }
         
         // Test key permissions
         if (key_id > 0) {
-            keyctl(KEYCTL_SETPERM, key_id, KEY_POS_ALL | KEY_USR_ALL);
+            syscall(__NR_keyctl,KEYCTL_SETPERM, key_id, KEY_POS_ALL | KEY_USR_ALL);
         }
         
         // Test key linking
         if (key_id > 0) {
-            keyctl(KEYCTL_LINK, key_id, KEY_SPEC_USER_KEYRING);
+            syscall(__NR_keyctl,KEYCTL_LINK, key_id, KEY_SPEC_USER_KEYRING);
         }
         
         // Test key unlinking
         if (key_id > 0) {
-            keyctl(KEYCTL_UNLINK, key_id, KEY_SPEC_USER_KEYRING);
+            syscall(__NR_keyctl,KEYCTL_UNLINK, key_id, KEY_SPEC_USER_KEYRING);
         }
         
         // Test key revocation
         if (key_id > 0) {
-            keyctl(KEYCTL_REVOKE, key_id);
+            syscall(__NR_keyctl,KEYCTL_REVOKE, key_id);
         }
         
     } catch (...) {

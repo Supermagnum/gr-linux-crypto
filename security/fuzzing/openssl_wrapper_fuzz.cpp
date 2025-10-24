@@ -5,6 +5,11 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include <openssl/err.h>
+#include <openssl/hmac.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <iostream>
+#include <cstdlib>
 
 #define MAX_SIZE 8192
 
