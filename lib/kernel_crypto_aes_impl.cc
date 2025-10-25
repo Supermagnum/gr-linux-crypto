@@ -62,27 +62,27 @@ void
 kernel_crypto_aes_impl::connect_to_kernel_crypto()
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    
+
     // Create AF_ALG socket
     d_socket_fd = socket(AF_ALG, SOCK_SEQPACKET, 0);
     if (d_socket_fd < 0) {
         d_kernel_crypto_available = false;
         return;
     }
-    
+
     // Set up algorithm
     struct sockaddr_alg sa = {};
     sa.salg_family = AF_ALG;
     strncpy((char*)sa.salg_type, "skcipher", sizeof(sa.salg_type) - 1);
     strncpy((char*)sa.salg_name, ("aes-" + d_mode).c_str(), sizeof(sa.salg_name) - 1);
-    
+
     if (bind(d_socket_fd, (struct sockaddr*)&sa, sizeof(sa)) < 0) {
         close(d_socket_fd);
         d_socket_fd = -1;
         d_kernel_crypto_available = false;
         return;
     }
-    
+
     // Accept connection
     d_accept_fd = accept(d_socket_fd, nullptr, nullptr);
     if (d_accept_fd < 0) {
@@ -91,7 +91,7 @@ kernel_crypto_aes_impl::connect_to_kernel_crypto()
         d_kernel_crypto_available = false;
         return;
     }
-    
+
     // Set key
     if (setsockopt(d_accept_fd, SOL_ALG, ALG_SET_KEY, d_key.data(), d_key.size()) < 0) {
         close(d_accept_fd);
@@ -101,7 +101,7 @@ kernel_crypto_aes_impl::connect_to_kernel_crypto()
         d_kernel_crypto_available = false;
         return;
     }
-    
+
     d_kernel_crypto_available = true;
 }
 
@@ -109,17 +109,17 @@ void
 kernel_crypto_aes_impl::disconnect_from_kernel_crypto()
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    
+
     if (d_accept_fd >= 0) {
         close(d_accept_fd);
         d_accept_fd = -1;
     }
-    
+
     if (d_socket_fd >= 0) {
         close(d_socket_fd);
         d_socket_fd = -1;
     }
-    
+
     d_kernel_crypto_available = false;
 }
 
@@ -161,7 +161,7 @@ kernel_crypto_aes_impl::set_key(const std::vector<unsigned char>& key)
 {
     std::lock_guard<std::mutex> lock(d_mutex);
     d_key = key;
-    
+
     if (d_kernel_crypto_available && d_accept_fd >= 0) {
         setsockopt(d_accept_fd, SOL_ALG, ALG_SET_KEY, d_key.data(), d_key.size());
     }
@@ -207,13 +207,13 @@ kernel_crypto_aes_impl::work(int noutput_items,
 {
     const unsigned char* in = (const unsigned char*)input_items[0];
     unsigned char* out = (unsigned char*)output_items[0];
-    
+
     if (!d_kernel_crypto_available) {
         // Fallback: copy input to output
         memcpy(out, in, noutput_items);
         return noutput_items;
     }
-    
+
     process_data(in, out, noutput_items);
     return noutput_items;
 }
@@ -223,7 +223,7 @@ kernel_crypto_aes_impl::process_data(const unsigned char* input, unsigned char* 
 {
     // Simplified implementation - real version would use AF_ALG sockets
     // This is a placeholder that simulates kernel crypto processing
-    
+
     if (d_encrypt) {
         // Simulate encryption
         for (int i = 0; i < n_items; i++) {

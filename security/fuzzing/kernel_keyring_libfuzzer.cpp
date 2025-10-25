@@ -23,12 +23,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     // Create a copy of input data for processing
     std::vector<uint8_t> input_data(data, data + size);
-    
+
     // Simulate kernel keyring operations with complex branching
     int key_operations = 0;
     int crypto_operations = 0;
     int error_conditions = 0;
-    
+
     // Branch 1: Key type analysis
     if (input_data[0] == 0x01) {
         // User key type
@@ -72,7 +72,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         // Unknown key type - error path
         error_conditions += 5;
     }
-    
+
     // Branch 2: Key size analysis
     if (size < 8) {
         error_conditions += 10;
@@ -85,13 +85,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     } else {
         key_operations += 20;
     }
-    
+
     // Branch 3: Key content analysis
     uint8_t xor_result = 0;
     for (size_t i = 0; i < size; i++) {
         xor_result ^= input_data[i];
     }
-    
+
     if (xor_result == 0) {
         error_conditions += 15;
     } else if (xor_result < 0x10) {
@@ -103,14 +103,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     } else {
         key_operations += 25;
     }
-    
+
     // Branch 4: Pattern matching
     if (size >= 4) {
         // Look for specific patterns
         if (input_data[0] == input_data[size-1]) {
             key_operations += 8;
         }
-        
+
         // Check for ascending sequence
         bool ascending = true;
         for (size_t i = 1; i < std::min(size, size_t(8)); i++) {
@@ -122,7 +122,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         if (ascending) {
             key_operations += 12;
         }
-        
+
         // Check for descending sequence
         bool descending = true;
         for (size_t i = 1; i < std::min(size, size_t(8)); i++) {
@@ -135,12 +135,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             key_operations += 12;
         }
     }
-    
+
     // Branch 5: Cryptographic operations simulation
     if (size >= 16) {
         // Simulate AES key operations
         crypto_operations += 5;
-        
+
         // Check for AES key patterns
         bool aes_pattern = true;
         for (size_t i = 0; i < 16; i++) {
@@ -152,11 +152,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         if (aes_pattern) {
             crypto_operations += 10;
         }
-        
+
         // Simulate key derivation
         if (size >= 32) {
             crypto_operations += 15;
-            
+
             // Complex key derivation logic
             uint32_t derived_key = 0;
             for (size_t i = 0; i < 32; i++) {
@@ -167,7 +167,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             }
         }
     }
-    
+
     // Branch 6: Error handling simulation
     if (error_conditions > 0) {
         // Simulate various error conditions
@@ -179,7 +179,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             key_operations /= 2;
         }
     }
-    
+
     // Branch 7: Performance simulation
     if (key_operations > 100) {
         // High performance path
@@ -188,7 +188,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         // Low performance path
         crypto_operations /= 2;
     }
-    
+
     // Branch 8: Final validation
     int total_operations = key_operations + crypto_operations;
     if (total_operations > 200) {

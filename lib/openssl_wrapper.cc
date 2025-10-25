@@ -41,7 +41,7 @@ public:
     {
         d_encrypt_ctx = EVP_CIPHER_CTX_new();
         d_decrypt_ctx = EVP_CIPHER_CTX_new();
-        
+
         if (!d_encrypt_ctx || !d_decrypt_ctx) {
             std::cerr << "Failed to create OpenSSL contexts" << std::endl;
             return;
@@ -123,7 +123,7 @@ public:
             if (d_buffer_pos == d_buffer.size()) {
                 int len = 0;
                 if (d_encrypt) {
-                    if (EVP_EncryptUpdate(d_encrypt_ctx, out + produced, &len, 
+                    if (EVP_EncryptUpdate(d_encrypt_ctx, out + produced, &len,
                                         d_buffer.data(), d_buffer_pos) != 1) {
                         std::cerr << "Encryption failed" << std::endl;
                         print_openssl_error();
@@ -194,7 +194,7 @@ public:
         return iv;
     }
 
-    static std::vector<uint8_t> hash_data(const std::vector<uint8_t>& data, 
+    static std::vector<uint8_t> hash_data(const std::vector<uint8_t>& data,
                                          const std::string& algorithm = "sha256")
     {
         const EVP_MD* md = nullptr;

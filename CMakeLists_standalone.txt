@@ -1,5 +1,6 @@
+# Standalone CMakeLists.txt for gr-linux-crypto out-of-tree module
 cmake_minimum_required(VERSION 3.16)
-project(gr-linux-crypto-standalone)
+project(gr-linux-crypto)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -7,18 +8,26 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required packages
 find_package(PkgConfig REQUIRED)
+find_package(gnuradio-runtime REQUIRED)
+find_package(gnuradio-blocks REQUIRED)
+
+# Find keyutils
 pkg_check_modules(KEYUTILS REQUIRED libkeyutils)
 
-# Find GNU Radio
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GNURADIO_RUNTIME REQUIRED gnuradio-runtime)
-pkg_check_modules(GNURADIO_BLOCKS REQUIRED gnuradio-blocks)
+# Optional dependencies
+pkg_check_modules(OPENSSL QUIET openssl)
+pkg_check_modules(SODIUM QUIET libsodium)
+pkg_check_modules(NITROKEY QUIET libnitrokey)
 
 # Include directories
-include_directories(${CMAKE_SOURCE_DIR}/lib)
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 include_directories(${GNURADIO_RUNTIME_INCLUDE_DIRS})
 include_directories(${GNURADIO_BLOCKS_INCLUDE_DIRS})
+include_directories(${KEYUTILS_INCLUDE_DIRS})
+
+# API definition
+add_definitions(-DLINUX_CRYPTO_API=__attribute__((visibility("default"))))
 
 # Library sources
 set(gr_linux_crypto_sources
@@ -37,8 +46,77 @@ target_link_libraries(gnuradio-linux-crypto
     ${KEYUTILS_LIBRARIES}
 )
 
+# Add optional dependencies
+if(OPENSSL_FOUND)
+    target_link_libraries(gnuradio-linux-crypto ${OPENSSL_LIBRARIES})
+    target_compile_definitions(gnuradio-linux-crypto PRIVATE HAVE_OPENSSL)
+endif()
+
+if(SODIUM_FOUND)
+    target_link_libraries(gnuradio-linux-crypto ${SODIUM_LIBRARIES})
+    target_compile_definitions(gnuradio-linux-crypto PRIVATE HAVE_SODIUM)
+endif()
+
+if(NITROKEY_FOUND)
+    target_link_libraries(gnuradio-linux-crypto ${NITROKEY_LIBRARIES})
+    target_compile_definitions(gnuradio-linux-crypto PRIVATE HAVE_NITROKEY)
+endif()
+
 # Set library properties
 set_target_properties(gnuradio-linux-crypto PROPERTIES
-    VERSION 3.10.9
-    SOVERSION 3.10.9
+    VERSION "1.0.0"
+    SOVERSION "1"
 )
+
+# Python bindings (optional)
+find_package(Python3 COMPONENTS Interpreter Development)
+if(Python3_FOUND)
+    find_package(pybind11 QUIET)
+    if(pybind11_FOUND)
+        pybind11_add_module(linux_crypto_python
+            python/linux_crypto_python.cc
+        )
+        target_link_libraries(linux_crypto_python PRIVATE
+            gnuradio-linux-crypto
+            ${GNURADIO_RUNTIME_LIBRARIES}
+        )
+    endif()
+endif()
+
+# Installation
+install(TARGETS gnuradio-linux-crypto
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
+
+install(DIRECTORY include/gnuradio/linux_crypto/
+    DESTINATION include/gnuradio/linux_crypto
+    FILES_MATCHING PATTERN "*.h"
+)
+
+# GRC blocks (optional)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/grc")
+    install(DIRECTORY grc/
+        DESTINATION share/gnuradio/grc/blocks
+        FILES_MATCHING PATTERN "*.yml"
+    )
+endif()
+
+# Examples (optional)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+    install(DIRECTORY examples/
+        DESTINATION share/gr-linux-crypto/examples
+        FILES_MATCHING PATTERN "*.py"
+    )
+endif()
+
+# Configuration summary
+message(STATUS "gr-linux-crypto configuration:")
+message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "  GNU Radio runtime: ${GNURADIO_RUNTIME_FOUND}")
+message(STATUS "  GNU Radio blocks: ${GNURADIO_BLOCKS_FOUND}")
+message(STATUS "  Keyutils: ${KEYUTILS_FOUND}")
+message(STATUS "  OpenSSL: ${OPENSSL_FOUND}")
+message(STATUS "  Sodium: ${SODIUM_FOUND}")
+message(STATUS "  Nitrokey: ${NITROKEY_FOUND}")
+message(STATUS "  Python bindings: ${Python3_FOUND}")

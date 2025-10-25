@@ -24,16 +24,16 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 
-#include <linux_crypto/kernel_keyring_source.h>
-#include <linux_crypto/nitrokey_interface.h>
-#include <linux_crypto/kernel_crypto_aes.h>
+#include <gnuradio/linux_crypto/kernel_keyring_source.h>
+#include <gnuradio/linux_crypto/nitrokey_interface.h>
+#include <gnuradio/linux_crypto/kernel_crypto_aes.h>
 
 namespace py = pybind11;
 
 void bind_kernel_keyring_source(py::module& m)
 {
     using kernel_keyring_source = gr::linux_crypto::kernel_keyring_source;
-    
+
     py::class_<kernel_keyring_source, gr::block, std::shared_ptr<kernel_keyring_source>>(
         m, "kernel_keyring_source")
         .def(py::init(&kernel_keyring_source::make),
@@ -50,7 +50,7 @@ void bind_kernel_keyring_source(py::module& m)
 void bind_nitrokey_interface(py::module& m)
 {
     using nitrokey_interface = gr::linux_crypto::nitrokey_interface;
-    
+
     py::class_<nitrokey_interface, gr::block, std::shared_ptr<nitrokey_interface>>(
         m, "nitrokey_interface")
         .def(py::init(&nitrokey_interface::make),
@@ -70,7 +70,7 @@ void bind_nitrokey_interface(py::module& m)
 void bind_kernel_crypto_aes(py::module& m)
 {
     using kernel_crypto_aes = gr::linux_crypto::kernel_crypto_aes;
-    
+
     py::class_<kernel_crypto_aes, gr::sync_block, std::shared_ptr<kernel_crypto_aes>>(
         m, "kernel_crypto_aes")
         .def(py::init(&kernel_crypto_aes::make),
@@ -94,12 +94,12 @@ void bind_kernel_crypto_aes(py::module& m)
 PYBIND11_MODULE(linux_crypto_python, m)
 {
     m.doc() = "GNU Radio Linux Crypto Python bindings";
-    
+
     // Bind the classes
     bind_kernel_keyring_source(m);
     bind_nitrokey_interface(m);
     bind_kernel_crypto_aes(m);
-    
+
     // Add module-level functions
     m.def("get_integration_status", []() {
         py::dict status;

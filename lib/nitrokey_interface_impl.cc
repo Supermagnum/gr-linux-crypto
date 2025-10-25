@@ -44,9 +44,9 @@ nitrokey_interface::make(int slot, bool auto_repeat)
 }
 
 nitrokey_interface_impl::nitrokey_interface_impl(int slot, bool auto_repeat)
-    : gr::block("nitrokey_interface",
-                gr::io_signature::make(0, 0, 0),
-                gr::io_signature::make(1, 1, sizeof(unsigned char))),
+    : gr::sync_block("nitrokey_interface",
+                     gr::io_signature::make(0, 0, 0),
+                     gr::io_signature::make(1, 1, sizeof(unsigned char))),
       d_slot(slot),
       d_auto_repeat(auto_repeat),
       d_key_size(0),
@@ -66,7 +66,7 @@ nitrokey_interface_impl::~nitrokey_interface_impl()
     if (!d_key_data.empty()) {
         memset(d_key_data.data(), 0, d_key_data.size());
     }
-    
+
     // Disconnect from Nitrokey
     if (d_device) {
         // Real implementation would call libnitrokey disconnect
@@ -78,20 +78,20 @@ void
 nitrokey_interface_impl::connect_to_nitrokey()
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    
+
     // Simplified implementation - real version would use libnitrokey
     // This is a placeholder that simulates Nitrokey connection
-    
+
     // In real implementation:
     // 1. Initialize libnitrokey
     // 2. Connect to Nitrokey device
     // 3. Get device information
     // 4. Check if slot is available
-    
+
     // For now, simulate connection
     d_nitrokey_available = true;  // Would be determined by actual libnitrokey call
     d_device_info = "Nitrokey Pro (simulated)";
-    
+
     // Real implementation would be:
     // NK_device* device = NK_connect();
     // if (device) {
@@ -105,32 +105,32 @@ void
 nitrokey_interface_impl::load_key_from_nitrokey()
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    
+
     if (!d_nitrokey_available || !d_device) {
         d_key_loaded = false;
         d_key_size = 0;
         return;
     }
-    
+
     // Simplified implementation - real version would use libnitrokey
     // This is a placeholder that simulates key loading
-    
+
     // In real implementation:
     // 1. Check if slot exists and has data
     // 2. Read key data from slot
     // 3. Verify key integrity
-    
+
     // For now, simulate key loading
     d_key_size = 32;  // Simulate 256-bit key
     d_key_data.resize(d_key_size);
-    
+
     // Generate some test data (in real implementation, this would come from Nitrokey)
     for (size_t i = 0; i < d_key_size; i++) {
         d_key_data[i] = static_cast<unsigned char>((i * 7 + d_slot * 13) % 256);
     }
-    
+
     d_key_loaded = true;
-    
+
     // Real implementation would be:
     // size_t key_size = NK_get_slot_data_size(d_device, d_slot);
     // if (key_size > 0) {
@@ -198,20 +198,20 @@ std::vector<int>
 nitrokey_interface_impl::get_available_slots() const
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    
+
     // Simplified implementation - real version would query Nitrokey
     std::vector<int> slots;
-    
+
     if (d_nitrokey_available) {
         // Simulate 16 available slots (0-15)
         for (int i = 0; i < 16; i++) {
             slots.push_back(i);
         }
     }
-    
+
     // Real implementation would be:
     // return NK_get_available_slots(d_device);
-    
+
     return slots;
 }
 
@@ -221,13 +221,13 @@ nitrokey_interface_impl::work(int noutput_items,
                               gr_vector_void_star& output_items)
 {
     unsigned char* out = (unsigned char*)output_items[0];
-    
+
     if (!d_nitrokey_available || !d_key_loaded || d_key_data.empty()) {
         // No Nitrokey or key loaded, output zeros
         memset(out, 0, noutput_items);
         return noutput_items;
     }
-    
+
     if (d_auto_repeat) {
         // Repeat key data to fill output
         for (int i = 0; i < noutput_items; i++) {
@@ -237,12 +237,12 @@ nitrokey_interface_impl::work(int noutput_items,
         // Output key data once, then zeros
         size_t output_size = std::min(static_cast<size_t>(noutput_items), d_key_data.size());
         memcpy(out, d_key_data.data(), output_size);
-        
+
         if (noutput_items > static_cast<int>(output_size)) {
             memset(out + output_size, 0, noutput_items - output_size);
         }
     }
-    
+
     return noutput_items;
 }
 

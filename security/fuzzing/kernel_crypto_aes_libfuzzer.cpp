@@ -23,21 +23,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     // Create a copy of input data for processing
     std::vector<uint8_t> input_data(data, data + size);
-    
+
     // Simulate kernel crypto AES operations with complex branching
     int aes_operations = 0;
     int encryption_operations = 0;
     int decryption_operations = 0;
     int error_conditions = 0;
-    
+
     // Branch 1: AES key size analysis
     if (size >= 16) {
         aes_operations += 10;
-        
+
         // Check for AES-128 key
         if (size >= 16 && size < 24) {
             aes_operations += 15;
-            
+
             // Validate AES-128 key
             bool valid_key = true;
             for (size_t i = 0; i < 16; i++) {
@@ -50,11 +50,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
                 aes_operations += 20;
             }
         }
-        
+
         // Check for AES-192 key
         if (size >= 24 && size < 32) {
             aes_operations += 25;
-            
+
             // Validate AES-192 key
             uint32_t key_checksum = 0;
             for (size_t i = 0; i < 24; i++) {
@@ -64,11 +64,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
                 aes_operations += 15;
             }
         }
-        
+
         // Check for AES-256 key
         if (size >= 32) {
             aes_operations += 30;
-            
+
             // Validate AES-256 key
             bool strong_key = true;
             for (size_t i = 0; i < 32; i += 4) {
@@ -88,7 +88,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     } else {
         error_conditions += 20;
     }
-    
+
     // Branch 2: AES mode analysis
     if (size >= 16) {
         // Check for ECB mode patterns
@@ -104,7 +104,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
                 encryption_operations += 10;
             }
         }
-        
+
         // Check for CBC mode patterns
         if (size >= 32) {
             bool cbc_pattern = true;
@@ -118,7 +118,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
                 encryption_operations += 15;
             }
         }
-        
+
         // Check for CTR mode patterns
         if (size >= 32) {
             bool ctr_pattern = true;
@@ -131,7 +131,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             }
         }
     }
-    
+
     // Branch 3: Key strength analysis
     if (size >= 16) {
         // Calculate key entropy
@@ -139,7 +139,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         for (size_t i = 0; i < std::min(size, size_t(32)); i++) {
             entropy ^= input_data[i];
         }
-        
+
         if (entropy == 0) {
             error_conditions += 25;
         } else if (entropy < 0x10) {
@@ -151,7 +151,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         } else {
             aes_operations += 20;
         }
-        
+
         // Check for weak key patterns
         bool weak_key = false;
         for (size_t i = 0; i < std::min(size, size_t(16)); i++) {
@@ -164,13 +164,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             error_conditions += 10;
         }
     }
-    
+
     // Branch 4: Encryption simulation
     if (encryption_operations > 0) {
         // Simulate AES encryption rounds
         for (int round = 0; round < 10; round++) {
             encryption_operations += 5;
-            
+
             // Simulate round key operations
             if (size >= 16) {
                 for (size_t i = 0; i < 16; i++) {
@@ -181,13 +181,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             }
         }
     }
-    
+
     // Branch 5: Decryption simulation
     if (decryption_operations > 0) {
         // Simulate AES decryption rounds
         for (int round = 9; round >= 0; round--) {
             decryption_operations += 5;
-            
+
             // Simulate inverse round key operations
             if (size >= 16) {
                 for (size_t i = 0; i < 16; i++) {
@@ -198,7 +198,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             }
         }
     }
-    
+
     // Branch 6: Performance optimization
     if (aes_operations > 100) {
         // High performance path
@@ -209,7 +209,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         encryption_operations /= 2;
         decryption_operations /= 2;
     }
-    
+
     // Branch 7: Error handling
     if (error_conditions > 50) {
         // Critical error
@@ -218,7 +218,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         // Warning condition
         aes_operations /= 2;
     }
-    
+
     // Branch 8: Final validation
     int total_operations = aes_operations + encryption_operations + decryption_operations;
     if (total_operations > 300) {

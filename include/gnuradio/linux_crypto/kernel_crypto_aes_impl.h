@@ -41,10 +41,10 @@ private:
     bool d_encrypt;
     bool d_kernel_crypto_available;
     mutable std::mutex d_mutex;
-    
+
     int d_socket_fd;
     int d_accept_fd;
-    
+
     void connect_to_kernel_crypto();
     void disconnect_from_kernel_crypto();
     void process_data(const unsigned char* input, unsigned char* output, int n_items);

@@ -32,6 +32,12 @@
 namespace gr {
 namespace linux_crypto {
 
+/**
+ * @brief Create a kernel keyring source block
+ * @param key_id The key ID to read from the kernel keyring
+ * @param auto_repeat Whether to repeat the key data to fill output
+ * @return Shared pointer to the kernel keyring source block
+ */
 kernel_keyring_source::sptr
 kernel_keyring_source::make(key_serial_t key_id, bool auto_repeat)
 {
@@ -39,10 +45,15 @@ kernel_keyring_source::make(key_serial_t key_id, bool auto_repeat)
         new kernel_keyring_source_impl(key_id, auto_repeat));
 }
 
+/**
+ * @brief Constructor for kernel keyring source implementation
+ * @param key_id The key ID to read from the kernel keyring
+ * @param auto_repeat Whether to repeat the key data to fill output
+ */
 kernel_keyring_source_impl::kernel_keyring_source_impl(key_serial_t key_id, bool auto_repeat)
-    : gr::block("kernel_keyring_source",
-                gr::io_signature::make(0, 0, 0),
-                gr::io_signature::make(1, 1, sizeof(unsigned char))),
+    : gr::sync_block("kernel_keyring_source",
+                     gr::io_signature::make(0, 0, 0),
+                     gr::io_signature::make(1, 1, sizeof(unsigned char))),
       d_key_id(key_id),
       d_auto_repeat(auto_repeat),
       d_key_size(0),
@@ -59,6 +70,13 @@ kernel_keyring_source_impl::~kernel_keyring_source_impl()
     }
 }
 
+/**
+ * @brief Load key data from the kernel keyring
+ * 
+ * This function reads the key data from the Linux kernel keyring
+ * using the keyctl system call. It first determines the key size,
+ * then reads the actual key data.
+ */
 void
 kernel_keyring_source_impl::load_key_from_keyring()
 {
@@ -125,6 +143,18 @@ kernel_keyring_source_impl::reload_key()
     load_key_from_keyring();
 }
 
+/**
+ * @brief Main work function for the kernel keyring source
+ * 
+ * This function outputs key data from the kernel keyring. If auto_repeat
+ * is enabled, it repeats the key data to fill the output. Otherwise,
+ * it outputs the key data once followed by zeros.
+ * 
+ * @param noutput_items Number of output items requested
+ * @param input_items Input items (not used for source block)
+ * @param output_items Output items to fill
+ * @return Number of items produced
+ */
 int
 kernel_keyring_source_impl::work(int noutput_items,
                                  gr_vector_const_void_star& input_items,
@@ -145,7 +175,8 @@ kernel_keyring_source_impl::work(int noutput_items,
         }
     } else {
         // Output key data once, then zeros
-        size_t output_size = std::min(static_cast<size_t>(noutput_items), d_key_data.size());
+        size_t output_size = std::min(static_cast<size_t>(noutput_items), 
+                                     d_key_data.size());
         memcpy(out, d_key_data.data(), output_size);
         
         if (noutput_items > static_cast<int>(output_size)) {

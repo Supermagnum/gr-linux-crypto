@@ -25,7 +25,7 @@ private:
     size_t d_buffer_pos;
 
 public:
-    kernel_crypto_aes(const std::vector<uint8_t>& key, 
+    kernel_crypto_aes(const std::vector<uint8_t>& key,
                       const std::vector<uint8_t>& iv,
                       bool encrypt = true)
         : gr::block("kernel_crypto_aes",
@@ -167,7 +167,7 @@ public:
     bool is_crypto_available() const { return d_socket >= 0; }
     size_t get_block_size() const { return d_block_size; }
     bool is_encrypt() const { return d_encrypt; }
-    
+
     void set_encrypt(bool encrypt) { d_encrypt = encrypt; }
     void set_key(const std::vector<uint8_t>& key) { d_key = key; }
     void set_iv(const std::vector<uint8_t>& iv) { d_iv = iv; }

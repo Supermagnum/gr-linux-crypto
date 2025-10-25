@@ -1,0 +1,8 @@
+/home/haaken/github-projects/gr-linux-crypto/build_standalone_test/CMakeFiles/gnuradio-linux-crypto.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone_test/CMakeFiles/linux_crypto_python.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone_test/CMakeFiles/edit_cache.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone_test/CMakeFiles/rebuild_cache.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone_test/CMakeFiles/list_install_components.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone_test/CMakeFiles/install.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone_test/CMakeFiles/install/local.dir
+/home/haaken/github-projects/gr-linux-crypto/build_standalone_test/CMakeFiles/install/strip.dir

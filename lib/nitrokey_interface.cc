@@ -128,7 +128,7 @@ public:
         }
     }
 
-    bool verify_signature(const std::vector<uint8_t>& data, 
+    bool verify_signature(const std::vector<uint8_t>& data,
                          const std::vector<uint8_t>& signature)
     {
         if (!d_device_connected) {
@@ -182,7 +182,7 @@ public:
     std::string get_device_serial() const { return d_device_serial; }
     bool is_key_loaded() const { return !d_key_data.empty(); }
     size_t get_key_size() const { return d_key_size; }
-    
+
     void set_auto_repeat(bool repeat) { d_auto_repeat = repeat; }
     bool get_auto_repeat() const { return d_auto_repeat; }
 
@@ -196,7 +196,7 @@ public:
         }
     }
 
-    void reconnect_device() 
+    void reconnect_device()
     {
         disconnect_device();
         connect_device();

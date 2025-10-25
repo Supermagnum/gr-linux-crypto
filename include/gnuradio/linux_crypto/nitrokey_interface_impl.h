@@ -45,7 +45,7 @@ private:
     bool d_key_loaded;
     bool d_nitrokey_available;
     mutable std::mutex d_mutex;
-    
+
     NK_device* d_device;
     std::string d_device_info;
 

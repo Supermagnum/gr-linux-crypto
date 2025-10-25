@@ -37,7 +37,7 @@ class KeyringHelper:
             return result
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"keyctl failed: {e.stderr}")
-    
+
     def add_key(self, key_type: str, key_description: str,
                 key_data: Union[str, bytes], keyring: str = "@u") -> str:
         """
@@ -67,17 +67,17 @@ class KeyringHelper:
             return result.stdout.strip()
         finally:
             os.unlink(temp_file)
-    
-    def request_key(self, key_type: str, key_description: str, 
+
+    def request_key(self, key_type: str, key_description: str,
                    keyring: str = "@u") -> Optional[str]:
         """
         Request a key from the keyring.
-        
+
         Args:
             key_type: Type of key to request
             key_description: Description of the key
             keyring: Source keyring (default: user keyring)
-        
+
         Returns:
             Key ID if found, None otherwise
         """
@@ -88,50 +88,50 @@ class KeyringHelper:
             return result.stdout.strip()
         except RuntimeError:
             return None
-    
+
     def read_key(self, key_id: str) -> bytes:
         """
         Read key data from keyring.
-        
+
         Args:
             key_id: Key ID to read
-        
+
         Returns:
             Key data as bytes
         """
         result = self._run_keyctl(['read', key_id])
         return result.stdout.encode('utf-8')
-    
+
     def read_key_hex(self, key_id: str) -> str:
         """
         Read key data as hex string.
-        
+
         Args:
             key_id: Key ID to read
-        
+
         Returns:
             Key data as hex string
         """
         result = self._run_keyctl(['read', key_id])
         return result.stdout.strip()
-    
+
     def list_keys(self, keyring: str = "@u") -> List[dict]:
         """
         List keys in a keyring.
-        
+
         Args:
             keyring: Keyring to list (default: user keyring)
-        
+
         Returns:
             List of key information dictionaries
         """
         result = self._run_keyctl(['list', keyring])
         keys = []
-        
+
         for line in result.stdout.strip().split('\n'):
             if not line:
                 continue
-            
+
             parts = line.split()
             if len(parts) >= 3:
                 key_id = parts[0]
@@ -142,19 +142,19 @@ class KeyringHelper:
                     'type': key_type,
                     'description': key_description
                 })
-        
+
         return keys
-    
-    def search_key(self, key_type: str, key_description: str, 
+
+    def search_key(self, key_type: str, key_description: str,
                    keyring: str = "@u") -> Optional[str]:
         """
         Search for a key in the keyring.
-        
+
         Args:
             key_type: Type of key to search for
             key_description: Description pattern to match
             keyring: Keyring to search (default: user keyring)
-        
+
         Returns:
             Key ID if found, None otherwise
         """
@@ -165,14 +165,14 @@ class KeyringHelper:
             return result.stdout.strip()
         except RuntimeError:
             return None
-    
+
     def revoke_key(self, key_id: str) -> bool:
         """
         Revoke a key from the keyring.
-        
+
         Args:
             key_id: Key ID to revoke
-        
+
         Returns:
             True if successful, False otherwise
         """
@@ -181,15 +181,15 @@ class KeyringHelper:
             return True
         except RuntimeError:
             return False
-    
+
     def unlink_key(self, key_id: str, keyring: str = "@u") -> bool:
         """
         Unlink a key from a keyring.
-        
+
         Args:
             key_id: Key ID to unlink
             keyring: Keyring to unlink from
-        
+
         Returns:
             True if successful, False otherwise
         """
@@ -198,15 +198,15 @@ class KeyringHelper:
             return True
         except RuntimeError:
             return False
-    
+
     def create_keyring(self, keyring_name: str, parent_keyring: str = "@u") -> str:
         """
         Create a new keyring.
-        
+
         Args:
             keyring_name: Name for the new keyring
             parent_keyring: Parent keyring (default: user keyring)
-        
+
         Returns:
             New keyring ID
         """
@@ -214,15 +214,15 @@ class KeyringHelper:
             'newring', keyring_name, parent_keyring
         ])
         return result.stdout.strip()
-    
+
     def link_key(self, key_id: str, keyring: str) -> bool:
         """
         Link a key to a keyring.
-        
+
         Args:
             key_id: Key ID to link
             keyring: Target keyring
-        
+
         Returns:
             True if successful, False otherwise
         """
@@ -231,14 +231,14 @@ class KeyringHelper:
             return True
         except RuntimeError:
             return False
-    
+
     def get_keyring_id(self, keyring_name: str) -> Optional[str]:
         """
         Get keyring ID by name.
-        
+
         Args:
             keyring_name: Name of the keyring
-        
+
         Returns:
             Keyring ID if found, None otherwise
         """
@@ -247,25 +247,25 @@ class KeyringHelper:
             return result.stdout.strip()
         except RuntimeError:
             return None
-    
+
     def show_key(self, key_id: str) -> dict:
         """
         Show detailed information about a key.
-        
+
         Args:
             key_id: Key ID to show
-        
+
         Returns:
             Dictionary with key information
         """
         result = self._run_keyctl(['show', key_id])
         info = {}
-        
+
         for line in result.stdout.strip().split('\n'):
             if ':' in line:
                 key, value = line.split(':', 1)
                 info[key.strip()] = value.strip()
-        
+
         return info
 
 # Convenience functions
@@ -291,15 +291,15 @@ def list_user_keys(keyring: str = "@u") -> List[dict]:
 if __name__ == "__main__":
     # Example usage
     helper = KeyringHelper()
-    
+
     # Add a test key
     key_id = helper.add_key('user', 'test_key', 'test_data')
     print(f"Added key: {key_id}")
-    
+
     # Read the key back
     key_data = helper.read_key(key_id)
     print(f"Key data: {key_data}")
-    
+
     # List all keys
     keys = helper.list_keys()
     print(f"All keys: {keys}")

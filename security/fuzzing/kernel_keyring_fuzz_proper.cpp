@@ -12,10 +12,10 @@
 // Proper kernel keyring fuzzing harness that creates MANY detectable edges
 static bool process_keyring_operations(const uint8_t* data, size_t size) {
     if (size < 1) return false;
-    
+
     // Create multiple branches that AFL++ can detect
     bool result = false;
-    
+
     // Branch 1: Size-based operations
     if (size < 5) {
         result = true;  // Small input branch
@@ -26,7 +26,7 @@ static bool process_keyring_operations(const uint8_t* data, size_t size) {
     } else {
         result = true;  // Very large input branch
     }
-    
+
     // Branch 2: First byte analysis
     if (size > 0) {
         uint8_t first_byte = data[0];
@@ -40,7 +40,7 @@ static bool process_keyring_operations(const uint8_t* data, size_t size) {
             result = true;  // High value branch
         }
     }
-    
+
     // Branch 3: Data pattern analysis
     for (size_t i = 0; i < std::min(size, (size_t)10); i++) {
         if (data[i] == 0x00) {
@@ -56,16 +56,16 @@ static bool process_keyring_operations(const uint8_t* data, size_t size) {
             result = true;  // 0xAA pattern found
         }
     }
-    
+
     return result;
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (size < 1 || size > MAX_SIZE) return 0;
-    
+
     // CRITICAL: Create MANY detectable control flow branches
     int result = 0;
-    
+
     // Branch 1: Size categories (8 branches)
     if (size < 5) {
         result = 1;
@@ -94,7 +94,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     } else {
         result = 8;
     }
-    
+
     // Branch 2: First byte analysis (16 branches)
     if (size > 0) {
         uint8_t first_byte = data[0];
@@ -118,7 +118,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             result += 900;
         }
     }
-    
+
     // Branch 3: Data pattern analysis (creates many edges)
     for (size_t i = 0; i < std::min(size, (size_t)20); i++) {
         if (data[i] == 0x00) {
@@ -146,13 +146,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             else result += 100000;
         }
     }
-    
+
     // Branch 4: Checksum analysis (6 branches)
     uint32_t checksum = 0;
     for (size_t i = 0; i < size; i++) {
         checksum += data[i];
     }
-    
+
     if (checksum == 0) {
         result += 1000000;
         // Additional branch for zero checksum
@@ -172,7 +172,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     } else {
         result += 6000000;
     }
-    
+
     // Branch 5: String analysis (creates edges)
     if (size > 4) {
         std::string input_str((char*)data, std::min(size, (size_t)50));
@@ -194,7 +194,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             result += 80000000;
         }
     }
-    
+
     // Branch 6: Operation result
     bool valid = process_keyring_operations(data, size);
     if (valid) {
@@ -203,7 +203,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         if (size > 10) result += 100000000;
         else result += 200000000;
     }
-    
+
     return result;
 }
 
@@ -211,7 +211,7 @@ int main() {
     uint8_t buf[MAX_SIZE];
     ssize_t len = read(STDIN_FILENO, buf, MAX_SIZE);
     if (len <= 0) return 0;
-    
+
     int result = LLVMFuzzerTestOneInput(buf, (size_t)len);
     return result;
 }

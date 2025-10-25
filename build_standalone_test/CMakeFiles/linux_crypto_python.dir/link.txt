@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g -shared  -o linux_crypto_python.cpython-312-x86_64-linux-gnu.so CMakeFiles/linux_crypto_python.dir/python/linux_crypto_python.cc.o  -Wl,-rpath,/home/haaken/github-projects/gr-linux-crypto/build_standalone_test libgnuradio-linux-crypto.so.1.0.0 -lgnuradio-runtime -lgnuradio-pmt -lgnuradio-blocks -lgnuradio-runtime -lgnuradio-pmt -lkeyutils -lssl -lcrypto 

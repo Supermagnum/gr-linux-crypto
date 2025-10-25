@@ -20,31 +20,31 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     // Create a copy of input data for processing
     std::vector<uint8_t> input_data(data, data + size);
-    
+
     // Simulate Nitrokey operations with complex branching
     int nitrokey_operations = 0;
     int signing_operations = 0;
     int verification_operations = 0;
     int error_conditions = 0;
-    
+
     // Branch 1: Nitrokey device type analysis
     if (input_data[0] == 0x01) {
         // Nitrokey Pro
         nitrokey_operations += 20;
-        
+
         if (size >= 16) {
             // Check for RSA key operations
             signing_operations += 15;
-            
+
             // Validate RSA key size
             if (size >= 32) {
                 signing_operations += 25;
-                
+
                 // Check for RSA-2048 key
                 if (size >= 256) {
                     signing_operations += 30;
                 }
-                
+
                 // Check for RSA-4096 key
                 if (size >= 512) {
                     signing_operations += 40;
@@ -54,20 +54,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     } else if (input_data[0] == 0x02) {
         // Nitrokey Start
         nitrokey_operations += 15;
-        
+
         if (size >= 16) {
             // Check for ECC key operations
             verification_operations += 10;
-            
+
             // Validate ECC key size
             if (size >= 32) {
                 verification_operations += 20;
-                
+
                 // Check for P-256 curve
                 if (size >= 64) {
                     verification_operations += 25;
                 }
-                
+
                 // Check for P-384 curve
                 if (size >= 96) {
                     verification_operations += 30;
@@ -77,16 +77,16 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     } else if (input_data[0] == 0x03) {
         // Nitrokey Storage
         nitrokey_operations += 25;
-        
+
         if (size >= 16) {
             // Check for storage operations
             signing_operations += 5;
             verification_operations += 5;
-            
+
             // Simulate file encryption
             if (size >= 32) {
                 signing_operations += 15;
-                
+
                 // Check for AES encryption
                 bool aes_pattern = true;
                 for (size_t i = 0; i < 16; i++) {
@@ -104,7 +104,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         // Unknown device type
         error_conditions += 15;
     }
-    
+
     // Branch 2: Key size analysis
     if (size < 16) {
         error_conditions += 20;
@@ -119,13 +119,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     } else {
         nitrokey_operations += 25;
     }
-    
+
     // Branch 3: Cryptographic algorithm analysis
     if (size >= 16) {
         // Check for RSA patterns
         if (input_data[1] == 0x01) {
             signing_operations += 20;
-            
+
             // Validate RSA key structure
             if (size >= 32) {
                 uint32_t key_checksum = 0;
@@ -137,11 +137,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
                 }
             }
         }
-        
+
         // Check for ECC patterns
         if (input_data[1] == 0x02) {
             verification_operations += 15;
-            
+
             // Validate ECC key structure
             if (size >= 32) {
                 bool ecc_pattern = true;
@@ -156,12 +156,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
                 }
             }
         }
-        
+
         // Check for AES patterns
         if (input_data[1] == 0x03) {
             signing_operations += 10;
             verification_operations += 10;
-            
+
             // Validate AES key structure
             if (size >= 32) {
                 bool aes_pattern = true;
@@ -178,7 +178,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             }
         }
     }
-    
+
     // Branch 4: Key strength analysis
     if (size >= 16) {
         // Calculate key entropy
@@ -186,7 +186,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         for (size_t i = 0; i < std::min(size, size_t(32)); i++) {
             entropy ^= input_data[i];
         }
-        
+
         if (entropy == 0) {
             error_conditions += 30;
         } else if (entropy < 0x10) {
@@ -198,7 +198,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         } else {
             nitrokey_operations += 20;
         }
-        
+
         // Check for weak key patterns
         bool weak_key = false;
         for (size_t i = 0; i < std::min(size, size_t(16)); i++) {
@@ -211,13 +211,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             error_conditions += 15;
         }
     }
-    
+
     // Branch 5: Signing operations simulation
     if (signing_operations > 0) {
         // Simulate digital signature generation
         for (int round = 0; round < 5; round++) {
             signing_operations += 8;
-            
+
             // Simulate hash operations
             if (size >= 16) {
                 for (size_t i = 0; i < 16; i++) {
@@ -228,13 +228,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             }
         }
     }
-    
+
     // Branch 6: Verification operations simulation
     if (verification_operations > 0) {
         // Simulate digital signature verification
         for (int round = 0; round < 5; round++) {
             verification_operations += 8;
-            
+
             // Simulate hash operations
             if (size >= 16) {
                 for (size_t i = 0; i < 16; i++) {
@@ -245,7 +245,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             }
         }
     }
-    
+
     // Branch 7: Performance optimization
     if (nitrokey_operations > 100) {
         // High performance path
@@ -256,7 +256,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         signing_operations /= 2;
         verification_operations /= 2;
     }
-    
+
     // Branch 8: Error handling
     if (error_conditions > 60) {
         // Critical error
@@ -265,7 +265,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         // Warning condition
         nitrokey_operations /= 2;
     }
-    
+
     // Branch 9: Final validation
     int total_operations = nitrokey_operations + signing_operations + verification_operations;
     if (total_operations > 400) {
