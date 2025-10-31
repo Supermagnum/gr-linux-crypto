@@ -49,16 +49,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         gr_vector_void_star outputs;
         outputs.push_back(output);
 
-        // Call actual work() method
+        // First: Test with initial auto_repeat value (multiple calls to test state progression)
         (void)block->work(noutput_items, inputs, outputs);
+        (void)block->work(noutput_items, inputs, outputs);  // Continue state machine
+        (void)block->work(noutput_items, inputs, outputs);  // Continue state machine
 
-        // Test setter methods
+        // Second: Test with flipped auto_repeat value (test the other boolean path)
         block->set_auto_repeat(!auto_repeat);
         
-        // Test reload_key
+        // Multiple calls with flipped value to ensure both paths are fully exercised
+        (void)block->work(noutput_items, inputs, outputs);
+        (void)block->work(noutput_items, inputs, outputs);  // Continue state machine if false
+        (void)block->work(noutput_items, inputs, outputs);  // Continue state machine if false
+        
+        // Test reload_key separately (after testing state machine)
         block->reload_key();
-
-        // Call work() again
         (void)block->work(noutput_items, inputs, outputs);
 
         delete[] output;

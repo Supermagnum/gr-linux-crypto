@@ -37,7 +37,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         (void)block->get_key_id();
         (void)block->get_auto_repeat();
         
-        // Test the actual work() method
+        // Test the actual work() method with multiple calls to exercise state machine
         int noutput_items = 512;
         if (size > sizeof(key_serial_t) + 1) {
             noutput_items = std::min(static_cast<int>(size - sizeof(key_serial_t) - 1), 2048);
@@ -48,16 +48,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         gr_vector_void_star outputs;
         outputs.push_back(output);
         
-        // Call actual work() method
+        // First: Test with initial auto_repeat value (multiple calls to test state progression)
         (void)block->work(noutput_items, inputs, outputs);
+        (void)block->work(noutput_items, inputs, outputs);  // Continue state machine
+        (void)block->work(noutput_items, inputs, outputs);  // Continue state machine
         
-        // Test set_auto_repeat with different value
+        // Second: Test with flipped auto_repeat value (test the other boolean path)
         block->set_auto_repeat(!auto_repeat);
         
-        // Test reload_key
-        block->reload_key();
+        // Multiple calls with flipped value to ensure both paths are fully exercised
+        (void)block->work(noutput_items, inputs, outputs);
+        (void)block->work(noutput_items, inputs, outputs);  // Continue state machine if false
+        (void)block->work(noutput_items, inputs, outputs);  // Continue state machine if false
         
-        // Call work() again
+        // Test reload_key separately (after testing state machine)
+        block->reload_key();
         (void)block->work(noutput_items, inputs, outputs);
         
         delete[] output;
