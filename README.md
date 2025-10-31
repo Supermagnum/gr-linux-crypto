@@ -34,6 +34,12 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 - **Don't duplicate**: Public-key crypto, authenticated encryption
 - **Integration only**: Provide hardware key storage for gr-nacl
 
+### **GnuPG/OpenPGP Operations**
+- **Limited integration**: Provides subprocess-based GnuPG wrapper for session key exchange
+- **PIN handling**: Uses GnuPG agent and pinentry programs (see documentation)
+- **Not native blocks**: Python utilities only, not stream-processing blocks
+- **See**: [GnuPG Integration Guide](docs/gnupg_integration.md) for setup, PIN handling, and usage patterns
+
 ## Integration Architecture
 
 ```
@@ -78,6 +84,13 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 ## Usage Flowchart
 
 See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing how to integrate gr-linux-crypto with gr-openssl and gr-nacl.
+
+## Documentation
+
+- [Usage Flowchart](docs/USAGE_FLOWCHART.md) - Integration patterns and workflows
+- [GnuPG Integration Guide](docs/gnupg_integration.md) - GnuPG setup, PIN handling, and examples
+- [Architecture Documentation](docs/architecture.md) - Module architecture and design
+- [Examples](docs/examples.md) - Code examples and tutorials
 
 ## Usage Examples
 
