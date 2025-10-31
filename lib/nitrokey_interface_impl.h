@@ -43,6 +43,7 @@ private:
     std::vector<unsigned char> d_key_data;
     size_t d_key_size;
     bool d_key_loaded;
+    size_t d_key_offset;  // Track position when auto_repeat == false
     bool d_nitrokey_available;
     std::mutex d_mutex;
 

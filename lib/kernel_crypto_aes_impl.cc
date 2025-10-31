@@ -25,7 +25,7 @@
 #endif
 
 #include <gnuradio/io_signature.h>
-#include <gnuradio/linux_crypto/kernel_crypto_aes_impl.h>
+#include "kernel_crypto_aes_impl.h"
 #include <cstring>
 #include <stdexcept>
 #include <sys/socket.h>

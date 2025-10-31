@@ -97,6 +97,5 @@ When adding new features:
 
 ## External References
 
-- [GNU Radio Documentation Standards](https://wiki.gnuradio.org/index.php/Documentation)
 - [Doxygen Manual](https://www.doxygen.nl/manual/)
 - [Python Documentation Standards](https://www.python.org/dev/peps/pep-0257/)

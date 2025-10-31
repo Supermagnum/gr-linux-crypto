@@ -276,6 +276,5 @@ export AFL_DEBUG=1
 ## References
 
 - [AFL++ Documentation](https://github.com/AFLplusplus/AFLplusplus)
-- [GNU Radio Security Guidelines](https://wiki.gnuradio.org/index.php/Security)
 - [Linux Kernel Crypto API](https://docs.kernel.org/crypto/index.html)
 - [OpenSSL Security](https://www.openssl.org/docs/man3.0/man7/security.html)

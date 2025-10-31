@@ -72,12 +72,6 @@ set(gr_linux_crypto_headers
     lib/kernel_crypto_aes_impl.h
 )
 
-if(OPENSSL_FOUND)
-    list(APPEND gr_linux_crypto_headers
-        lib/brainpool_ec_impl.h
-    )
-endif()
-
 ########################################################################
 # Create library
 ########################################################################

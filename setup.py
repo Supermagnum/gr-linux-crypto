@@ -21,7 +21,6 @@ setup(
     description="GNU Radio module for Linux kernel crypto infrastructure integration",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/gnuradio/gr-linux-crypto",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
