@@ -336,29 +336,37 @@ Two complementary fuzzing approaches validate both functional correctness and me
 
 ## What You Actually Need to Extract/Create
 
-### 1. **gr-linux-keyring** (NEW - but minimal!)
+### 1. **Native C++ Blocks** (Implemented)
 ```
-Blocks needed:
-- keyring_key_source    # Load key from kernel keyring
-- keyring_key_sink      # Store key to kernel keyring  
-- nitrokey_interface    # Access Nitrokey via libnitrokey
-- tpm_interface         # Access TPM for key storage
+Blocks implemented:
+- kernel_keyring_source    # Load key from kernel keyring (source only)
+- kernel_crypto_aes         # AES encryption via kernel crypto API
+- nitrokey_interface        # Access Nitrokey via libnitrokey
+- brainpool_ec              # Brainpool elliptic curve operations (ECDH, ECDSA)
 ```
 
-### 2. **Integration Helpers**
+**Note:** `keyring_key_sink` and `tpm_interface` are mentioned in design but not yet implemented.
+
+### 2. **Integration Helpers** (Implemented)
 ```
 Python helpers:
-- keyring_helper.py     # keyctl wrapper
-- crypto_helpers.py    # Integration utilities
+- keyring_helper.py        # keyctl wrapper for kernel keyring operations
+- crypto_helpers.py        # Integration utilities and helper functions
+- linux_crypto.py          # High-level encrypt/decrypt functions
+- linux_crypto_integration.py  # Integration with gr-openssl and gr-nacl
 ```
 
-### 3. **GNU Radio Companion Blocks**
+### 3. **GNU Radio Companion Blocks** (Implemented)
 ```
 GRC blocks:
-- kernel_keyring_source.block.yml
-- nitrokey_interface.block.yml
-- tpm_interface.block.yml
+- linux_crypto_kernel_keyring_source.block.yml
+- linux_crypto_kernel_crypto_aes.block.yml
+- linux_crypto_nitrokey_interface.block.yml
 ```
+
+**Additional GRC files (legacy/non-standard names):**
+- kernel_keyring_source.block.yml
+- kernel_aes_encrypt.block.yml
 
 ## Why This Approach?
 
