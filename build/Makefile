@@ -174,77 +174,65 @@ gnuradio-linux-crypto/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/build
 .PHONY : gnuradio-linux-crypto/fast
 
-lib/kernel_crypto_aes_impl.o: lib/kernel_crypto_aes_impl.cc.o
+# target to build an object file
+lib/brainpool_ec_impl.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o
+.PHONY : lib/brainpool_ec_impl.o
+
+# target to preprocess a source file
+lib/brainpool_ec_impl.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.i
+.PHONY : lib/brainpool_ec_impl.i
+
+# target to generate assembly for a file
+lib/brainpool_ec_impl.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.s
+.PHONY : lib/brainpool_ec_impl.s
+
+# target to build an object file
+lib/kernel_crypto_aes_impl.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o
 .PHONY : lib/kernel_crypto_aes_impl.o
 
-# target to build an object file
-lib/kernel_crypto_aes_impl.cc.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o
-.PHONY : lib/kernel_crypto_aes_impl.cc.o
-
-lib/kernel_crypto_aes_impl.i: lib/kernel_crypto_aes_impl.cc.i
+# target to preprocess a source file
+lib/kernel_crypto_aes_impl.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.i
 .PHONY : lib/kernel_crypto_aes_impl.i
 
-# target to preprocess a source file
-lib/kernel_crypto_aes_impl.cc.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.i
-.PHONY : lib/kernel_crypto_aes_impl.cc.i
-
-lib/kernel_crypto_aes_impl.s: lib/kernel_crypto_aes_impl.cc.s
+# target to generate assembly for a file
+lib/kernel_crypto_aes_impl.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.s
 .PHONY : lib/kernel_crypto_aes_impl.s
 
-# target to generate assembly for a file
-lib/kernel_crypto_aes_impl.cc.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.s
-.PHONY : lib/kernel_crypto_aes_impl.cc.s
-
-lib/kernel_keyring_source_impl.o: lib/kernel_keyring_source_impl.cc.o
+# target to build an object file
+lib/kernel_keyring_source_impl.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o
 .PHONY : lib/kernel_keyring_source_impl.o
 
-# target to build an object file
-lib/kernel_keyring_source_impl.cc.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o
-.PHONY : lib/kernel_keyring_source_impl.cc.o
-
-lib/kernel_keyring_source_impl.i: lib/kernel_keyring_source_impl.cc.i
+# target to preprocess a source file
+lib/kernel_keyring_source_impl.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.i
 .PHONY : lib/kernel_keyring_source_impl.i
 
-# target to preprocess a source file
-lib/kernel_keyring_source_impl.cc.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.i
-.PHONY : lib/kernel_keyring_source_impl.cc.i
-
-lib/kernel_keyring_source_impl.s: lib/kernel_keyring_source_impl.cc.s
+# target to generate assembly for a file
+lib/kernel_keyring_source_impl.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.s
 .PHONY : lib/kernel_keyring_source_impl.s
 
-# target to generate assembly for a file
-lib/kernel_keyring_source_impl.cc.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.s
-.PHONY : lib/kernel_keyring_source_impl.cc.s
-
-lib/nitrokey_interface_impl.o: lib/nitrokey_interface_impl.cc.o
+# target to build an object file
+lib/nitrokey_interface_impl.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o
 .PHONY : lib/nitrokey_interface_impl.o
 
-# target to build an object file
-lib/nitrokey_interface_impl.cc.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o
-.PHONY : lib/nitrokey_interface_impl.cc.o
-
-lib/nitrokey_interface_impl.i: lib/nitrokey_interface_impl.cc.i
+# target to preprocess a source file
+lib/nitrokey_interface_impl.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.i
 .PHONY : lib/nitrokey_interface_impl.i
 
-# target to preprocess a source file
-lib/nitrokey_interface_impl.cc.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.i
-.PHONY : lib/nitrokey_interface_impl.cc.i
-
-lib/nitrokey_interface_impl.s: lib/nitrokey_interface_impl.cc.s
-.PHONY : lib/nitrokey_interface_impl.s
-
 # target to generate assembly for a file
-lib/nitrokey_interface_impl.cc.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.s
-.PHONY : lib/nitrokey_interface_impl.cc.s
+lib/nitrokey_interface_impl.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.s
+.PHONY : lib/nitrokey_interface_impl.s
 
 # Help Target
 help:
@@ -259,6 +247,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... gnuradio-linux-crypto"
+	@echo "... lib/brainpool_ec_impl.o"
+	@echo "... lib/brainpool_ec_impl.i"
+	@echo "... lib/brainpool_ec_impl.s"
 	@echo "... lib/kernel_crypto_aes_impl.o"
 	@echo "... lib/kernel_crypto_aes_impl.i"
 	@echo "... lib/kernel_crypto_aes_impl.s"

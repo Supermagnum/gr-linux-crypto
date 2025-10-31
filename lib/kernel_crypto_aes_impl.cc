@@ -36,6 +36,24 @@
 namespace gr {
 namespace linux_crypto {
 
+/**
+ * @brief Create a kernel crypto AES block
+ * @param key The AES key (16, 24, or 32 bytes for AES-128, AES-192, AES-256)
+ * @param iv The initialization vector (16 bytes for AES)
+ * @param mode The AES mode ("cbc", "ecb", "ctr", "gcm")
+ * @param encrypt Whether to encrypt (true) or decrypt (false)
+ * @return Shared pointer to the kernel crypto AES block
+ */
+kernel_crypto_aes::sptr
+kernel_crypto_aes::make(const std::vector<unsigned char>& key,
+                        const std::vector<unsigned char>& iv,
+                        const std::string& mode,
+                        bool encrypt)
+{
+    return gnuradio::get_initial_sptr(
+        new kernel_crypto_aes_impl(key, iv, mode, encrypt));
+}
+
 kernel_crypto_aes_impl::kernel_crypto_aes_impl(const std::vector<unsigned char>& key,
                                                const std::vector<unsigned char>& iv,
                                                const std::string& mode,

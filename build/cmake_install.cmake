@@ -12,7 +12,7 @@ if(NOT DEFINED CMAKE_INSTALL_CONFIG_NAME)
     string(REGEX REPLACE "^[^A-Za-z0-9_]+" ""
            CMAKE_INSTALL_CONFIG_NAME "${BUILD_TYPE}")
   else()
-    set(CMAKE_INSTALL_CONFIG_NAME "Release")
+    set(CMAKE_INSTALL_CONFIG_NAME "")
   endif()
   message(STATUS "Install configuration: \"${CMAKE_INSTALL_CONFIG_NAME}\"")
 endif()
@@ -43,25 +43,25 @@ if(NOT DEFINED CMAKE_OBJDUMP)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  if(EXISTS "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.3.10.9" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.3.10.9")
+  if(EXISTS "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION")
     file(RPATH_CHECK
-         FILE "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.3.10.9"
+         FILE "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION"
          RPATH "")
   endif()
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/lib/libgnuradio-linux-crypto.so.3.10.9")
+   "/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/usr/local/lib" TYPE SHARED_LIBRARY FILES "/home/haaken/github-projects/gr-linux-crypto/build/libgnuradio-linux-crypto.so.3.10.9")
-  if(EXISTS "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.3.10.9" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.3.10.9")
+  file(INSTALL DESTINATION "/usr/local/lib" TYPE SHARED_LIBRARY FILES "/home/haaken/github-projects/gr-linux-crypto/build/libgnuradio-linux-crypto.so.SOVERSION")
+  if(EXISTS "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION")
     if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.3.10.9")
+      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION")
     endif()
   endif()
 endif()

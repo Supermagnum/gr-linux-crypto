@@ -21,12 +21,15 @@ KEYUTILS_LIBS=$(pkg-config --libs libkeyutils 2>/dev/null || echo "-lkeyutils")
 
 # Base project include paths (go up from libfuzzer_build to project root)
 # libfuzzer_build -> security/fuzzing -> security -> project root
+# Actually: security/fuzzing -> project root (only 2 levels up)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 INCLUDE_PATHS="-I$PROJECT_ROOT/include -I$PROJECT_ROOT/lib $GNURADIO_CFLAGS $KEYUTILS_CFLAGS"
 
 # Library paths
 LIBRARY_PATH="-L$PROJECT_ROOT/build"
+# Ensure library can be found at runtime
+export LD_LIBRARY_PATH="$PROJECT_ROOT/build:$LD_LIBRARY_PATH"
 LIBRARY_LIBS="$LIBRARY_PATH -lgnuradio-linux-crypto $GNURADIO_LIBS $KEYUTILS_LIBS"
 
 # Set compiler flags for LibFuzzer

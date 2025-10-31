@@ -41,7 +41,7 @@ private:
     size_t d_key_size;
     bool d_key_loaded;
     size_t d_key_offset;  // Track position when auto_repeat == false
-    std::mutex d_mutex;
+    mutable std::mutex d_mutex;
 
     void load_key_from_keyring();
     void output_key_data(int noutput_items, gr_vector_void_star& output_items);

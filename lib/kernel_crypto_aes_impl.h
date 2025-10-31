@@ -40,7 +40,7 @@ private:
     std::string d_mode;
     bool d_encrypt;
     bool d_kernel_crypto_available;
-    std::mutex d_mutex;
+    mutable std::mutex d_mutex;
 
     int d_socket_fd;
     int d_accept_fd;

@@ -45,7 +45,7 @@ private:
     bool d_key_loaded;
     size_t d_key_offset;  // Track position when auto_repeat == false
     bool d_nitrokey_available;
-    std::mutex d_mutex;
+    mutable std::mutex d_mutex;
 
     NK_device* d_device;
     std::string d_device_info;
