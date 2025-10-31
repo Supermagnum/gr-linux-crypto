@@ -48,8 +48,8 @@ include_directories(${GNURADIO_INCLUDE_DIRS})
 
 ########################################################################
 # API definition
-########################################################################
-add_definitions(-DLINUX_CRYPTO_API=__attribute__((visibility("default"))))
+# Note: LINUX_CRYPTO_API is defined in include/gnuradio/linux_crypto/api.h
+# using GNU Radio's standard __GR_ATTR_EXPORT/__GR_ATTR_IMPORT macros
 
 ########################################################################
 # Library sources
