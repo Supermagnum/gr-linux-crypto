@@ -153,7 +153,7 @@ gr-linux-crypto uses two complementary fuzzing approaches to validate both funct
 | Nitrokey Interface | 123 edges | 4.3+ billion | 0 | PASS |
 | OpenSSL Wrapper | 155 edges | 4.3+ billion | 0 | PASS |
 
-**Total:** 18.4+ billion executions (combined real crypto + coverage testing), 469 total edges
+**Calculation Note:** Each fuzzer ran ~4.3 billion executions independently. Total LibFuzzer executions: ~17.2 billion (4 × 4.3B). Combined with AFL++ real crypto testing: **18.4+ billion total executions** (not multiplied - these are separate parallel test runs), 469 total edges.
 
 **Note:** LibFuzzer harnesses may include artificial branching logic designed to maximize code coverage. This is standard fuzzing practice for edge case discovery and serves a different purpose than functional crypto testing.
 

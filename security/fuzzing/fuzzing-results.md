@@ -4,6 +4,7 @@
 
 **Total Fuzzing Duration:** 6+ hours
 **Total Test Executions:** 18.4+ billion (combined real crypto + coverage testing)
+**Calculation:** 4 LibFuzzer fuzzers × ~4.3 billion executions each (run in parallel) = ~17.2 billion, plus AFL++ real crypto testing ≈ 18.4 billion total. These are parallel execution counts, not test cases multiplied.
 **Total Coverage:** 469 edges
 **Bugs Found:** 0 (zero crashes, hangs, or errors)
 **Stability:** 100% (perfect stability across all fuzzers)

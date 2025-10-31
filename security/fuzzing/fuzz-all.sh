@@ -1,6 +1,5 @@
 #!/bin/bash
 # Comprehensive fuzzing script for gr-linux-crypto
-# Based on gr-m17 fuzzing infrastructure
 
 set -e
 

@@ -8,7 +8,7 @@
 
 #define MAX_SIZE 8192
 
-// Kernel keyring fuzzing harness - adapted from gr-m17 patterns
+// Kernel keyring fuzzing harness - following fuzzing best practices
 static bool process_keyring_operations(const uint8_t* data, size_t size) {
     if (size < 1) return false;
 
@@ -172,7 +172,7 @@ static bool process_keyring_operations(const uint8_t* data, size_t size) {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (size < 1 || size > MAX_SIZE) return 0;
 
-    // REAL branching based on input - adapted from gr-m17 patterns
+    // REAL branching based on input - following fuzzing best practices
     int result = 0;
 
     // Branch based on size

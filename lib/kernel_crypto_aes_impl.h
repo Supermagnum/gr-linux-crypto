@@ -23,7 +23,7 @@
 #ifndef INCLUDED_GR_LINUX_CRYPTO_KERNEL_CRYPTO_AES_IMPL_H
 #define INCLUDED_GR_LINUX_CRYPTO_KERNEL_CRYPTO_AES_IMPL_H
 
-#include <linux_crypto/kernel_crypto_aes.h>
+#include <gnuradio/linux_crypto/kernel_crypto_aes.h>
 #include <gnuradio/io_signature.h>
 #include <vector>
 #include <mutex>

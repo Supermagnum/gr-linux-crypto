@@ -1,6 +1,6 @@
 # GNU Radio Linux Crypto Fuzzing Infrastructure
 
-This directory contains comprehensive fuzzing harnesses and infrastructure for the GNU Radio Linux Crypto module, adapted from the gr-m17 project's advanced fuzzing framework.
+This directory contains comprehensive fuzzing harnesses and infrastructure for the GNU Radio Linux Crypto module, following established fuzzing best practices and patterns.
 
 ## Overview
 

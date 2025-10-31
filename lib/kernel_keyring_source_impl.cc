@@ -71,11 +71,7 @@ kernel_keyring_source_impl::~kernel_keyring_source_impl()
 }
 
 /**
- * @brief Load key data from the kernel keyring
- * 
- * This function reads the key data from the Linux kernel keyring
- * using the keyctl system call. It first determines the key size,
- * then reads the actual key data.
+ * Load key data from the kernel keyring using keyctl system call.
  */
 void
 kernel_keyring_source_impl::load_key_from_keyring()
@@ -144,16 +140,8 @@ kernel_keyring_source_impl::reload_key()
 }
 
 /**
- * @brief Main work function for the kernel keyring source
- * 
- * This function outputs key data from the kernel keyring. If auto_repeat
- * is enabled, it repeats the key data to fill the output. Otherwise,
- * it outputs the key data once followed by zeros.
- * 
- * @param noutput_items Number of output items requested
- * @param input_items Input items (not used for source block)
- * @param output_items Output items to fill
- * @return Number of items produced
+ * Output key data from kernel keyring.
+ * If auto_repeat enabled, repeats key to fill output.
  */
 int
 kernel_keyring_source_impl::work(int noutput_items,

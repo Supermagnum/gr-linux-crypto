@@ -23,7 +23,7 @@
 #ifndef INCLUDED_GR_LINUX_CRYPTO_NITROKEY_INTERFACE_IMPL_H
 #define INCLUDED_GR_LINUX_CRYPTO_NITROKEY_INTERFACE_IMPL_H
 
-#include <linux_crypto/nitrokey_interface.h>
+#include <gnuradio/linux_crypto/nitrokey_interface.h>
 #include <gnuradio/io_signature.h>
 #include <vector>
 #include <mutex>

@@ -1,6 +1,7 @@
 #!/bin/bash
 # OpenSSL Wrapper Fuzzing Corpus Generator
-CORPUS_DIR="/home/haaken/github-projects/gr-linux-crypto/security/fuzzing/corpus_creation/openssl_corpus"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CORPUS_DIR="${SCRIPT_DIR}/openssl_corpus"
 mkdir -p "$CORPUS_DIR"
 
 echo "Creating OpenSSL wrapper fuzzing corpus..."

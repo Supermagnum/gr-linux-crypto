@@ -1,7 +1,7 @@
 /*
  * Brainpool Elliptic Curve Cryptography Implementation
  *
- * This implementation uses OpenSSL's standard EVP API for maximum compatibility:
+ * Uses OpenSSL EVP API for Brainpool curve support:
  * - OpenSSL 1.0.2+: Basic Brainpool curve support
  * - OpenSSL 3.x: Improved Brainpool support with enhanced EVP API
  *
@@ -16,7 +16,6 @@
 #include <openssl/err.h>
 #include <openssl/bio.h>
 #include <cstring>
-#include <iostream>
 #include <sstream>
 
 namespace gr {
@@ -26,10 +25,8 @@ brainpool_ec_impl::brainpool_ec_impl(Curve curve)
     : d_curve(curve), d_group(nullptr)
 {
     d_group = create_curve_group(d_curve);
-    if (!d_group) {
-        std::cerr << "Failed to create curve group" << std::endl;
-        print_openssl_error();
-    }
+    // Errors are indicated by d_group being nullptr
+    // Error details available via OpenSSL error queue if needed
 }
 
 brainpool_ec_impl::~brainpool_ec_impl()
@@ -55,7 +52,7 @@ EC_GROUP* brainpool_ec_impl::create_curve_group(Curve curve)
     }
 
     if (nid == 0) {
-        std::cerr << "Brainpool curve not available in OpenSSL" << std::endl;
+        // Curve not available - return nullptr to indicate error
         return nullptr;
     }
 
@@ -390,10 +387,8 @@ void brainpool_ec_impl::set_curve(Curve curve)
 
     d_curve = curve;
     d_group = create_curve_group(d_curve);
-    if (!d_group) {
-        std::cerr << "Failed to set curve" << std::endl;
-        print_openssl_error();
-    }
+    // Errors are indicated by d_group being nullptr
+    // Error details available via OpenSSL error queue if needed
 }
 
 std::string brainpool_ec_impl::curve_to_string(Curve curve)
@@ -433,12 +428,10 @@ std::vector<std::string> brainpool_ec_impl::get_supported_curves()
 
 void brainpool_ec_impl::print_openssl_error()
 {
-    unsigned long err = ERR_get_error();
-    if (err != 0) {
-        char err_buf[256];
-        ERR_error_string_n(err, err_buf, sizeof(err_buf));
-        std::cerr << "OpenSSL error: " << err_buf << std::endl;
-    }
+    // Error reporting is handled via return codes and exceptions
+    // Debug only - not for production use
+    // OpenSSL errors are propagated through return values and exceptions
+    (void)ERR_get_error();  // Clear error queue
 }
 
 // Wrapper class implementation

@@ -31,6 +31,7 @@
 #include <sys/socket.h>
 #include <linux/if_alg.h>
 #include <unistd.h>
+#include <sys/uio.h>
 
 namespace gr {
 namespace linux_crypto {
@@ -50,6 +51,26 @@ kernel_crypto_aes_impl::kernel_crypto_aes_impl(const std::vector<unsigned char>&
       d_socket_fd(-1),
       d_accept_fd(-1)
 {
+    // Validate key size
+    if (d_key.size() != 16 && d_key.size() != 24 && d_key.size() != 32) {
+        d_kernel_crypto_available = false;
+        return;
+    }
+
+    // Validate mode string
+    if (d_mode != "cbc" && d_mode != "ecb" && d_mode != "ctr" && d_mode != "gcm") {
+        d_kernel_crypto_available = false;
+        return;
+    }
+
+    // Validate IV size for modes that require it
+    if (d_mode == "cbc" || d_mode == "ctr" || d_mode == "gcm") {
+        if (d_iv.size() != 16) {  // AES block size
+            d_kernel_crypto_available = false;
+            return;
+        }
+    }
+
     connect_to_kernel_crypto();
 }
 
@@ -73,8 +94,13 @@ kernel_crypto_aes_impl::connect_to_kernel_crypto()
     // Set up algorithm
     struct sockaddr_alg sa = {};
     sa.salg_family = AF_ALG;
-    strncpy((char*)sa.salg_type, "skcipher", sizeof(sa.salg_type) - 1);
-    strncpy((char*)sa.salg_name, ("aes-" + d_mode).c_str(), sizeof(sa.salg_name) - 1);
+    // Use memcpy for fixed-size buffers to avoid strncpy null-termination issues
+    const std::string alg_type = "skcipher";
+    const std::string alg_name = "aes-" + d_mode;
+    memcpy(sa.salg_type, alg_type.c_str(), std::min(alg_type.size(), sizeof(sa.salg_type) - 1));
+    sa.salg_type[sizeof(sa.salg_type) - 1] = '\0';
+    memcpy(sa.salg_name, alg_name.c_str(), std::min(alg_name.size(), sizeof(sa.salg_name) - 1));
+    sa.salg_name[sizeof(sa.salg_name) - 1] = '\0';
 
     if (bind(d_socket_fd, (struct sockaddr*)&sa, sizeof(sa)) < 0) {
         close(d_socket_fd);
@@ -160,10 +186,18 @@ void
 kernel_crypto_aes_impl::set_key(const std::vector<unsigned char>& key)
 {
     std::lock_guard<std::mutex> lock(d_mutex);
+
+    // Validate key size
+    if (key.size() != 16 && key.size() != 24 && key.size() != 32) {
+        return;
+    }
+
     d_key = key;
 
     if (d_kernel_crypto_available && d_accept_fd >= 0) {
-        setsockopt(d_accept_fd, SOL_ALG, ALG_SET_KEY, d_key.data(), d_key.size());
+        if (setsockopt(d_accept_fd, SOL_ALG, ALG_SET_KEY, d_key.data(), d_key.size()) < 0) {
+            d_kernel_crypto_available = false;
+        }
     }
 }
 
@@ -171,12 +205,26 @@ void
 kernel_crypto_aes_impl::set_iv(const std::vector<unsigned char>& iv)
 {
     std::lock_guard<std::mutex> lock(d_mutex);
+
+    // Validate IV size for modes that require it
+    if (d_mode == "cbc" || d_mode == "ctr" || d_mode == "gcm") {
+        if (iv.size() != 16) {  // AES block size
+            return;
+        }
+    }
+
     d_iv = iv;
 }
 
 void
 kernel_crypto_aes_impl::set_mode(const std::string& mode)
 {
+    // Validate mode string
+    if (mode != "cbc" && mode != "ecb" && mode != "ctr" && mode != "gcm") {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(d_mutex);
     d_mode = mode;
     disconnect_from_kernel_crypto();
     connect_to_kernel_crypto();
@@ -209,9 +257,9 @@ kernel_crypto_aes_impl::work(int noutput_items,
     unsigned char* out = (unsigned char*)output_items[0];
 
     if (!d_kernel_crypto_available) {
-        // Fallback: copy input to output
-        memcpy(out, in, noutput_items);
-        return noutput_items;
+        // Kernel crypto not available - output zeros rather than leaking plaintext
+        memset(out, 0, noutput_items);
+        return 0;
     }
 
     process_data(in, out, noutput_items);
@@ -221,19 +269,59 @@ kernel_crypto_aes_impl::work(int noutput_items,
 void
 kernel_crypto_aes_impl::process_data(const unsigned char* input, unsigned char* output, int n_items)
 {
-    // Simplified implementation - real version would use AF_ALG sockets
-    // This is a placeholder that simulates kernel crypto processing
+    if (d_accept_fd < 0 || n_items <= 0) {
+        return;
+    }
 
-    if (d_encrypt) {
-        // Simulate encryption
-        for (int i = 0; i < n_items; i++) {
-            output[i] = input[i] ^ d_key[i % d_key.size()];
-        }
-    } else {
-        // Simulate decryption
-        for (int i = 0; i < n_items; i++) {
-            output[i] = input[i] ^ d_key[i % d_key.size()];
-        }
+    // Prepare message for AF_ALG socket
+    struct msghdr msg = {};
+    struct iovec iov = {};
+    
+    // Allocate buffer for control message (IV)
+    char cbuf[CMSG_SPACE(sizeof(struct af_alg_iv))];
+    msg.msg_control = cbuf;
+    msg.msg_controllen = sizeof(cbuf);
+    
+    // Set up IV for modes that require it (CBC, CTR, GCM)
+    if (!d_iv.empty() && (d_mode == "cbc" || d_mode == "ctr" || d_mode == "gcm")) {
+        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+        cmsg->cmsg_level = SOL_ALG;
+        cmsg->cmsg_type = ALG_SET_IV;
+        cmsg->cmsg_len = CMSG_LEN(sizeof(struct af_alg_iv));
+        
+        struct af_alg_iv* alg_iv = (struct af_alg_iv*)CMSG_DATA(cmsg);
+        alg_iv->ivlen = d_iv.size();
+        memcpy(alg_iv->iv, d_iv.data(), d_iv.size());
+    }
+    
+    // Set up data vector
+    iov.iov_base = const_cast<unsigned char*>(input);
+    iov.iov_len = n_items;
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    
+    // Send data to kernel crypto API
+    // AF_ALG sockets handle both encrypt and decrypt based on the socket state
+    if (sendmsg(d_accept_fd, &msg, 0) < 0) {
+        // On error, clear output rather than leaking plaintext
+        memset(output, 0, n_items);
+        return;
+    }
+    
+    // Receive encrypted/decrypted data from kernel
+    ssize_t received = recv(d_accept_fd, output, n_items, 0);
+    if (received < 0) {
+        // On error, clear output rather than leaking plaintext
+        memset(output, 0, n_items);
+        return;
+    }
+    
+    // Ensure we got the expected amount
+    // AF_ALG sockets should return exactly the amount sent, but handle partial receives
+    if (static_cast<int>(received) != n_items) {
+        // Partial receive indicates an error - clear output
+        memset(output, 0, n_items);
+        return;
     }
 }
 

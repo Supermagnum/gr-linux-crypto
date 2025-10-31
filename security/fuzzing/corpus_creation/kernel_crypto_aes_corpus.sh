@@ -1,6 +1,7 @@
 #!/bin/bash
 # Kernel Crypto AES Fuzzing Corpus Generator
-CORPUS_DIR="/home/haaken/github-projects/gr-linux-crypto/security/fuzzing/corpus_creation/kernel_crypto_aes_corpus"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CORPUS_DIR="${SCRIPT_DIR}/kernel_crypto_aes_corpus"
 mkdir -p "$CORPUS_DIR"
 
 echo "Creating Kernel Crypto AES fuzzing corpus..."

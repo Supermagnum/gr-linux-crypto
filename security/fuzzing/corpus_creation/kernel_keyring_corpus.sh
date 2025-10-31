@@ -1,6 +1,7 @@
 #!/bin/bash
 # Kernel Keyring Fuzzing Corpus Generator
-CORPUS_DIR="/home/haaken/github-projects/gr-linux-crypto/security/fuzzing/corpus_creation/kernel_keyring_corpus"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CORPUS_DIR="${SCRIPT_DIR}/kernel_keyring_corpus"
 mkdir -p "$CORPUS_DIR"
 
 echo "Creating Kernel Keyring fuzzing corpus..."

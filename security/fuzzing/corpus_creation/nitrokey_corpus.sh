@@ -1,6 +1,7 @@
 #!/bin/bash
 # Nitrokey Interface Fuzzing Corpus Generator
-CORPUS_DIR="/home/haaken/github-projects/gr-linux-crypto/security/fuzzing/corpus_creation/nitrokey_corpus"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CORPUS_DIR="${SCRIPT_DIR}/nitrokey_corpus"
 mkdir -p "$CORPUS_DIR"
 
 echo "Creating Nitrokey interface fuzzing corpus..."

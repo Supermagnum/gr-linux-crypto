@@ -23,7 +23,7 @@
 #ifndef INCLUDED_GR_LINUX_CRYPTO_KERNEL_KEYRING_SOURCE_IMPL_H
 #define INCLUDED_GR_LINUX_CRYPTO_KERNEL_KEYRING_SOURCE_IMPL_H
 
-#include <linux_crypto/kernel_keyring_source.h>
+#include <gnuradio/linux_crypto/kernel_keyring_source.h>
 #include <gnuradio/io_signature.h>
 #include <keyutils.h>
 #include <vector>
