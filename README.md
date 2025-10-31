@@ -225,6 +225,27 @@ This module depends on the **libkeyutils-dev** package, which provides the devel
 
 Without this package, the module will fail to compile due to missing `keyutils.h` header file.
 
+## Cryptographic Operations Overview
+
+This module provides two distinct types of cryptographic operations:
+
+### 1. Encryption (AES block)
+- **Purpose:** Confidentiality - hides data from unauthorized parties
+- **Does NOT authenticate** who sent the data
+- Uses symmetric keys (same key for encrypt/decrypt)
+
+### 2. Signing & Key Exchange (Brainpool ECC block)
+- **ECDSA Signing:** Proves authenticity and integrity
+  - **Important:** Signing does NOT encrypt! Signed data is still readable by anyone
+  - Use signing to prove "this came from me and wasn't modified"
+- **ECDH Key Exchange:** Securely establish shared secrets
+- **Key Generation:** Create public/private key pairs
+
+### Common Use Pattern
+1. Use ECDH to establish a shared AES key
+2. Use AES to encrypt your signal data
+3. Use ECDSA to sign the encrypted data (or metadata)
+
 ## Supported Ciphers and Algorithms
 
 ### Symmetric Encryption
