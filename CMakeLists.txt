@@ -1,6 +1,6 @@
-# Copyright 2024 Free Software Foundation, Inc.
+# Copyright 2024
 #
-# This file is part of GNU Radio
+# This file is part of gr-linux-crypto
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #

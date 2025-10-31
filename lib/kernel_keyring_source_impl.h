@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2024 GNU Radio
+ * Copyright 2024
  *
  * This file is part of gr-linux-crypto.
  *
