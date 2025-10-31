@@ -308,12 +308,38 @@ def extract_brainpool_from_testmgr(file_path: str) -> List[LinuxKernelTestVector
             for struct_match in struct_matches[:5]:  # Limit to first 5 matches
                 struct_content = struct_match.group(1)
                 
-                # Extract hex arrays (very simplified)
-                hex_arrays = re.findall(r'0x[0-9a-fA-F,{}\s]+', struct_content)
-                if len(hex_arrays) >= 3:
-                    # Basic extraction - would need more sophisticated parsing
-                    # for full C struct interpretation
-                    pass
+                # Extract hex arrays - Linux kernel uses C array format
+                # Pattern: .private_key = { 0x12, 0x34, ... } or .private_key = {0x1234, ...}
+                private_key_pattern = r'\.private_key\s*=\s*\{([^}]+)\}'
+                public_key_pattern = r'\.public_key\s*=\s*\{([^}]+)\}'
+                expected_pattern = r'\.expected\s*=\s*\{([^}]+)\}'
+                
+                private_match = re.search(private_key_pattern, struct_content, re.IGNORECASE)
+                public_match = re.search(public_key_pattern, struct_content, re.IGNORECASE)
+                expected_match = re.search(expected_pattern, struct_content, re.IGNORECASE)
+                
+                if private_match and public_match and expected_match:
+                    try:
+                        # Extract hex bytes from C array format
+                        def extract_hex_bytes(hex_str):
+                            hex_vals = re.findall(r'0x([0-9a-fA-F]{2})', hex_str)
+                            return bytes([int(h, 16) for h in hex_vals])
+                        
+                        private_key = extract_hex_bytes(private_match.group(1))
+                        public_key = extract_hex_bytes(public_match.group(1))
+                        shared_secret = extract_hex_bytes(expected_match.group(1))
+                        
+                        if private_key and public_key and shared_secret:
+                            vectors.append(LinuxKernelTestVector(
+                                curve=curve_name,
+                                private_key=private_key,
+                                public_key=public_key,
+                                shared_secret=shared_secret,
+                                test_type='ECDH'
+                            ))
+                    except (ValueError, IndexError):
+                        # Skip malformed entries
+                        continue
         
         print(f"Extracted {len(vectors)} Brainpool vectors from testmgr.h")
         return vectors

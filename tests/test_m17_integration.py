@@ -155,8 +155,10 @@ class TestM17FrameStructure:
         assert parsed_frame is not None
         assert parsed_frame.sync_word == M17Frame.SYNC_WORD_LSF
         assert parsed_frame.frame_type == 0
-        # Encryption type should be preserved
-        assert parsed_frame.encryption_type == M17EncryptionType.CUSTOM or parsed_frame.encryption_type == 3
+        # Encryption type should be preserved (can be enum or int value)
+        assert (parsed_frame.encryption_type == M17EncryptionType.CUSTOM or 
+                parsed_frame.encryption_type == 3 or
+                int(parsed_frame.encryption_type) == 3)
 
 
 class TestM17Codec2Encryption:

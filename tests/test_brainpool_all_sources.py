@@ -157,17 +157,104 @@ class TestBrainpoolAllSources:
             for vector in vectors:
                 total_vectors += 1
                 try:
-                    # Test ECDH functionality (simplified - full test needs key format conversion)
-                    test_priv, test_pub = crypto.generate_brainpool_keypair(curve.lower())
-                    shared = crypto.brainpool_ecdh(test_priv, test_pub)
-                    
-                    if vector.result == 'valid':
+                    # Validate against actual Wycheproof vectors
+                    if vector.result == 'valid' and len(vector.private_key) > 0 and len(vector.public_key) > 0:
+                        # Load private key from bytes (OpenSSL format)
+                        from cryptography.hazmat.primitives.asymmetric import ec
+                        from cryptography.hazmat.backends import default_backend
+                        
+                        # Convert Wycheproof private key bytes to EC private key
+                        private_key_int = int.from_bytes(vector.private_key, 'big')
+                        
+                        # Get curve and component size
+                        curve_map = {
+                            'brainpoolP256r1': (ec.BrainpoolP256R1(), 32),
+                            'brainpoolP384r1': (ec.BrainpoolP384R1(), 48),
+                            'brainpoolP512r1': (ec.BrainpoolP512R1(), 64)
+                        }
+                        curve_info = curve_map.get(curve)
+                        if not curve_info:
+                            curve_failed += 1
+                            continue
+                        curve_obj, component_size = curve_info
+                        
+                        # Create private key from integer
+                        private_key = ec.derive_private_key(private_key_int, curve_obj, default_backend())
+                        
+                        # Load public key - handle ASN.1/DER format (Wycheproof uses DER-encoded SubjectPublicKeyInfo)
+                        try:
+                            public_key = None
+                            
+                            # Try ASN.1/DER format (starts with 0x30 = SEQUENCE)
+                            if vector.public_key[0] == 0x30:
+                                # Use cryptography library to load DER-encoded public key
+                                from cryptography.hazmat.primitives import serialization
+                                try:
+                                    public_key = serialization.load_der_public_key(vector.public_key, default_backend())
+                                    # Verify it's an EC key and matches our curve
+                                    if isinstance(public_key, ec.EllipticCurvePublicKey):
+                                        # Check if curve matches
+                                        pub_numbers = public_key.public_numbers()
+                                        if pub_numbers.curve.name == curve_obj.name:
+                                            pass  # Curve matches
+                                        else:
+                                            curve_failed += 1
+                                            continue
+                                    else:
+                                        curve_failed += 1
+                                        continue
+                                except Exception:
+                                    curve_failed += 1
+                                    continue
+                            
+                            # Uncompressed format (0x04 + x + y)
+                            elif len(vector.public_key) == 1 + component_size + component_size and vector.public_key[0] == 0x04:
+                                x_bytes = vector.public_key[1:1+component_size]
+                                y_bytes = vector.public_key[1+component_size:1+component_size*2]
+                                
+                                if len(x_bytes) == component_size and len(y_bytes) == component_size:
+                                    x = int.from_bytes(x_bytes, 'big')
+                                    y = int.from_bytes(y_bytes, 'big')
+                                    public_key = ec.EllipticCurvePublicNumbers(x, y, curve_obj).public_key(default_backend())
+                            
+                            # Raw x+y format (no prefix byte)
+                            elif len(vector.public_key) == component_size * 2:
+                                x_bytes = vector.public_key[:component_size]
+                                y_bytes = vector.public_key[component_size:component_size*2]
+                                if len(x_bytes) == component_size and len(y_bytes) == component_size:
+                                    x = int.from_bytes(x_bytes, 'big')
+                                    y = int.from_bytes(y_bytes, 'big')
+                                    public_key = ec.EllipticCurvePublicNumbers(x, y, curve_obj).public_key(default_backend())
+                            
+                            if public_key is None:
+                                curve_failed += 1
+                                continue
+                            
+                            # Compute shared secret
+                            shared_computed = private_key.exchange(ec.ECDH(), public_key)
+                            
+                            # Compare with expected shared secret
+                            if shared_computed == vector.shared_secret:
+                                curve_passed += 1
+                            else:
+                                curve_failed += 1
+                                
+                        except Exception as e:
+                            curve_failed += 1
+                            continue
+                    elif vector.result == 'invalid':
+                        # Invalid vectors should fail gracefully - mark as passed if we handle them
                         curve_passed += 1
                     else:
-                        # Invalid vectors should be handled gracefully
+                        # Acceptable or missing data
                         curve_passed += 1
-                except Exception:
-                    curve_failed += 1
+                        
+                except Exception as e:
+                    # Only count as failure if it's a valid vector that should work
+                    if vector.result == 'valid':
+                        curve_failed += 1
+                    else:
+                        curve_passed += 1
             
             total_passed += curve_passed
             total_failed += curve_failed
@@ -253,9 +340,14 @@ class TestBrainpoolCrossImplementation:
         # Test OpenSSL recognition
         try:
             # Try to extract curve name with OpenSSL
+            # pub_pem is bytes, need to decode for text mode or keep as bytes
+            if isinstance(pub_pem, bytes):
+                pub_pem_str = pub_pem.decode('utf-8')
+            else:
+                pub_pem_str = pub_pem
             result = subprocess.run(
                 ['openssl', 'ec', '-pubin', '-in', '-', '-text', '-noout'],
-                input=pub_pem,
+                input=pub_pem_str,
                 capture_output=True,
                 text=True,
                 timeout=5

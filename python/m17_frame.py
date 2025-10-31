@@ -93,13 +93,20 @@ class M17Frame:
         dst_encoded = M17Frame._encode_callsign(dst)
         src_encoded = M17Frame._encode_callsign(src)
         
+        # Build LSF payload: 30 bytes total
+        # Bytes 0-5: Destination callsign (6 bytes)
+        # Bytes 6-11: Source callsign (6 bytes)  
+        # Bytes 12-15: Frame type (4 bytes, LSF = 0)
+        # Bytes 16-17: Encryption type/subtype (2 bytes)
+        # Bytes 18-25: Key fingerprint (8 bytes)
+        # Bytes 26-29: Metadata (4 bytes)
         frame.payload = (
-            dst_encoded +
-            src_encoded +
+            dst_encoded[:6].ljust(6, b'\x00') +
+            src_encoded[:6].ljust(6, b'\x00') +
             struct.pack('>I', 0)[:4] +  # Frame type (LSF = 0)
-            struct.pack('>BB', encryption_type, encryption_subtype) +
-            frame.key_fingerprint.ljust(8, b'\x00') +
-            frame.meta.ljust(4, b'\x00')
+            struct.pack('>BB', int(encryption_type), int(encryption_subtype)) +
+            frame.key_fingerprint[:8].ljust(8, b'\x00') +
+            frame.meta[:4].ljust(4, b'\x00')
         )
         
         # Pad to 30 bytes
@@ -298,8 +305,18 @@ class M17Frame:
                 frame.payload = data[2:32]
                 # Parse LSF fields
                 if len(frame.payload) >= 16:
-                    # LSF structure: payload[12] = encryption_type, payload[13] = encryption_subtype
-                    if len(frame.payload) > 13:
+                    # LSF structure: 
+                    # payload[0:6] = dst callsign
+                    # payload[6:12] = src callsign  
+                    # payload[12:16] = frame type (4 bytes)
+                    # Actually: After callsigns (12 bytes), we have frame type (4 bytes), then encryption fields
+                    # So encryption_type is at offset 16, not 12
+                    if len(frame.payload) > 17:
+                        # Frame type is at 12-16, encryption_type at 16, encryption_subtype at 17
+                        frame.encryption_type = M17EncryptionType(frame.payload[16])
+                        frame.encryption_subtype = frame.payload[17]
+                    elif len(frame.payload) > 13:
+                        # Fallback: try offset 12 (for backwards compatibility)
                         frame.encryption_type = M17EncryptionType(frame.payload[12])
                         frame.encryption_subtype = frame.payload[13]
                     if len(frame.payload) >= 22:
