@@ -75,6 +75,10 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 - **Hardware security module bridges** (Nitrokey, TPM)
 - **GNU Radio-specific helpers** (PDU crypto, stream crypto)
 
+## Usage Flowchart
+
+See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing how to integrate gr-linux-crypto with gr-openssl and gr-nacl.
+
 ## Usage Examples
 
 ### Kernel Keyring as Key Source for gr-openssl
