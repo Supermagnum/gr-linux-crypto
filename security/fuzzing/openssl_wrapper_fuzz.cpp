@@ -237,102 +237,16 @@ static void test_openssl_edge_cases(const uint8_t* data, size_t size) {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (size < 1 || size > MAX_SIZE) return 0;
 
-    // REAL branching based on input - this creates meaningful edges
-    int result = 0;
-
-    // Branch based on size
-    if (size < 10) {
-        result = 1;  // Very small input
-    } else if (size < 50) {
-        result = 2;  // Small input
-    } else if (size < 200) {
-        result = 3;  // Medium input
-    } else {
-        result = 4;  // Large input
-    }
-
-    // Branch based on first byte (operation type)
-    if (data[0] & 0x01) {
-        result += 10;  // AES operation
-    }
-    if (data[0] & 0x02) {
-        result += 20;  // Hash operation
-    }
-    if (data[0] & 0x04) {
-        result += 30;  // HMAC operation
-    }
-    if (data[0] & 0x08) {
-        result += 40;  // RSA operation
-    }
-
-    // Branch based on key patterns
-    if (size >= 32) {
-        bool key_all_zeros = true, key_all_ones = true;
-        for (int i = 0; i < 32; i++) {
-            if (data[i] != 0x00) key_all_zeros = false;
-            if (data[i] != 0xFF) key_all_ones = false;
-        }
-
-        if (key_all_zeros) {
-            result += 100;  // Weak key (all zeros)
-        } else if (key_all_ones) {
-            result += 200;  // Weak key (all ones)
-        } else {
-            result += 300;  // Normal key
-        }
-    }
-
-    // Branch based on data patterns
-    bool has_zeros = false, has_ones = false, has_alternating = false;
-    for (size_t i = 0; i < size && i < 10; i++) {
-        if (data[i] == 0x00) has_zeros = true;
-        if (data[i] == 0xFF) has_ones = true;
-        if (i > 0 && data[i] != data[i-1]) has_alternating = true;
-    }
-
-    if (has_zeros) result += 1000;
-    if (has_ones) result += 2000;
-    if (has_alternating) result += 3000;
-
-    // Branch based on checksum-like calculation
-    uint32_t checksum = 0;
-    for (size_t i = 0; i < size; i++) {
-        checksum += data[i];
-    }
-
-    if (checksum == 0) {
-        result += 10000;  // Zero checksum
-    } else if (checksum < 100) {
-        result += 20000;  // Low checksum
-    } else if (checksum > 1000) {
-        result += 30000;  // High checksum
-    } else {
-        result += 40000;  // Medium checksum
-    }
-
-    // Branch based on specific byte values
-    for (size_t i = 0; i < size && i < 5; i++) {
-        if (data[i] == 0x55) result += 100000;
-        if (data[i] == 0xAA) result += 200000;
-        if (data[i] == 0x33) result += 300000;
-        if (data[i] == 0xCC) result += 400000;
-    }
-
-    // Test OpenSSL operations
-    bool aes_valid = test_openssl_aes(data, size);
-    bool hash_valid = test_openssl_hash(data, size);
-    bool hmac_valid = test_openssl_hmac(data, size);
-    bool rsa_valid = test_openssl_rsa(data, size);
-
-    if (aes_valid) result += 1000000;
-    if (hash_valid) result += 2000000;
-    if (hmac_valid) result += 3000000;
-    if (rsa_valid) result += 4000000;
-
+    // Test actual OpenSSL operations - no artificial branching
+    (void)test_openssl_aes(data, size);
+    (void)test_openssl_hash(data, size);
+    (void)test_openssl_hmac(data, size);
+    (void)test_openssl_rsa(data, size);
+    
     // Test edge cases
     test_openssl_edge_cases(data, size);
 
-    return result;  // Return different values based on input
+    return 0;
 }
 
 int main() {
