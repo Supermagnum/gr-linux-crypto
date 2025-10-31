@@ -1,0 +1,210 @@
+**** WARNING: Use --unwinding-assertions to obtain sound verification results
+CBMC version 5.95.1 (cbmc-5.95.1) 64-bit x86_64 linux
+Parsing tests/cbmc/kernel_crypto_aes_harness.c
+Converting
+Type-checking kernel_crypto_aes_harness
+file tests/cbmc/kernel_crypto_aes_harness.c line 83 function main: function '__CPROVER_nondet_uint8_t' is not declared
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 8 object bits, 56 offset bits (default)
+Starting Bounded Model Checking
+**** WARNING: no body for function __CPROVER_nondet_uint8_t
+Unwinding loop main.0 iteration 1 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 2 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 3 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 4 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 5 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 6 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 7 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 8 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 9 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 10 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 11 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 12 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 13 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 14 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 15 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 16 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 17 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 18 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 19 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 20 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 21 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 22 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 23 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 24 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 25 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 26 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 27 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 28 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 29 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 30 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 31 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 32 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 33 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 34 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 35 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 36 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 37 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 38 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 39 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 40 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 41 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 42 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 43 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 44 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 45 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 46 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 47 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 48 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.0 iteration 49 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Not unwinding loop main.0 iteration 50 file tests/cbmc/kernel_crypto_aes_harness.c line 82 function main thread 0
+Unwinding loop main.1 iteration 1 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 2 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 3 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 4 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 5 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 6 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 7 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 8 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 9 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 10 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 11 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 12 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 13 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 14 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 15 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 16 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 17 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 18 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 19 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 20 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 21 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 22 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 23 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 24 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 25 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 26 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 27 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 28 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 29 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 30 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 31 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 32 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 33 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 34 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 35 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 36 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 37 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 38 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 39 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 40 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 41 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 42 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 43 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 44 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 45 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 46 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 47 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 48 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop main.1 iteration 49 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Not unwinding loop main.1 iteration 50 file tests/cbmc/kernel_crypto_aes_harness.c line 86 function main thread 0
+Unwinding loop process_data_harness.0 iteration 1 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 2 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 3 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 4 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 5 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 6 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 7 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 8 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 9 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 10 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 11 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 12 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 13 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 14 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 15 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 16 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 17 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 18 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 19 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 20 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 21 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 22 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 23 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 24 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 25 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 26 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 27 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 28 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 29 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 30 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 31 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 32 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 33 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 34 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 35 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 36 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 37 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 38 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 39 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 40 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 41 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 42 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 43 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 44 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 45 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 46 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 47 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 48 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Unwinding loop process_data_harness.0 iteration 49 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Not unwinding loop process_data_harness.0 iteration 50 file tests/cbmc/kernel_crypto_aes_harness.c line 47 function process_data_harness thread 0
+Runtime Symex: 0.0768155s
+size of program expression: 3198 steps
+simple slicing removed 115 assignments
+Generated 1101 VCC(s), 67 remaining after simplification
+Runtime Postprocess Equation: 0.000259448s
+Passing problem to propositional reduction
+converting SSA
+Runtime Convert SSA: 0.156711s
+Running propositional reduction
+Post-processing
+Runtime Post-process: 2.144e-06s
+Solving with MiniSAT 2.2.1 with simplifier
+196501 variables, 792517 clauses
+SAT checker: instance is UNSATISFIABLE
+Runtime Solver: 0.579455s
+Runtime decision procedure: 0.736269s
+
+** Results:
+tests/cbmc/kernel_crypto_aes_harness.c function main
+[main.array_bounds.1] line 83 array 'input' lower bound in input[(signed long int)i]: SUCCESS
+[main.array_bounds.2] line 83 array 'input' upper bound in input[(signed long int)i]: SUCCESS
+[main.array_bounds.3] line 87 array 'key' lower bound in key[(signed long int)i]: SUCCESS
+[main.array_bounds.4] line 87 array 'key' upper bound in key[(signed long int)i]: SUCCESS
+
+tests/cbmc/kernel_crypto_aes_harness.c function process_data_harness
+[process_data_harness.pointer_dereference.1] line 53 dereference failure: pointer NULL in output[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.2] line 53 dereference failure: pointer invalid in output[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.3] line 53 dereference failure: deallocated dynamic object in output[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.4] line 53 dereference failure: dead object in output[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.5] line 53 dereference failure: pointer outside object bounds in output[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.6] line 53 dereference failure: invalid integer address in output[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.7] line 53 dereference failure: pointer NULL in input[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.8] line 53 dereference failure: pointer invalid in input[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.9] line 53 dereference failure: deallocated dynamic object in input[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.10] line 53 dereference failure: dead object in input[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.11] line 53 dereference failure: pointer outside object bounds in input[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.12] line 53 dereference failure: invalid integer address in input[(signed long int)i]: SUCCESS
+[process_data_harness.pointer_dereference.13] line 53 dereference failure: pointer NULL in key[(signed long int)key_index]: SUCCESS
+[process_data_harness.pointer_dereference.14] line 53 dereference failure: pointer invalid in key[(signed long int)key_index]: SUCCESS
+[process_data_harness.pointer_dereference.15] line 53 dereference failure: deallocated dynamic object in key[(signed long int)key_index]: SUCCESS
+[process_data_harness.pointer_dereference.16] line 53 dereference failure: dead object in key[(signed long int)key_index]: SUCCESS
+[process_data_harness.pointer_dereference.17] line 53 dereference failure: pointer outside object bounds in key[(signed long int)key_index]: SUCCESS
+[process_data_harness.pointer_dereference.18] line 53 dereference failure: invalid integer address in key[(signed long int)key_index]: SUCCESS
+[process_data_harness.assertion.1] line 58 assertion output != NULL: SUCCESS
+
+** 0 of 23 failed (1 iterations)
+VERIFICATION SUCCESSFUL

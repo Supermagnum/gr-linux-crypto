@@ -112,6 +112,51 @@ encryptor = nacl.encrypt_secret("nitrokey_key")
 tb.connect(nitrokey_source, encryptor)
 ```
 
+### Brainpool Elliptic Curve Cryptography
+```python
+from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
+crypto = CryptoHelpers()
+
+# Generate Brainpool key pair
+private_key, public_key = crypto.generate_brainpool_keypair('brainpoolP256r1')
+
+# ECDH key exchange
+# Alice generates key pair
+alice_private, alice_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+
+# Bob generates key pair
+bob_private, bob_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+
+# Both compute shared secret
+alice_secret = crypto.brainpool_ecdh(alice_private, bob_public)
+bob_secret = crypto.brainpool_ecdh(bob_private, alice_public)
+# alice_secret == bob_secret
+
+# ECDSA signing and verification
+message = "Message to sign"
+signature = crypto.brainpool_sign(message, private_key, hash_algorithm='sha256')
+is_valid = crypto.brainpool_verify(message, signature, public_key, hash_algorithm='sha256')
+
+# Key serialization
+public_pem = crypto.serialize_brainpool_public_key(public_key)
+private_pem = crypto.serialize_brainpool_private_key(private_key)
+loaded_public = crypto.load_brainpool_public_key(public_pem)
+loaded_private = crypto.load_brainpool_private_key(private_pem)
+```
+
+**Supported Brainpool Curves:**
+- `brainpoolP256r1` - 256-bit curve
+- `brainpoolP384r1` - 384-bit curve  
+- `brainpoolP512r1` - 512-bit curve
+
+**OpenSSL Requirements:**
+- Brainpool support requires OpenSSL 1.0.2 or later
+- OpenSSL 3.x provides improved Brainpool support
+- Accessible via standard EVP API for maximum compatibility
+
+See `examples/brainpool_example.py` for a complete demonstration.
+
 ## Dependencies
 
 ### Required
@@ -134,6 +179,8 @@ tb.connect(nitrokey_source, encryptor)
 - **libnitrokey** (for hardware security modules)
 - **TPM libraries** (for TPM support)
 - **OpenSSL development headers** (libssl-dev)
+  - **OpenSSL 1.0.2+** required for Brainpool curve support
+  - **OpenSSL 3.x** recommended for improved Brainpool support
 - **libsodium development headers** (libsodium-dev)
 
 ## Installation
@@ -231,5 +278,6 @@ GRC blocks:
 | Hardware security | No | No | Yes (unique) |
 | Kernel crypto API | No | No | Yes (unique) |
 | TPM integration | No | No | Yes (unique) |
+| Brainpool curves | No | No | Yes (unique) |
 
 This module fills the gaps in the GNU Radio crypto ecosystem by providing Linux-specific infrastructure that existing modules don't cover.

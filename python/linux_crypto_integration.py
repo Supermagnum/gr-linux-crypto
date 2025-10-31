@@ -410,7 +410,7 @@ def demonstrate_integration():
     status = integration.get_integration_status()
     print("Integration Status:")
     for component, available in status.items():
-        status_str = "✓" if available else "✗"
+        status_str = "[OK]" if available else "[FAIL]"
         print(f"  {status_str} {component}")
     print()
 
@@ -422,22 +422,22 @@ def demonstrate_integration():
     test_key = b"This is a test key for integration"
     key_id = keyring.add_key("test_integration_key", test_key)
     if key_id:
-        print(f"✓ Added key to kernel keyring with ID: {key_id}")
+        print(f"[OK] Added key to kernel keyring with ID: {key_id}")
 
         # Retrieve the key
         retrieved_key = keyring.get_key("test_integration_key")
         if retrieved_key:
-            print(f"✓ Retrieved key from kernel keyring: {len(retrieved_key)} bytes")
+            print(f"[OK] Retrieved key from kernel keyring: {len(retrieved_key)} bytes")
         else:
-            print("✗ Failed to retrieve key from kernel keyring")
+            print("[FAIL] Failed to retrieve key from kernel keyring")
 
         # Clean up
         if keyring.delete_key("test_integration_key"):
-            print("✓ Cleaned up key from kernel keyring")
+            print("[OK] Cleaned up key from kernel keyring")
         else:
-            print("✗ Failed to clean up key from kernel keyring")
+            print("[FAIL] Failed to clean up key from kernel keyring")
     else:
-        print("✗ Failed to add key to kernel keyring")
+        print("[FAIL] Failed to add key to kernel keyring")
 
     print()
 
@@ -446,7 +446,7 @@ def demonstrate_integration():
     nitrokey = integration.nitrokey_manager
 
     if nitrokey.connect():
-        print("✓ Connected to Nitrokey device")
+        print("[OK] Connected to Nitrokey device")
         print(f"  Device info: {nitrokey.get_device_info()}")
 
         available_slots = nitrokey.get_available_slots()
@@ -456,11 +456,11 @@ def demonstrate_integration():
             test_slot = available_slots[0]
             key_data = nitrokey.load_key_from_slot(test_slot)
             if key_data:
-                print(f"✓ Loaded key from slot {test_slot}: {len(key_data)} bytes")
+                print(f"[OK] Loaded key from slot {test_slot}: {len(key_data)} bytes")
             else:
-                print(f"✗ Failed to load key from slot {test_slot}")
+                print(f"[FAIL] Failed to load key from slot {test_slot}")
     else:
-        print("✗ Failed to connect to Nitrokey device")
+        print("[FAIL] Failed to connect to Nitrokey device")
 
     print()
     print("Integration demonstration completed!")

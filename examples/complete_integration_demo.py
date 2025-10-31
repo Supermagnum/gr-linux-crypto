@@ -73,9 +73,9 @@ class CompleteIntegrationDemo:
             key_id = self.integration.keyring_manager.add_key(key_name, key_data)
             if key_id:
                 key_ids[key_name] = key_id
-                print(f"✓ Added {key_name} to kernel keyring (ID: {key_id})")
+                print(f"[OK] Added {key_name} to kernel keyring (ID: {key_id})")
             else:
-                print(f"✗ Failed to add {key_name} to kernel keyring")
+                print(f"[FAIL] Failed to add {key_name} to kernel keyring")
 
         return key_ids
 
@@ -84,11 +84,11 @@ class CompleteIntegrationDemo:
         print("\n=== Kernel Keyring to gr-openssl Integration ===")
 
         if not CRYPTO_AVAILABLE:
-            print("✗ gr-openssl not available - skipping integration demo")
+            print("[SKIP] gr-openssl not available - skipping integration demo")
             return False
 
         if "aes_256_key" not in key_ids:
-            print("✗ AES key not available in keyring")
+            print("[FAIL] AES key not available in keyring")
             return False
 
         try:
@@ -102,7 +102,7 @@ class CompleteIntegrationDemo:
                 "aes_256_key", cipher_params)
 
             if tb:
-                print("✓ Created kernel keyring to gr-openssl flowgraph")
+                print("[OK] Created kernel keyring to gr-openssl flowgraph")
 
                 # Create a simple test flowgraph
                 test_tb = gr.top_block()
@@ -123,20 +123,20 @@ class CompleteIntegrationDemo:
                 test_tb.connect(data_source, output_sink)
 
                 # Run flowgraph
-                print("✓ Running kernel keyring integration test...")
+                print("[OK] Running kernel keyring integration test...")
                 test_tb.start()
                 time.sleep(1)
                 test_tb.stop()
                 test_tb.wait()
 
-                print(f"✓ Integration test completed - output saved to {output_file.name}")
+                print(f"[OK] Integration test completed - output saved to {output_file.name}")
                 return True
             else:
-                print("✗ Failed to create integration flowgraph")
+                print("[FAIL] Failed to create integration flowgraph")
                 return False
 
         except Exception as e:
-            print(f"✗ Error during keyring to gr-openssl integration: {e}")
+            print(f"[ERROR] Error during keyring to gr-openssl integration: {e}")
             return False
 
     def demonstrate_nitrokey_integration(self) -> bool:
@@ -144,16 +144,16 @@ class CompleteIntegrationDemo:
         print("\n=== Nitrokey Integration Demo ===")
 
         if not NACL_AVAILABLE:
-            print("✗ gr-nacl not available - skipping Nitrokey integration demo")
+            print("[SKIP] gr-nacl not available - skipping Nitrokey integration demo")
             return False
 
         try:
             # Connect to Nitrokey
             if not self.integration.nitrokey_manager.connect():
-                print("✗ Failed to connect to Nitrokey")
+                print("[FAIL] Failed to connect to Nitrokey")
                 return False
 
-            print("✓ Connected to Nitrokey device")
+            print("[OK] Connected to Nitrokey device")
             print(f"  Device info: {self.integration.nitrokey_manager.get_device_info()}")
 
             # Get available slots
@@ -166,13 +166,13 @@ class CompleteIntegrationDemo:
                 key_data = self.integration.nitrokey_manager.load_key_from_slot(test_slot)
 
                 if key_data:
-                    print(f"✓ Loaded key from slot {test_slot}: {len(key_data)} bytes")
+                    print(f"[OK] Loaded key from slot {test_slot}: {len(key_data)} bytes")
 
                     # Create flowgraph using Nitrokey with gr-nacl
                     tb = self.integration.create_nitrokey_to_nacl_flowgraph(test_slot)
 
                     if tb:
-                        print("✓ Created Nitrokey to gr-nacl flowgraph")
+                        print("[OK] Created Nitrokey to gr-nacl flowgraph")
 
                         # Create a simple test flowgraph
                         test_tb = gr.top_block()
@@ -192,26 +192,26 @@ class CompleteIntegrationDemo:
                         test_tb.connect(data_source, output_sink)
 
                         # Run flowgraph
-                        print("✓ Running Nitrokey integration test...")
+                        print("[OK] Running Nitrokey integration test...")
                         test_tb.start()
                         time.sleep(1)
                         test_tb.stop()
                         test_tb.wait()
 
-                        print(f"✓ Nitrokey integration test completed - output saved to {output_file.name}")
+                        print(f"[OK] Nitrokey integration test completed - output saved to {output_file.name}")
                         return True
                     else:
-                        print("✗ Failed to create Nitrokey integration flowgraph")
+                        print("[FAIL] Failed to create Nitrokey integration flowgraph")
                         return False
                 else:
-                    print(f"✗ Failed to load key from slot {test_slot}")
+                    print(f"[FAIL] Failed to load key from slot {test_slot}")
                     return False
             else:
-                print("✗ No available slots on Nitrokey device")
+                print("[FAIL] No available slots on Nitrokey device")
                 return False
 
         except Exception as e:
-            print(f"✗ Error during Nitrokey integration: {e}")
+            print(f"[ERROR] Error during Nitrokey integration: {e}")
             return False
 
     def demonstrate_kernel_crypto_api(self) -> bool:
@@ -226,7 +226,7 @@ class CompleteIntegrationDemo:
             crypto_aes = linux_crypto.kernel_crypto_aes(key, iv, "cbc", True)
 
             if crypto_aes.is_kernel_crypto_available():
-                print("✓ Kernel crypto API is available")
+                print("[OK] Kernel crypto API is available")
                 print(f"  Supported modes: {crypto_aes.get_supported_modes()}")
                 print(f"  Supported key sizes: {crypto_aes.get_supported_key_sizes()}")
 
@@ -246,20 +246,20 @@ class CompleteIntegrationDemo:
                 test_tb.connect(crypto_aes, output_sink)
 
                 # Run flowgraph
-                print("✓ Running kernel crypto API test...")
+                print("[OK] Running kernel crypto API test...")
                 test_tb.start()
                 time.sleep(1)
                 test_tb.stop()
                 test_tb.wait()
 
-                print(f"✓ Kernel crypto API test completed - output saved to {output_file.name}")
+                print(f"[OK] Kernel crypto API test completed - output saved to {output_file.name}")
                 return True
             else:
-                print("✗ Kernel crypto API is not available")
+                print("[FAIL] Kernel crypto API is not available")
                 return False
 
         except Exception as e:
-            print(f"✗ Error during kernel crypto API demo: {e}")
+            print(f"[ERROR] Error during kernel crypto API demo: {e}")
             return False
 
     def show_integration_architecture(self):
@@ -300,16 +300,16 @@ class CompleteIntegrationDemo:
         for temp_file in self.temp_files:
             try:
                 os.unlink(temp_file)
-                print(f"✓ Cleaned up {temp_file}")
+                print(f"[OK] Cleaned up {temp_file}")
             except OSError:
-                print(f"✗ Failed to clean up {temp_file}")
+                print(f"[FAIL] Failed to clean up {temp_file}")
 
         # Clean up kernel keyring
         try:
             self.integration.keyring_manager.clear_all_keys()
-            print("✓ Cleaned up kernel keyring")
+            print("[OK] Cleaned up kernel keyring")
         except Exception as e:
-            print(f"✗ Failed to clean up kernel keyring: {e}")
+            print(f"[FAIL] Failed to clean up kernel keyring: {e}")
 
     def run_complete_demo(self):
         """Run the complete integration demonstration."""
@@ -320,7 +320,7 @@ class CompleteIntegrationDemo:
         status = self.integration.get_integration_status()
         print("Integration Status:")
         for component, available in status.items():
-            status_str = "✓" if available else "✗"
+            status_str = "[OK]" if available else "[FAIL]"
             print(f"  {status_str} {component}")
         print()
 
@@ -348,13 +348,13 @@ class CompleteIntegrationDemo:
         print(f"Successful integrations: {success_count}/3")
 
         if success_count > 0:
-            print("✓ Integration demonstration completed successfully!")
+            print("[OK] Integration demonstration completed successfully!")
             print()
             print("This demonstrates how gr-linux-crypto provides unique")
             print("Linux-specific features that complement existing")
             print("GNU Radio crypto modules rather than duplicating them.")
         else:
-            print("✗ No successful integrations - check dependencies")
+            print("[FAIL] No successful integrations - check dependencies")
 
         # Cleanup
         self.cleanup()

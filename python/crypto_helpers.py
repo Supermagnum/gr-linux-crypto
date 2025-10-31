@@ -12,10 +12,11 @@ import secrets
 import base64
 from typing import List, Optional, Union, Tuple
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.asymmetric import rsa, padding, ec
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey, EllipticCurvePublicKey
 import numpy as np
 
 class CryptoHelpers:
@@ -305,6 +306,218 @@ class CryptoHelpers:
         return serialization.load_pem_private_key(
             pem_data, password=password, backend=default_backend()
         )
+
+    @staticmethod
+    def get_brainpool_curves() -> List[str]:
+        """
+        Get list of supported Brainpool curve names.
+
+        Returns:
+            List of supported Brainpool curve names
+        """
+        return ['brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1']
+
+    @staticmethod
+    def _get_brainpool_curve(curve_name: str):
+        """
+        Get Brainpool curve object by name.
+
+        Args:
+            curve_name: Name of the curve ('brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1')
+
+        Returns:
+            Curve object
+        """
+        if curve_name == 'brainpoolP256r1':
+            return ec.BrainpoolP256R1()
+        elif curve_name == 'brainpoolP384r1':
+            return ec.BrainpoolP384R1()
+        elif curve_name == 'brainpoolP512r1':
+            return ec.BrainpoolP512R1()
+        else:
+            raise ValueError(f"Unsupported Brainpool curve: {curve_name}. "
+                           f"Supported curves: {CryptoHelpers.get_brainpool_curves()}")
+
+    @staticmethod
+    def generate_brainpool_keypair(curve_name: str = 'brainpoolP256r1') -> Tuple[EllipticCurvePrivateKey, EllipticCurvePublicKey]:
+        """
+        Generate Brainpool elliptic curve key pair.
+
+        Args:
+            curve_name: Name of the Brainpool curve ('brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1')
+
+        Returns:
+            Tuple of (private_key, public_key)
+        """
+        curve = CryptoHelpers._get_brainpool_curve(curve_name)
+        private_key = ec.generate_private_key(curve, default_backend())
+        public_key = private_key.public_key()
+        return private_key, public_key
+
+    @staticmethod
+    def brainpool_ecdh(private_key: EllipticCurvePrivateKey, 
+                      peer_public_key: EllipticCurvePublicKey) -> bytes:
+        """
+        Perform ECDH (Elliptic Curve Diffie-Hellman) key exchange using Brainpool curves.
+
+        Args:
+            private_key: Local private key
+            peer_public_key: Peer's public key
+
+        Returns:
+            Shared secret as bytes
+        """
+        shared_secret = private_key.exchange(ec.ECDH(), peer_public_key)
+        return shared_secret
+
+    @staticmethod
+    def brainpool_sign(data: Union[str, bytes], 
+                      private_key: EllipticCurvePrivateKey,
+                      hash_algorithm: str = 'sha256') -> bytes:
+        """
+        Sign data using Brainpool ECDSA.
+
+        Args:
+            data: Data to sign
+            private_key: Brainpool private key
+            hash_algorithm: Hash algorithm for signing ('sha256', 'sha384', 'sha512')
+
+        Returns:
+            Signature as bytes
+        """
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+
+        hash_algo = None
+        if hash_algorithm == 'sha256':
+            hash_algo = hashes.SHA256()
+        elif hash_algorithm == 'sha384':
+            hash_algo = hashes.SHA384()
+        elif hash_algorithm == 'sha512':
+            hash_algo = hashes.SHA512()
+        else:
+            raise ValueError(f"Unsupported hash algorithm: {hash_algorithm}")
+
+        signature = private_key.sign(data, ec.ECDSA(hash_algo))
+        return signature
+
+    @staticmethod
+    def brainpool_verify(data: Union[str, bytes], 
+                        signature: bytes,
+                        public_key: EllipticCurvePublicKey,
+                        hash_algorithm: str = 'sha256') -> bool:
+        """
+        Verify Brainpool ECDSA signature.
+
+        Args:
+            data: Original data
+            signature: Signature to verify
+            public_key: Brainpool public key
+            hash_algorithm: Hash algorithm used for signing ('sha256', 'sha384', 'sha512')
+
+        Returns:
+            True if signature is valid, False otherwise
+        """
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+
+        hash_algo = None
+        if hash_algorithm == 'sha256':
+            hash_algo = hashes.SHA256()
+        elif hash_algorithm == 'sha384':
+            hash_algo = hashes.SHA384()
+        elif hash_algorithm == 'sha512':
+            hash_algo = hashes.SHA512()
+        else:
+            raise ValueError(f"Unsupported hash algorithm: {hash_algorithm}")
+
+        try:
+            public_key.verify(signature, data, ec.ECDSA(hash_algo))
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
+    def serialize_brainpool_public_key(public_key: EllipticCurvePublicKey) -> bytes:
+        """
+        Serialize Brainpool public key to PEM format.
+
+        Args:
+            public_key: Brainpool public key
+
+        Returns:
+            PEM-encoded public key as bytes
+        """
+        return public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+    @staticmethod
+    def serialize_brainpool_private_key(private_key: EllipticCurvePrivateKey, 
+                                       password: Optional[bytes] = None) -> bytes:
+        """
+        Serialize Brainpool private key to PEM format.
+
+        Args:
+            private_key: Brainpool private key
+            password: Optional password for encryption
+
+        Returns:
+            PEM-encoded private key as bytes
+        """
+        if password:
+            encryption = serialization.BestAvailableEncryption(password)
+        else:
+            encryption = serialization.NoEncryption()
+
+        return private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=encryption
+        )
+
+    @staticmethod
+    def load_brainpool_public_key(pem_data: bytes) -> EllipticCurvePublicKey:
+        """
+        Load Brainpool public key from PEM format.
+
+        Args:
+            pem_data: PEM-encoded public key
+
+        Returns:
+            Brainpool public key object
+
+        Raises:
+            ValueError: If the key is not a valid EC key
+        """
+        key = serialization.load_pem_public_key(pem_data, backend=default_backend())
+        if not isinstance(key, EllipticCurvePublicKey):
+            raise ValueError("Loaded key is not an elliptic curve public key")
+        return key
+
+    @staticmethod
+    def load_brainpool_private_key(pem_data: bytes, 
+                                   password: Optional[bytes] = None) -> EllipticCurvePrivateKey:
+        """
+        Load Brainpool private key from PEM format.
+
+        Args:
+            pem_data: PEM-encoded private key
+            password: Optional password for decryption
+
+        Returns:
+            Brainpool private key object
+
+        Raises:
+            ValueError: If the key is not a valid EC key
+        """
+        key = serialization.load_pem_private_key(
+            pem_data, password=password, backend=default_backend()
+        )
+        if not isinstance(key, EllipticCurvePrivateKey):
+            raise ValueError("Loaded key is not an elliptic curve private key")
+        return key
 
     @staticmethod
     def bytes_to_hex(data: bytes) -> str:

@@ -60,11 +60,23 @@ set(gr_linux_crypto_sources
     lib/kernel_crypto_aes_impl.cc
 )
 
+if(OPENSSL_FOUND)
+    list(APPEND gr_linux_crypto_sources
+        lib/brainpool_ec_impl.cc
+    )
+endif()
+
 set(gr_linux_crypto_headers
     lib/kernel_keyring_source_impl.h
     lib/nitrokey_interface_impl.h
     lib/kernel_crypto_aes_impl.h
 )
+
+if(OPENSSL_FOUND)
+    list(APPEND gr_linux_crypto_headers
+        lib/brainpool_ec_impl.h
+    )
+endif()
 
 ########################################################################
 # Create library
