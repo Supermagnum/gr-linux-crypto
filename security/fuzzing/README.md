@@ -18,7 +18,6 @@ security/fuzzing/
 ├── fuzz-all.sh                        # Main fuzzing execution script
 ├── kernel_keyring_fuzz.cpp            # Kernel keyring fuzzing harness
 ├── kernel_crypto_aes_fuzz.cpp         # Kernel crypto AES fuzzing harness
-├── openssl_wrapper_fuzz.cpp           # OpenSSL wrapper fuzzing harness
 ├── nitrokey_interface_fuzz.cpp        # Nitrokey interface fuzzing harness
 ├── corpus_creation/                   # Corpus generation scripts
 │   ├── kernel_keyring_corpus.sh       # Kernel keyring corpus
@@ -42,13 +41,7 @@ security/fuzzing/
 - **Modes**: CBC, ECB, CTR, GCM, XTS
 - **Edge Cases**: Weak keys, invalid IVs, malformed data
 
-### 3. OpenSSL Wrapper Fuzzer (`openssl_wrapper_fuzz.cpp`)
-- **Target**: OpenSSL cryptographic operations
-- **Operations**: AES, hashing, HMAC, RSA
-- **Algorithms**: SHA1, SHA256, SHA512, MD5, AES variants
-- **Edge Cases**: Invalid keys, corrupted data, algorithm mismatches
-
-### 4. Nitrokey Interface Fuzzer (`nitrokey_interface_fuzz.cpp`)
+### 3. Nitrokey Interface Fuzzer (`nitrokey_interface_fuzz.cpp`)
 - **Target**: Hardware security module operations
 - **Operations**: Key storage, signing, verification, PIN operations
 - **Edge Cases**: Invalid slots, corrupted keys, security violations
@@ -124,13 +117,11 @@ cd corpus_creation
 # Compile fuzzers
 afl-g++ -O2 -o kernel_keyring_fuzz kernel_keyring_fuzz.cpp -lkeyutils
 afl-g++ -O2 -o kernel_crypto_aes_fuzz kernel_crypto_aes_fuzz.cpp
-afl-g++ -O2 -o openssl_wrapper_fuzz openssl_wrapper_fuzz.cpp -lssl -lcrypto
 afl-g++ -O2 -o nitrokey_interface_fuzz nitrokey_interface_fuzz.cpp
 
 # Run individual fuzzers
 afl-fuzz -i corpus/kernel_keyring -o findings_kernel_keyring ./kernel_keyring_fuzz @@
 afl-fuzz -i corpus/kernel_crypto_aes -o findings_kernel_crypto_aes ./kernel_crypto_aes_fuzz @@
-afl-fuzz -i corpus/openssl -o findings_openssl ./openssl_wrapper_fuzz @@
 afl-fuzz -i corpus/nitrokey -o findings_nitrokey ./nitrokey_interface_fuzz @@
 ```
 

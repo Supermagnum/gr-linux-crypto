@@ -1,10 +1,10 @@
 #!/bin/bash
-# OpenSSL Wrapper Fuzzing Corpus Generator
+# OpenSSL Fuzzing Corpus Generator
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CORPUS_DIR="${SCRIPT_DIR}/openssl_corpus"
 mkdir -p "$CORPUS_DIR"
 
-echo "Creating OpenSSL wrapper fuzzing corpus..."
+echo "Creating OpenSSL fuzzing corpus..."
 
 # AES keys (various sizes)
 dd if=/dev/urandom of="$CORPUS_DIR/aes128_key" bs=16 count=1 2>/dev/null

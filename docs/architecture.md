@@ -18,8 +18,8 @@ The GNU Radio Linux Crypto module provides a comprehensive interface between GNU
 ┌─────────────────────▼───────────────────────────────────────┐
 │                GNU Radio Blocks Layer                      │
 │  ┌─────────────────┐ ┌─────────────────┐ ┌──────────────┐ │
-│  │ kernel_keyring_ │ │ kernel_crypto_  │ │ openssl_     │ │
-│  │ source          │ │ aes             │ │ wrapper      │ │
+│  │ kernel_keyring_ │ │ kernel_crypto_  │ │ nitrokey_    │ │
+│  │ source          │ │ aes             │ │ interface    │ │
 │  └─────────────────┘ └─────────────────┘ └──────────────┘ │
 └─────────────────────┬───────────────────────────────────────┘
                       │
@@ -157,7 +157,6 @@ GNU Radio Flowgraph
 │   └── file_source
 ├── Processing
 │   ├── kernel_crypto_aes
-│   ├── openssl_wrapper
 │   └── nitrokey_interface
 └── Sinks
     ├── file_sink

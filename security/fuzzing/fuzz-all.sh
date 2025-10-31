@@ -100,13 +100,6 @@ if [ -f "../../kernel_crypto_aes_fuzz.cpp" ]; then
         -o kernel_crypto_aes_fuzz ../../kernel_crypto_aes_fuzz.cpp
 fi
 
-# OpenSSL wrapper fuzzer
-if [ -f "../../openssl_wrapper_fuzz.cpp" ]; then
-    echo "Compiling OpenSSL wrapper fuzzer..."
-    AFL_FAST_CAL=1 afl-g++ -O2 -funroll-loops -fomit-frame-pointer \
-        -o openssl_wrapper_fuzz ../../openssl_wrapper_fuzz.cpp -lssl -lcrypto
-fi
-
 # Nitrokey interface fuzzer
 if [ -f "../../nitrokey_interface_fuzz.cpp" ]; then
     echo "Compiling Nitrokey interface fuzzer..."
@@ -154,7 +147,6 @@ run_fuzzer() {
 # Run all fuzzers
 run_fuzzer "kernel_keyring_fuzz" "corpus/kernel_keyring" "findings_kernel_keyring" 1800
 run_fuzzer "kernel_crypto_aes_fuzz" "corpus/kernel_crypto_aes" "findings_kernel_crypto_aes" 1800
-run_fuzzer "openssl_wrapper_fuzz" "corpus/openssl" "findings_openssl" 1800
 run_fuzzer "nitrokey_interface_fuzz" "corpus/nitrokey" "findings_nitrokey" 1800
 
 echo "All fuzzers started. Monitor with:"

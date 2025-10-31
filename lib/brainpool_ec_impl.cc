@@ -10,6 +10,7 @@
  */
 
 #include <gnuradio/linux_crypto/brainpool_ec_impl.h>
+#include <gnuradio/linux_crypto/brainpool_ec.h>
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
@@ -449,3 +450,5 @@ brainpool_ec::sptr brainpool_ec::make(brainpool_ec_impl::Curve curve)
     return std::make_shared<brainpool_ec>(curve);
 }
 
+} // namespace linux_crypto
+} // namespace gr

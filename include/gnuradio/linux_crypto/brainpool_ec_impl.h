@@ -76,8 +76,8 @@ private:
     Curve d_curve;
     EC_GROUP* d_group;
 
-    EC_GROUP* create_curve_group(Curve curve);
-    void print_openssl_error();
+    static EC_GROUP* create_curve_group(Curve curve);
+    static void print_openssl_error();
 };
 
 } // namespace linux_crypto

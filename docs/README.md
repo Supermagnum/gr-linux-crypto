@@ -61,7 +61,6 @@ The generated API documentation includes:
    - Performance characteristics
 
 3. **OpenSSL Integration**
-   - `openssl_wrapper` class
    - Supported algorithms
    - Configuration options
 

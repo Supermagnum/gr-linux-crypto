@@ -13,7 +13,7 @@
 
 #define MAX_SIZE 8192
 
-// OpenSSL wrapper fuzzing harness
+// OpenSSL library fuzzing harness (tests OpenSSL directly)
 static bool test_openssl_aes(const uint8_t* data, size_t size) {
     if (size < 32 + 16) return false; // Need at least key + IV
 

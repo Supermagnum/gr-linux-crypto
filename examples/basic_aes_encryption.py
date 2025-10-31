@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Basic AES encryption example using gr-linux-crypto.
-Demonstrates OpenSSL wrapper usage for AES encryption/decryption.
+Demonstrates cryptographic operations using crypto_helpers for AES encryption/decryption.
 """
 
 import numpy as np

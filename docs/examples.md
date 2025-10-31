@@ -49,17 +49,17 @@ from gnuradio import gr, blocks
 from gnuradio import linux_crypto
 
 def gr_aes_flowgraph():
-    """GNU Radio AES encryption flowgraph."""
+    """GNU Radio AES encryption flowgraph using kernel crypto API."""
     tb = gr.top_block()
     
     # Create signal source
     src_data = [1, 2, 3, 4, 5] * 1000
     src = blocks.vector_source_b(src_data)
     
-    # Create AES encryption block
-    key = b'\x01' * 32  # 256-bit key
-    iv = b'\x02' * 16   # 128-bit IV
-    aes_encrypt = linux_crypto.openssl_wrapper(key, iv, "aes-256-cbc", True)
+    # Use kernel_crypto_aes block instead (which is built and available)
+    key = [0x01] * 32  # 256-bit key
+    iv = [0x02] * 16   # 128-bit IV
+    aes_encrypt = linux_crypto.kernel_crypto_aes(key, iv, "cbc", True)
     
     # Create sink
     sink = blocks.vector_sink_b()
