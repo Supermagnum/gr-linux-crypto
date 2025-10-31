@@ -18,7 +18,6 @@ setup(
     name="gr-linux-crypto",
     version="1.0.0",
     author="GNU Radio Linux Crypto Team",
-    author_email="gr-linux-crypto@gnuradio.org",
     description="GNU Radio module for Linux kernel crypto infrastructure integration",
     long_description=long_description,
     long_description_content_type="text/markdown",
