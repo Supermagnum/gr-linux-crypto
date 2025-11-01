@@ -590,6 +590,9 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 - Thread-safe with proper mutex protection
 - Gracefully handles device disconnection
 
+**Hardware:**
+- [Nitrokey Shop](https://shop.nitrokey.com/shop/category/nitrokeys-7) - Purchase Nitrokey devices
+
 ### 3. **Kernel Crypto API Integration**
 - **AF_ALG sockets**: Direct use of Linux kernel crypto subsystem
 - **Hardware acceleration**: CPU crypto instructions via kernel
@@ -697,9 +700,10 @@ nitrokey_src = linux_crypto.nitrokey_interface(slot=1)
 
 ### **GnuPG/OpenPGP Operations**
 - **Limited integration**: Provides subprocess-based GnuPG wrapper for session key exchange
+- **GnuPG card support**: Supports OpenPGP smart cards (including YubiKey, Nitrokey Pro/Storage in OpenPGP mode) through GnuPG - cards work automatically if GnuPG can detect them (see [GnuPG SmartCard Wiki](https://wiki.gnupg.org/SmartCard) for card setup and usage, [OpenPGP Smart Card V3.4](https://www.floss-shop.de/en/security-privacy/smartcards/13/openpgp-smart-card-v3.4) product page)
 - **PIN handling**: Uses GnuPG agent and pinentry programs (see [Getting Started for Beginners](#getting-started-for-beginners) for explanations)
 - **Not native blocks**: Python utilities only, not stream-processing blocks
-- **See**: [GnuPG Integration Guide](docs/gnupg_integration.md) for advanced setup, PIN handling, and usage patterns
+- **See**: [GnuPG Integration Guide](docs/gnupg_integration.md) for advanced setup, PIN handling, smart card configuration, and usage patterns
 
 **What is GnuPG?**
 
