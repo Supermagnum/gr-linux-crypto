@@ -194,6 +194,37 @@ The security relies on keeping your private key secret while distributing your p
 - Much more secure than password authentication - prevents brute force attacks and password interception
 - Commonly used for secure server administration and remote access
 
+**10. File, Disk, and Full-Disk Encryption (LUKS)**
+- Encrypt and decrypt files using your cryptographic keys
+- Encrypt entire disk partitions or storage devices
+- Full-disk encryption using LUKS (Linux Unified Key Setup)
+- Protect sensitive data at rest - files and disks remain encrypted when system is powered off
+- Use your securely stored keys (from kernel keyring or hardware device) to unlock encrypted volumes
+- Example use cases:
+  - Encrypt laptop hard drives to protect data if device is lost or stolen
+  - Encrypt external USB drives for secure portable storage
+  - Encrypt individual files containing sensitive information
+  - Full system encryption protects all data including operating system
+- Keys can be stored on Nitrokey hardware device or kernel keyring for additional security
+
+**Important Note for Full-Disk Encryption:**
+- **The computer will NOT boot without the key present** (hardware device must be plugged in)
+- Boot process stops at a black screen prompting for the key and PIN
+- No access to the operating system or any data without the proper key and PIN
+- This provides maximum security: Even physical access to the computer is useless without the key
+- Make sure you have backup keys or recovery methods to avoid permanent data loss
+
+**11. Linux Package and Update Verification**
+- Linux and its variants use cryptographic signatures to verify system files and software updates
+- Package managers (apt, yum, pacman, etc.) verify package signatures before installation
+- Ensures that no one has meddled with files or tampered with downloaded software updates
+- Prevents installation of malicious or corrupted packages
+- System files are signed and verified to detect unauthorized modifications
+- Example: When you run `apt update` or install packages, the system verifies the package signatures
+- If a signature doesn't match, the package is rejected - protecting against supply chain attacks
+- This is why you see "W: GPG error" messages if repository keys are missing or expired
+- Maintains system integrity by ensuring only authentic, untampered software is installed
+
 **Common Pattern for Signing Without Encryption:**
 ```
 1. You create a message/command
