@@ -4,6 +4,7 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 
 ## Table of Contents
 
+0. [What does this module do?](#what-does-this-module-do)
 1. [What This Module Provides (Unique Features)](#what-this-module-provides-unique-features)
    - [Kernel Keyring Integration](#1-kernel-keyring-integration)
    - [Hardware Security Module Integration](#2-hardware-security-module-integration)
@@ -50,6 +51,144 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
     - [Cryptographic Ciphers Influenced by the NSA](#cryptographic-ciphers-influenced-by-the-nsa)
     - [Cryptographic Ciphers NOT Influenced by the NSA](#cryptographic-ciphers-not-influenced-by-the-nsa)
     - [Known Scandals Involving NSA and Cryptography](#known-scandals-involving-nsa-and-cryptography)
+
+## What does this module do?
+
+**gr-linux-crypto** is a GNU Radio module that connects GNU Radio applications to Linux-specific security features that aren't available in other cryptographic modules.
+
+### Simple Explanation
+
+Think of it like this:
+- **gr-openssl** = Standard cryptographic operations (AES, RSA, SHA, etc.)
+- **gr-nacl** = Modern cryptography (X25519, Ed25519, ChaCha20-Poly1305)
+- **gr-linux-crypto** = Linux-only security infrastructure (kernel keyring, hardware keys, kernel crypto API)
+
+**gr-linux-crypto doesn't duplicate what gr-openssl and gr-nacl already do.** Instead, it provides the "glue" to use Linux-specific security features with those existing modules.
+
+### What Makes This Module Special?
+
+1. **Secure Key Storage in the Linux Kernel**
+   - Stores cryptographic keys inside the Linux kernel (not in regular files)
+   - Keys are protected by the kernel, making them harder to steal
+   - Works with existing crypto modules (gr-openssl, gr-nacl) as a secure key source
+
+2. **Hardware Security Device Support**
+   - Supports Nitrokey and other hardware security devices
+   - Store keys on physical hardware tokens instead of software
+   - Keys can't be copied or stolen if the computer is compromised
+
+3. **Direct Kernel Crypto Access**
+   - Uses the Linux kernel's built-in cryptographic functions
+   - Can be faster than user-space crypto libraries
+   - Leverages hardware acceleration when available
+
+### Real-World Example
+
+**Before gr-linux-crypto:**
+```
+GNU Radio → gr-openssl → (keys stored in files or memory - vulnerable)
+```
+
+**With gr-linux-crypto:**
+```
+GNU Radio → gr-linux-crypto (loads key from kernel/hardware) → gr-openssl → (secure!)
+```
+
+### Who Should Use This Module?
+
+- **Amateur radio operators** who need secure key management for digital signatures
+- **Radio experimenters** working with encrypted communications
+- **Security-conscious developers** who want hardware-backed key storage
+- **Anyone** who needs to use Linux kernel security features in GNU Radio
+
+### Quick Start Idea
+
+Instead of loading an encryption key from a file (which could be stolen), you can:
+- Store the key in the Linux kernel keyring (via gr-linux-crypto)
+- Or store it on a Nitrokey hardware device (via gr-linux-crypto)
+- Then use that secure key with gr-openssl or gr-nacl for actual encryption
+
+### How Keys Work and What They're Used For
+
+This module supports cryptographic keys that enable two main functions: **digital signatures** and **encryption**. Understanding the difference is crucial.
+
+#### Digital Signatures: Proving Identity and Integrity
+
+**Key Pairs (Public/Private Keys):**
+- You generate a **public/private key pair** linked to your identity (name, email, callsign)
+- The **private key** is secret - you keep it secure and never share it
+- The **public key** is shared openly - others use it to verify your signatures
+
+**How Signing Works:**
+1. **Signing**: You sign messages or files with your **private key**, creating a unique cryptographic signature
+2. **Verification**: Others use your **public key** to verify the signature, which proves:
+   - **Authentication**: The message came from you (not an imposter)
+   - **Integrity**: The message hasn't been altered since you signed it
+
+**Important: Signing and Encrypting Are Separate Operations**
+- **Signature only**: Message is readable by anyone, but the signature proves authenticity and integrity (like a wax seal on an open letter)
+- **Encryption only**: Message is secret, but no proof of who sent it
+- **Both together**: You can sign AND encrypt the same message for privacy + authentication
+
+**Security Model:**
+The security relies on keeping your private key secret while distributing your public key widely. Anyone can verify your signatures with your public key, but only you can create signatures with your private key.
+
+#### Real-World Use Cases
+
+**1. Callsign Verification (Amateur Radio)**
+- Verify your callsign identity through digital signatures
+- When you sign transmissions with your private key, recipients can verify with your public key
+- Prevents callsign spoofing - cryptographic proof that the transmission came from the legitimate callsign holder
+- More secure than traditional authentication methods (DTMF codes, etc.)
+- Example: Signed transmissions prove "This message is from KG7ABC, verified cryptographically" - prevents someone from impersonating your callsign
+
+**2. Remote Repeater Configuration (Amateur Radio)**
+- Sign messages to remotely configure repeater settings (squelch, frequency adjustments, etc.)
+- Very secure: The repeater software verifies your signature before accepting commands
+- Messages are NOT encrypted, just validated - so the commands are readable but authenticated
+- **Benefit**: No need to physically visit the repeater site in harsh conditions (wind, snow, -25°C) just to fix settings
+- Example: "Adjust squelch to -120 dBm" - signed by authorized operator, verified by repeater software
+
+**3. Physical Access Control (Door Locks)**
+- If a door lock system supports GnuPG/PGP, you can use signed commands to unlock doors
+- The lock verifies your signature before granting access
+- More secure than traditional keys or keycards - cryptographic proof of identity
+
+**4. Software Releases and Updates**
+- Sign software releases to prove the developer published them
+- Users verify signatures before installing, preventing tampering
+- Prevents malicious code injection
+
+**5. Public Announcements**
+- Sign public messages to prove authenticity
+- Useful for emergency communications, network updates, or official statements
+- Everyone can read the message, but only the legitimate sender could have signed it
+
+**6. Git Commits and Code Integrity**
+- Sign Git commits to prove who wrote the code
+- Prevents code injection attacks and proves authorship
+
+**7. Email Authentication**
+- Sign emails where privacy isn't needed but authenticity matters
+- Recipients verify with your public key, confirming you (not an imposter) sent that exact message
+
+**Common Pattern for Signing Without Encryption:**
+```
+1. You create a message/command
+2. You sign it with your private key
+3. You send the message + signature
+4. Recipient verifies signature with your public key
+5. If verification succeeds: Message is trusted (authentic and unaltered)
+6. If verification fails: Message is rejected (possible forgery or tampering)
+```
+
+**Example Flow:**
+- You sign an email with your private key
+- Recipients verify with your public key
+- Verification confirms you (not an imposter) sent that exact message
+- The email content is readable by anyone, but the signature proves it came from you
+
+**Bottom line:** This module is about **where and how keys are stored securely**, not about implementing encryption algorithms (those are in gr-openssl and gr-nacl). However, it enables you to use those securely stored keys for both **digital signatures** (proving identity and message integrity) and **encryption** (keeping messages secret).
 
 ## What This Module Provides (Unique Features)
 
