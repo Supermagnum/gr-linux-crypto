@@ -71,6 +71,30 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 - **Not native blocks**: Python utilities only, not stream-processing blocks
 - **See**: [GnuPG Integration Guide](docs/gnupg_integration.md) for setup, PIN handling, and usage patterns
 
+**What is GnuPG?**
+
+GnuPG (GNU Privacy Guard) is a hybrid encryption system that combines two types of cryptography:
+
+1. **Symmetric-key encryption** - Fast encryption using the same key for both encrypting and decrypting. Used for the actual message data because it's fast.
+2. **Public-key encryption** - Secure key exchange using separate public and private keys. Used to securely share the symmetric key.
+
+**How it works:**
+
+Instead of encrypting the entire message with slow public-key encryption, GnuPG:
+- Generates a random "session key" (symmetric)
+- Encrypts your message with the fast session key
+- Encrypts the session key with the recipient's public key
+- Sends both: encrypted session key + encrypted message
+
+The recipient uses their private key to decrypt the session key, then uses the session key to decrypt your message. This gives you both speed (from symmetric encryption) and secure key exchange (from public-key encryption).
+
+GnuPG also supports digital signatures to verify who sent a message and that it wasn't changed. It follows the OpenPGP standard, which is widely used for email encryption.
+
+**References:**
+- [Symmetric-key algorithms](https://en.wikipedia.org/wiki/Symmetric-key_algorithm) - Same key for encryption and decryption
+- [Public-key cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) - Separate public/private keys
+- [Hybrid cryptosystem](https://en.wikipedia.org/wiki/Hybrid_cryptosystem) - Combining symmetric and public-key encryption
+
 **Legal and Appropriate Uses for Amateur Radio:**
 
 1. **Digital Signatures (Primary Use Case)**
@@ -449,3 +473,46 @@ GRC blocks:
 | Brainpool curves | No | No | Yes (unique) |
 
 This module fills the gaps in the GNU Radio crypto ecosystem by providing Linux-specific infrastructure that existing modules don't cover.
+
+## Cryptographic Algorithm Background
+
+### Cryptographic Ciphers Influenced by the NSA
+
+The National Security Agency (NSA) has been involved in various cryptographic standards and algorithms. Here are some ciphers likely influenced by the NSA:
+
+| Cipher | Description |
+|--------|-------------|
+| **AES** (Advanced Encryption Standard) | Endorsed by the NSA for federal applications, widely used for secure data encryption. |
+| **DSA** (Digital Signature Algorithm) | Developed under NSA auspices, commonly used for digital signatures. |
+| **SHA** (Secure Hash Algorithm) | NSA has influenced multiple versions, with SHA-1 and SHA-2 being widely used and critiqued for certain vulnerabilities. |
+| **Skipjack** | Created by the NSA for the Clipper chip, aimed at secure voice communications. |
+| **KASUMI** | A block cipher influenced by NSA standards, utilized in 3G cellular networks. |
+
+### Cryptographic Ciphers NOT Influenced by the NSA
+
+Several algorithms developed independently of the NSA are widely used:
+
+| Cipher | Description |
+|--------|-------------|
+| **RSA** (Rivest–Shamir–Adleman) | An academic standard widely used for secure key exchange, not influenced by NSA. |
+| **Elliptic Curve Cryptography (ECC)** | Developed independently, focusing on secure and efficient cryptographic solutions. |
+| **ChaCha20** | Designed by Daniel Bernstein for speed and security, with no NSA involvement. |
+| **Twofish** | An AES finalist created by Bruce Schneier, independently developed. |
+| **Serpent** | Another AES finalist, also created without direct NSA influence. |
+| **Brainpool** | A suite of elliptic curves (e.g., Brainpool P-256) developed without NSA influence, though it is implemented in many cryptographic systems. |
+
+**Summary:** While several ciphers have ties to the NSA, such as AES and SHA, there are many robust alternatives like RSA, ChaCha20, and Brainpool, developed independently. Understanding these distinctions helps in choosing secure cryptographic solutions.
+
+### Known Scandals Involving NSA and Cryptography
+
+Several scandals and controversies have surrounded the NSA's involvement in cryptography, revealing concerns about security, privacy, and possible manipulation of standards. Here are some key incidents:
+
+| Incident | Description |
+|----------|-------------|
+| **NSA's Involvement in Dual_EC_DRBG** | This random number generator was adopted by NIST but later revealed to be potentially compromised by the NSA, raising suspicions of backdoors. |
+| **PRISM** | Exposed by Edward Snowden in 2013, revealing that the NSA collects data from major tech companies, including communications encrypted using NSA-influenced standards. |
+| **Clapper's Misleading Testimony** | Then-Director James Clapper's testimony before Congress in 2013 was scrutinized after revelations about extensive surveillance practices came to light. |
+| **Clipper Chip** | Launched in the early 1990s, it aimed to provide secure phone communication but faced backlash due to mandatory key escrow, which many viewed as a significant privacy infringement. |
+| **SHA-1 Deprecation** | The SHA-1 hashing algorithm, once endorsed by the NSA, was later found vulnerable, leading to its deprecation and questions about the NSA's early assessments of its security. |
+
+**Summary:** These incidents highlight significant concerns regarding the NSA's influence in cryptography and the potential implications for security and privacy. The revelations have fostered a mistrust of cryptographic standards and increased the demand for independent auditing and verification of cryptographic algorithms.
