@@ -81,8 +81,7 @@ If you're new to cryptographic keys and wondering how to actually use this modul
 - **Private key** = Your key (only you have it, used to decrypt messages or create signatures)
 - **PIN** = Password to protect your private key from being stolen
 
-**GnuPG keys are files stored on your computer** (or on hardware devices like Nitrokey). They're created using the `gpg` command-line tool, and this module helps you use those keys in GNU Radio applications. GUI tools also exist,Nitro key app supports nitrokeys.
-The commands in this document shows how its done from the command line as examples. Please consult the gpg manual for complete set of commands.
+**GnuPG keys are files stored on your computer** (or on hardware devices like Nitrokey). They're created using the `gpg` command-line tool, and this module helps you use those keys in GNU Radio applications. GUI tools also exist - Nitrokey app supports Nitrokeys. The commands in this document show how it's done from the command line as examples. Please consult the `gpg` manual for complete set of commands.
 
 ### What is "Session Key Exchange"?
 
