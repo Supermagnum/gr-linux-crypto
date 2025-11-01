@@ -232,20 +232,22 @@ if __name__ == "__main__":
 
 ### Key Derivation and Management
 
+#### Password-Based Key Derivation (PBKDF2)
+
 ```python
 #!/usr/bin/env python3
 from gr_linux_crypto.crypto_helpers import CryptoHelpers
 from gr_linux_crypto.keyring_helper import KeyringHelper
 
 def advanced_key_management():
-    """Advanced key management example."""
+    """Advanced key management example with PBKDF2."""
     crypto = CryptoHelpers()
     helper = KeyringHelper()
     
-    # Derive key from password
+    # Derive key from password using PBKDF2
     password = b"my_secret_password"
     salt = crypto.generate_random_iv(16)
-    derived_key = crypto.derive_key_from_password(password, salt)
+    derived_key = crypto.derive_key_from_password(password, salt, length=32, iterations=100000)
     
     # Store derived key in keyring
     key_id = helper.add_key('user', 'derived_key', derived_key)
@@ -260,6 +262,106 @@ def advanced_key_management():
 
 if __name__ == "__main__":
     advanced_key_management()
+```
+
+#### HKDF Key Derivation (for Shared Secrets)
+
+```python
+#!/usr/bin/env python3
+from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
+def hkdf_ecdh_example():
+    """HKDF key derivation from ECDH shared secret."""
+    crypto = CryptoHelpers()
+    
+    # Generate key pairs for Alice and Bob
+    alice_private, alice_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+    bob_private, bob_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+    
+    # Both parties compute shared secret via ECDH
+    alice_shared_secret = crypto.brainpool_ecdh(alice_private, bob_public)
+    bob_shared_secret = crypto.brainpool_ecdh(bob_private, alice_public)
+    
+    # Shared secrets are identical
+    assert alice_shared_secret == bob_shared_secret
+    
+    # Derive encryption keys using HKDF (RFC 5869)
+    # HKDF is designed for key derivation from shared secrets
+    salt = crypto.generate_random_key(16)  # Can be random or application-specific
+    info = b'gnuradio-encryption-v1'  # Context/application-specific information
+    
+    # Alice derives encryption key
+    alice_encryption_key = crypto.derive_key_hkdf(
+        alice_shared_secret,
+        salt=salt,
+        info=info,
+        length=32,  # 256-bit key for AES-256
+        algorithm='sha256'
+    )
+    
+    # Bob derives the same encryption key (must use same salt and info)
+    bob_encryption_key = crypto.derive_key_hkdf(
+        bob_shared_secret,
+        salt=salt,
+        info=info,
+        length=32,
+        algorithm='sha256'
+    )
+    
+    # Keys are identical
+    assert alice_encryption_key == bob_encryption_key
+    
+    print(f"Shared secret: {crypto.bytes_to_hex(alice_shared_secret)}")
+    print(f"Derived encryption key: {crypto.bytes_to_hex(alice_encryption_key)}")
+    
+    # Now both parties can use the encryption key for AES encryption
+    iv = crypto.generate_random_iv(16)
+    message = b"Secret message encrypted with ECDH+HKDF derived key"
+    encrypted = crypto.aes_encrypt(message, alice_encryption_key, iv, 'cbc')
+    decrypted = crypto.aes_decrypt(encrypted, bob_encryption_key, iv, 'cbc')
+    
+    print(f"Original: {message}")
+    print(f"Decrypted: {decrypted}")
+    print(f"Encryption successful: {message == decrypted}")
+
+def hkdf_advanced_example():
+    """Advanced HKDF usage with multiple algorithms."""
+    crypto = CryptoHelpers()
+    
+    # Input key material (IKM) - typically from ECDH or other key exchange
+    ikm = crypto.generate_random_key(32)
+    
+    # HKDF with SHA256
+    key_sha256 = crypto.derive_key_hkdf(ikm, length=32, algorithm='sha256')
+    
+    # HKDF with SHA384
+    key_sha384 = crypto.derive_key_hkdf(ikm, length=48, algorithm='sha384')
+    
+    # HKDF with SHA512
+    key_sha512 = crypto.derive_key_hkdf(ikm, length=64, algorithm='sha512')
+    
+    # HKDF with context information (info parameter)
+    salt = b'application_salt'
+    info_auth = b'encryption-key'
+    info_signing = b'signing-key'
+    
+    encryption_key = crypto.derive_key_hkdf(ikm, salt=salt, info=info_auth, length=32)
+    signing_key = crypto.derive_key_hkdf(ikm, salt=salt, info=info_signing, length=32)
+    
+    # Different info values produce different keys
+    assert encryption_key != signing_key
+    
+    print(f"SHA256 key: {crypto.bytes_to_hex(key_sha256)}")
+    print(f"SHA384 key: {crypto.bytes_to_hex(key_sha384)}")
+    print(f"SHA512 key: {crypto.bytes_to_hex(key_sha512)}")
+    print(f"Encryption key: {crypto.bytes_to_hex(encryption_key)}")
+    print(f"Signing key: {crypto.bytes_to_hex(signing_key)}")
+
+if __name__ == "__main__":
+    print("=== HKDF with ECDH ===")
+    hkdf_ecdh_example()
+    print("\n=== Advanced HKDF ===")
+    hkdf_advanced_example()
 ```
 
 ### Multi-Algorithm Support

@@ -2,6 +2,51 @@
 
 A GNU Radio module that provides **Linux-specific cryptographic infrastructure integration**, focusing on what's missing from existing crypto modules (gr-openssl, gr-nacl).
 
+## Table of Contents
+
+1. [What This Module Provides (Unique Features)](#what-this-module-provides-unique-features)
+   - [Kernel Keyring Integration](#1-kernel-keyring-integration)
+   - [Hardware Security Module Integration](#2-hardware-security-module-integration)
+   - [Kernel Crypto API Integration](#3-kernel-crypto-api-integration)
+2. [What This Module Does NOT Provide (Avoiding Duplication)](#what-this-module-does-not-provide-avoiding-duplication)
+   - [Basic OpenSSL Operations (Use gr-openssl)](#basic-openssl-operations-use-gr-openssl)
+   - [Modern Crypto (NaCl/libsodium) - Use gr-nacl](#modern-crypto-nacllibsodium---use-gr-nacl)
+   - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
+3. [Integration Architecture](#integration-architecture)
+4. [Key Design Principles](#key-design-principles)
+5. [Usage Flowchart](#usage-flowchart)
+6. [Documentation](#documentation)
+7. [Usage Examples](#usage-examples)
+   - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
+   - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
+   - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
+8. [Dependencies](#dependencies)
+   - [Required](#required)
+   - [Python Dependencies](#python-dependencies)
+   - [Optional](#optional)
+9. [Installation](#installation)
+10. [Important Note](#important-note)
+11. [Cryptographic Operations Overview](#cryptographic-operations-overview)
+    - [Encryption (AES block)](#1-encryption-aes-block)
+    - [Signing & Key Exchange (Brainpool ECC block)](#2-signing--key-exchange-brainpool-ecc-block)
+    - [Common Use Pattern](#common-use-pattern)
+12. [Supported Ciphers and Algorithms](#supported-ciphers-and-algorithms)
+    - [Symmetric Encryption](#symmetric-encryption)
+    - [Asymmetric Cryptography](#asymmetric-cryptography)
+    - [Key Management](#key-management)
+    - [Authentication Modes](#authentication-modes)
+13. [Security & Testing](#security--testing)
+14. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
+    - [Native C++ Blocks (Implemented)](#1-native-c-blocks-implemented)
+    - [Integration Helpers (Implemented)](#2-integration-helpers-implemented)
+    - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
+15. [Why This Approach?](#why-this-approach)
+16. [Comparison with Existing Modules](#comparison-with-existing-modules)
+17. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
+    - [Cryptographic Ciphers Influenced by the NSA](#cryptographic-ciphers-influenced-by-the-nsa)
+    - [Cryptographic Ciphers NOT Influenced by the NSA](#cryptographic-ciphers-not-influenced-by-the-nsa)
+    - [Known Scandals Involving NSA and Cryptography](#known-scandals-involving-nsa-and-cryptography)
+
 ## What This Module Provides (Unique Features)
 
 ### 1. **Kernel Keyring Integration**
@@ -55,15 +100,102 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 
 ## What This Module Does NOT Provide (Avoiding Duplication)
 
-### **Basic OpenSSL Operations**
-- **Use gr-openssl instead**: Symmetric encryption, hashing, HMAC
-- **Don't duplicate**: AES, SHA, RSA operations are already in gr-openssl
-- **Integration only**: Provide kernel keyring as key source for gr-openssl
+### **Basic OpenSSL Operations (Use gr-openssl)**
 
-### **Modern Crypto (NaCl/libsodium)**
-- **Use gr-nacl instead**: Curve25519, Ed25519, ChaCha20-Poly1305
-- **Don't duplicate**: Public-key crypto, authenticated encryption
-- **Integration only**: Provide hardware key storage for gr-nacl
+**What gr-openssl provides:**
+- **Symmetric Encryption**: AES (all key sizes and modes), DES, 3DES, Blowfish, Camellia
+- **Hashing**: SHA-1, SHA-256, SHA-384, SHA-512, MD5
+- **HMAC**: Message authentication codes
+- **Asymmetric Cryptography**: RSA encryption/decryption, RSA signing/verification
+- **Additional ECC Curves**: NIST curves (P-256, P-384, P-521), secp256k1
+- **Key Derivation**: PBKDF2, scrypt
+- **OpenSSL EVP API**: Comprehensive OpenSSL cryptographic operations
+
+**Example using gr-openssl:**
+```python
+from gnuradio import gr, crypto, linux_crypto
+
+# Use gr-openssl for AES encryption
+tb = gr.top_block()
+key = [0x01] * 32  # 256-bit key
+iv = [0x02] * 16   # 128-bit IV
+cipher_desc = crypto.sym_ciph_desc("aes-256-cbc", key, iv)
+encryptor = crypto.sym_enc(cipher_desc)
+
+# Use gr-openssl for SHA-256 hashing
+hasher = crypto.hash("sha256")
+
+# Use gr-openssl for RSA operations
+rsa_encryptor = crypto.rsa_encrypt(public_key)
+rsa_decryptor = crypto.rsa_decrypt(private_key)
+
+# Optional: Use gr-linux-crypto kernel keyring as key source
+keyring_src = linux_crypto.kernel_keyring_source(key_id=12345)
+tb.connect(keyring_src, encryptor)
+```
+
+**Note**: The above API calls are conceptual examples. Consult gr-openssl documentation for exact function names and signatures.
+
+**gr-linux-crypto integration**: Provides kernel keyring as secure key source for gr-openssl blocks.
+
+### **Modern Crypto (NaCl/libsodium) - Use gr-nacl**
+
+**What gr-nacl provides:**
+- **Curve25519/X25519**: Elliptic curve Diffie-Hellman key exchange
+  - Fast, secure key exchange
+  - 256-bit security level
+  - High performance on modern CPUs
+- **Ed25519**: Elliptic curve digital signatures
+  - Deterministic signatures
+  - Fast signing and verification
+  - 128-bit security level
+- **ChaCha20-Poly1305**: Authenticated encryption
+  - Stream cipher with authentication
+  - AEAD (Authenticated Encryption with Associated Data)
+  - RFC 8439 compliant
+  - High performance, especially on ARM processors
+
+**Example using gr-nacl:**
+```python
+from gnuradio import gr, nacl, linux_crypto
+
+# Use gr-nacl for Curve25519/X25519 key exchange
+tb = gr.top_block()
+
+# X25519 key exchange (gr-nacl supports X25519)
+alice_private = nacl.generate_private_key_curve25519()
+alice_public = nacl.generate_public_key_curve25519(alice_private)
+bob_private = nacl.generate_private_key_curve25519()
+bob_public = nacl.generate_public_key_curve25519(bob_private)
+
+# Shared secret via X25519
+alice_shared = nacl.dh_curve25519(alice_private, bob_public)
+bob_shared = nacl.dh_curve25519(bob_private, alice_public)
+# alice_shared == bob_shared
+
+# Use Ed25519 for digital signatures
+message = b"Important message"
+signature = nacl.sign_ed25519(message, alice_private)
+is_valid = nacl.verify_ed25519(message, signature, alice_public)
+
+# Use ChaCha20-Poly1305 for authenticated encryption
+nonce = nacl.generate_nonce()
+encrypted = nacl.encrypt_chacha20poly1305(message, alice_shared, nonce)
+decrypted = nacl.decrypt_chacha20poly1305(encrypted, bob_shared, nonce)
+
+# Optional: Use gr-linux-crypto Nitrokey for secure key storage
+nitrokey_src = linux_crypto.nitrokey_interface(slot=1)
+# Connect nitrokey key to nacl operations
+```
+
+**Note**: The above API calls are conceptual examples. Consult gr-nacl documentation for exact function names and signatures.
+
+**gr-linux-crypto integration**: Provides hardware security modules (Nitrokey, kernel keyring) as secure key storage for gr-nacl operations.
+
+**Why not duplicate?**
+- gr-openssl and gr-nacl are mature, well-tested modules
+- Avoiding duplication reduces maintenance burden
+- Focus gr-linux-crypto on unique Linux-specific features
 
 ### **GnuPG/OpenPGP Operations**
 - **Limited integration**: Provides subprocess-based GnuPG wrapper for session key exchange
@@ -158,9 +290,9 @@ For experiments or research on frequencies where encryption is legally permitted
 ## Key Design Principles
 
 ### 1. **Don't Duplicate - Integrate!**
-- Use `gr-openssl` for OpenSSL operations
-- Use `gr-nacl` for modern crypto (Curve25519, Ed25519)
-- Add thin wrappers for kernel keyring and hardware
+- **Use `gr-openssl`** for: AES, SHA, RSA, and other OpenSSL operations
+- **Use `gr-nacl`** for: X25519 (Curve25519 key exchange), Ed25519 signatures, ChaCha20-Poly1305
+- **Add thin wrappers** in gr-linux-crypto for: kernel keyring, hardware security modules, kernel crypto API
 
 ### 2. **Leverage Existing Tools**
 - `keyctl` command for kernel keyring management
@@ -240,6 +372,11 @@ bob_private, bob_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
 alice_secret = crypto.brainpool_ecdh(alice_private, bob_public)
 bob_secret = crypto.brainpool_ecdh(bob_private, alice_public)
 # alice_secret == bob_secret
+
+# Derive encryption key from shared secret using HKDF
+salt = crypto.generate_random_key(16)
+info = b'gnuradio-encryption-key-v1'
+encryption_key = crypto.derive_key_hkdf(alice_secret, salt=salt, info=info, length=32)
 
 # ECDSA signing and verification
 message = "Message to sign"
@@ -390,6 +527,7 @@ This module provides two distinct types of cryptographic operations:
 - Hardware security modules (Nitrokey, TPM)
 - Key serialization (PEM format)
 - PKCS#7 padding for block ciphers
+- Key derivation: PBKDF2 (password-based), HKDF (RFC 5869 for shared secrets)
 
 ### Authentication Modes
 - **GCM** (Galois/Counter Mode) - for AES
@@ -464,13 +602,24 @@ GRC blocks:
 
 | Feature | gr-openssl | gr-nacl | gr-linux-crypto |
 |---------|------------|---------|-----------------|
-| OpenSSL operations | Yes | No | No (use gr-openssl) |
-| Modern crypto (NaCl) | No | Yes | No (use gr-nacl) |
+| **Symmetric Encryption** | | | |
+| AES (all modes) | Yes | No | Kernel API only (use gr-openssl for full features) |
+| DES, 3DES, Blowfish | Yes | No | No (use gr-openssl) |
+| ChaCha20-Poly1305 | No | Yes | No (use gr-nacl) |
+| **Asymmetric Cryptography** | | | |
+| RSA | Yes | No | No (use gr-openssl) |
+| X25519 (Curve25519 ECDH) | No | Yes | No (use gr-nacl) |
+| Ed25519 (signatures) | No | Yes | No (use gr-nacl) |
+| NIST ECC curves | Yes | No | No (use gr-openssl) |
+| Brainpool ECC curves | No | No | Yes (unique) |
+| **Hashing & Authentication** | | | |
+| SHA (SHA-1, SHA-256, SHA-512) | Yes | No | No (use gr-openssl) |
+| HMAC | Yes | No | No (use gr-openssl) |
+| **Linux-Specific Features** | | | |
 | Kernel keyring | No | No | Yes (unique) |
-| Hardware security | No | No | Yes (unique) |
+| Hardware security (Nitrokey) | No | No | Yes (unique) |
 | Kernel crypto API | No | No | Yes (unique) |
 | TPM integration | No | No | Yes (unique) |
-| Brainpool curves | No | No | Yes (unique) |
 
 This module fills the gaps in the GNU Radio crypto ecosystem by providing Linux-specific infrastructure that existing modules don't cover.
 

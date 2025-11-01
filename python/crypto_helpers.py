@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding, ec
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey, EllipticCurvePublicKey
 import numpy as np
@@ -163,6 +164,65 @@ class CryptoHelpers:
             backend=default_backend()
         )
         return kdf.derive(password)
+
+    @staticmethod
+    def derive_key_hkdf(ikm: Union[str, bytes], salt: Optional[bytes] = None,
+                        info: Optional[bytes] = None, length: int = 32,
+                        algorithm: str = 'sha256') -> bytes:
+        """
+        Derive a key using HKDF (HMAC-based Key Derivation Function).
+
+        HKDF is specified in RFC 5869 and is designed for key derivation
+        from shared secrets (e.g., from ECDH key exchange). It is more
+        efficient than PBKDF2 but should not be used for password-based
+        key derivation.
+
+        Args:
+            ikm: Input Key Material (shared secret, typically from ECDH)
+            salt: Optional salt (should be random or fixed application-specific value)
+            info: Optional context/application-specific information
+            length: Desired key length in bytes (max depends on hash algorithm)
+            algorithm: Hash algorithm ('sha256', 'sha384', 'sha512')
+
+        Returns:
+            Derived key as bytes
+
+        Raises:
+            ValueError: If algorithm is unsupported or length is invalid
+        """
+        if isinstance(ikm, str):
+            ikm = ikm.encode('utf-8')
+
+        hash_algo = None
+        if algorithm == 'sha256':
+            hash_algo = hashes.SHA256()
+            max_length = 32 * 255  # 255 * hash_length
+        elif algorithm == 'sha384':
+            hash_algo = hashes.SHA384()
+            max_length = 48 * 255
+        elif algorithm == 'sha512':
+            hash_algo = hashes.SHA512()
+            max_length = 64 * 255
+        else:
+            raise ValueError(f"Unsupported hash algorithm: {algorithm}")
+
+        if length > max_length:
+            raise ValueError(f"Requested length {length} exceeds maximum {max_length} for {algorithm}")
+
+        if salt is None:
+            salt = b''
+
+        if info is None:
+            info = b''
+
+        kdf = HKDF(
+            algorithm=hash_algo,
+            length=length,
+            salt=salt,
+            info=info,
+            backend=default_backend()
+        )
+        return kdf.derive(ikm)
 
     @staticmethod
     def generate_rsa_keypair(key_size: int = 2048) -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
@@ -611,3 +671,10 @@ if __name__ == "__main__":
     # Create HMAC
     hmac_sig = crypto.hmac_sign(data, key)
     print(f"HMAC: {crypto.bytes_to_hex(hmac_sig)}")
+
+    # HKDF key derivation (typical use: derive key from ECDH shared secret)
+    shared_secret = crypto.generate_random_key(32)  # Simulated ECDH shared secret
+    salt = crypto.generate_random_key(16)
+    info = b"gnuradio-crypto-v1"
+    derived_key = crypto.derive_key_hkdf(shared_secret, salt=salt, info=info, length=32)
+    print(f"HKDF derived key: {crypto.bytes_to_hex(derived_key)}")
