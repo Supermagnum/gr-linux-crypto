@@ -71,6 +71,42 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 - **Not native blocks**: Python utilities only, not stream-processing blocks
 - **See**: [GnuPG Integration Guide](docs/gnupg_integration.md) for setup, PIN handling, and usage patterns
 
+**Legal and Appropriate Uses for Amateur Radio:**
+
+1. **Digital Signatures (Primary Use Case)**
+   - Cryptographically sign transmissions to verify sender identity
+   - Prevent callsign spoofing
+   - Replace error-prone DTMF authentication
+   - **Legal**: Digital signatures do not obscure content and are generally permitted
+
+2. **Message Integrity**
+   - Detect transmission errors
+   - Verify message authenticity
+   - Non-obscuring authentication tags
+   - **Legal**: Integrity verification does not hide message content
+
+3. **Key Management Infrastructure**
+   - Secure key storage (Nitrokey, kernel keyring)
+   - Off-air key exchange (ECDH)
+   - Authentication key distribution
+   - **Legal**: Key management does not encrypt on-air content
+
+**Experimental and Research Uses:**
+
+For experiments or research on frequencies where encryption is legally permitted:
+- Encryption may be used in accordance with local regulations
+- Users must verify applicable frequency bands and regulations
+- This module provides the technical capability; users are responsible for legal compliance
+
+**User Responsibility:**
+
+**Critical:** Users must check local regulations before using cryptographic features.
+- Encryption regulations vary by country and jurisdiction
+- Frequency bands have different rules (amateur, ISM, experimental allocations)
+- **The responsibility for legal compliance is 100% the user's**
+- This module and its developers assume no liability for improper use
+- Consult with local regulatory authorities (FCC, OFCOM, etc.) for specific requirements
+
 ## Integration Architecture
 
 ```

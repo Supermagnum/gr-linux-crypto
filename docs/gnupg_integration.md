@@ -25,6 +25,9 @@ The gr-linux-crypto module provides **limited GnuPG integration** via subprocess
 6. [Examples](#examples)
 7. [Troubleshooting](#troubleshooting)
 8. [Future Improvements](#future-improvements)
+9. [Legal and Appropriate Uses for Amateur Radio](#legal-and-appropriate-uses-for-amateur-radio)
+10. [References](#references)
+11. [See Also](#see-also)
 
 ## Prerequisites
 
@@ -1147,6 +1150,59 @@ If you would like to contribute improvements to GnuPG integration:
 2. Propose changes via GitHub issues
 3. Submit pull requests with tests
 4. Follow the module's coding standards
+
+## Legal and Appropriate Uses for Amateur Radio
+
+### GnuPG/OpenPGP Operations in Amateur Radio
+
+**Important Legal Considerations:**
+
+1. **Digital Signatures (Primary Use Case)**
+
+   - Cryptographically sign transmissions to verify sender identity
+   - Prevent callsign spoofing
+   - Replace error-prone DTMF authentication
+   - **Legal**: Digital signatures do not obscure content and are generally permitted
+
+2. **Message Integrity**
+
+   - Detect transmission errors
+   - Verify message authenticity
+   - Non-obscuring authentication tags
+   - **Legal**: Integrity verification does not hide message content
+
+3. **Key Management Infrastructure**
+
+   - Secure key storage (Nitrokey, kernel keyring)
+   - Off-air key exchange (ECDH)
+   - Authentication key distribution
+   - **Legal**: Key management does not encrypt on-air content
+
+### Experimental and Research Uses
+
+For experiments or research on frequencies where encryption is legally permitted:
+
+- Encryption may be used in accordance with local regulations
+- Users must verify applicable frequency bands and regulations
+- This module provides the technical capability; users are responsible for legal compliance
+
+### User Responsibility
+
+**Critical:** Users must check local regulations before using cryptographic features.
+
+- Encryption regulations vary by country and jurisdiction
+- Frequency bands have different rules (amateur, ISM, experimental allocations)
+- **The responsibility for legal compliance is 100% the user's**
+- This module and its developers assume no liability for improper use
+- Consult with local regulatory authorities (FCC, OFCOM, etc.) for specific requirements
+
+### Resources for Regulatory Information
+
+- **United States:** [FCC Part 97 Rules](https://www.fcc.gov/wireless/bureau-divisions/mobility-division/amateur-radio-service/part-97-amateur-radio)
+- **United Kingdom:** [OFCOM Amateur Radio Licensing](https://www.ofcom.org.uk/manage-your-licence/radiocommunication-licences/amateur-radio)
+- **International:** Check with your national telecommunications authority
+
+**Disclaimer:** The information provided here is for general guidance only. Always consult current regulations for your specific jurisdiction and use case.
 
 ## References
 
