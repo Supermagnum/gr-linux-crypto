@@ -15,6 +15,7 @@ import os
 import sys
 import subprocess
 import tempfile
+import time
 from typing import List, Optional, Union, Dict, Any
 
 # GNU Radio imports
@@ -164,12 +165,15 @@ class NitrokeyManager:
 
     This class provides a high-level interface for Nitrokey devices,
     which can then be used with existing crypto modules.
+    
+    Uses the real C++ nitrokey_interface block for device communication.
     """
 
     def __init__(self):
         self._device = None
         self._available = False
-        self._slots = {}
+        self._nitrokey_block = None
+        self._cached_slots = None
 
     def connect(self) -> bool:
         """
@@ -178,18 +182,31 @@ class NitrokeyManager:
         Returns:
             True if connected successfully, False otherwise
         """
-        # Simplified implementation - real version would use libnitrokey
-        # This is a placeholder that simulates Nitrokey connection
+        if linux_crypto is None:
+            print("GNU Radio linux_crypto module not available")
+            return False
 
         try:
+            # Create a nitrokey_interface block to check availability
+            # Use slot 0 as a test - we'll check if device is available
+            self._nitrokey_block = linux_crypto.nitrokey_interface(slot=0, auto_repeat=False)
+            
             # Check if Nitrokey is available
-            # Real implementation would use libnitrokey
-            self._available = True
-            self._device = "Nitrokey Pro (simulated)"
-            return True
+            self._available = self._nitrokey_block.is_nitrokey_available()
+            
+            if self._available:
+                self._device = self._nitrokey_block.get_device_info()
+            else:
+                self._device = "Nitrokey not available"
+                self._nitrokey_block = None
+            
+            return self._available
 
         except Exception as e:
             print(f"Failed to connect to Nitrokey: {e}")
+            self._available = False
+            self._device = "Nitrokey connection failed"
+            self._nitrokey_block = None
             return False
 
     def is_available(self) -> bool:
@@ -199,6 +216,18 @@ class NitrokeyManager:
         Returns:
             True if Nitrokey is available, False otherwise
         """
+        if self._nitrokey_block is None:
+            return False
+        
+        # Re-check availability in case device was disconnected
+        try:
+            self._available = self._nitrokey_block.is_nitrokey_available()
+            if not self._available:
+                self._nitrokey_block = None
+        except:
+            self._available = False
+            self._nitrokey_block = None
+        
         return self._available
 
     def get_device_info(self) -> str:
@@ -208,65 +237,122 @@ class NitrokeyManager:
         Returns:
             Device information string
         """
-        if not self._available:
+        if not self.is_available() or self._nitrokey_block is None:
             return "Nitrokey not available"
-        return self._device
+        
+        try:
+            return self._nitrokey_block.get_device_info()
+        except:
+            return "Nitrokey not available"
 
     def get_available_slots(self) -> List[int]:
         """
-        Get available slots on the device.
+        Get available slots on the device that contain data.
 
         Returns:
-            List of available slot numbers
+            List of available slot numbers that contain keys
         """
-        if not self._available:
+        if not self.is_available() or self._nitrokey_block is None:
             return []
 
-        # Simulate 16 available slots (0-15)
-        return list(range(16))
+        try:
+            # Get available slots from the block
+            slots = self._nitrokey_block.get_available_slots()
+            self._cached_slots = slots
+            return slots
+        except Exception as e:
+            print(f"Error getting available slots: {e}")
+            return []
 
     def load_key_from_slot(self, slot: int) -> Optional[bytes]:
         """
         Load key from a specific slot.
 
         Args:
-            slot: Slot number to load from
+            slot: Slot number to load from (0-15)
 
         Returns:
             Key data if successful, None if failed
         """
-        if not self._available:
+        if not self.is_available() or linux_crypto is None or gr is None:
             return None
 
-        if slot not in self.get_available_slots():
+        if slot < 0 or slot > 15:
             return None
 
-        # Simplified implementation - real version would use libnitrokey
-        # Generate some test data (in real implementation, this would come from Nitrokey)
-        key_data = bytes([(i * 7 + slot * 13) % 256 for i in range(32)])
-        self._slots[slot] = key_data
-        return key_data
+        try:
+            # Create a nitrokey_interface block for the specific slot
+            # Use auto_repeat=False to get the key data exactly once
+            nitrokey_block = linux_crypto.nitrokey_interface(slot=slot, auto_repeat=False)
+            
+            # Check if key is loaded
+            if not nitrokey_block.is_key_loaded():
+                return None
+            
+            key_size = nitrokey_block.get_key_size()
+            if key_size == 0:
+                return None
+            
+            # Create a flowgraph to read the key data
+            # Use a vector sink to collect the output
+            tb = gr.top_block()
+            sink = blocks.vector_sink_b()
+            
+            tb.connect(nitrokey_block, sink)
+            
+            # Run the flowgraph to read exactly key_size bytes
+            # With auto_repeat=False, the block outputs key once then zeros
+            # We need to read exactly key_size bytes
+            tb.start()
+            
+            # Keep running until we have at least key_size bytes
+            max_wait = 1.0  # Maximum wait time in seconds
+            start_time = time.time()
+            while len(sink.data()) < key_size and (time.time() - start_time) < max_wait:
+                time.sleep(0.01)  # Small delay to allow data flow
+            
+            tb.stop()
+            tb.wait()  # Wait for cleanup
+            
+            # Get the key data from the sink
+            key_data = bytes(sink.data())
+            
+            # Extract exactly key_size bytes (ignore any trailing zeros)
+            if len(key_data) >= key_size:
+                key_data = key_data[:key_size]
+            elif len(key_data) == 0:
+                # No data received
+                return None
+            # If we got less than key_size, return what we have (might be partial)
+            
+            return key_data if key_data else None
+
+        except Exception as e:
+            print(f"Error loading key from slot {slot}: {e}")
+            return None
 
     def store_key_to_slot(self, slot: int, key_data: bytes) -> bool:
         """
         Store key to a specific slot.
 
+        Note: This requires password safe to be enabled and authentication.
+        The nitrokey_interface block is read-only. To write keys, use:
+        - Nitrokey App (GUI)
+        - libnitrokey C++ API directly
+        - Nitrokey CLI tools
+
         Args:
-            slot: Slot number to store to
+            slot: Slot number to store to (0-15)
             key_data: Key data to store
 
         Returns:
-            True if successful, False if failed
+            False - write operations not supported via this interface
         """
-        if not self._available:
-            return False
-
-        if slot not in self.get_available_slots():
-            return False
-
-        # Simplified implementation - real version would use libnitrokey
-        self._slots[slot] = key_data
-        return True
+        # The nitrokey_interface block is read-only
+        # Writing requires libnitrokey API or Nitrokey App
+        print("store_key_to_slot() is not supported via nitrokey_interface block.")
+        print("Use Nitrokey App or libnitrokey C++ API to write keys to password safe slots.")
+        return False
 
 
 class CryptoIntegration:

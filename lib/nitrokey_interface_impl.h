@@ -29,8 +29,15 @@
 #include <mutex>
 #include <string>
 
+#ifdef HAVE_NITROKEY
 // Forward declaration for libnitrokey
+namespace nitrokey {
+    class NitrokeyManager;
+}
+#else
+// Forward declaration when libnitrokey not available
 struct NK_device;
+#endif
 
 namespace gr {
 namespace linux_crypto {
@@ -47,11 +54,16 @@ private:
     bool d_nitrokey_available;
     mutable std::mutex d_mutex;
 
-    NK_device* d_device;
+#ifdef HAVE_NITROKEY
+    nitrokey::NitrokeyManager* d_nitrokey_manager;
+#else
+    void* d_device;  // Placeholder when libnitrokey not available
+#endif
     std::string d_device_info;
 
     void connect_to_nitrokey();
-    void load_key_from_nitrokey();
+    void load_key_from_nitrokey();  // Public: acquires lock
+    void load_key_from_nitrokey_unlocked();  // Private: assumes lock is held
     void output_key_data(int noutput_items, gr_vector_void_star& output_items);
 
 public:

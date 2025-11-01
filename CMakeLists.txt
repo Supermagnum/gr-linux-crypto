@@ -19,7 +19,8 @@ pkg_check_modules(OPENSSL QUIET openssl)
 pkg_check_modules(SODIUM QUIET libsodium)
 
 # Optional hardware security module support
-pkg_check_modules(NITROKEY QUIET libnitrokey)
+# Try libnitrokey-1 first (actual package name), fall back to libnitrokey
+pkg_check_modules(NITROKEY QUIET libnitrokey-1 libnitrokey)
 
 ########################################################################
 # Register component
@@ -95,6 +96,7 @@ endif()
 
 if(NITROKEY_FOUND)
     target_link_libraries(gnuradio-linux-crypto ${NITROKEY_LIBRARIES})
+    target_include_directories(gnuradio-linux-crypto PRIVATE ${NITROKEY_INCLUDE_DIRS})
     target_compile_definitions(gnuradio-linux-crypto PRIVATE HAVE_NITROKEY)
 endif()
 

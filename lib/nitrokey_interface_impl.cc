@@ -29,9 +29,12 @@
 #include <cstring>
 #include <stdexcept>
 
-// Note: Framework implementation - libnitrokey integration pending
-// Real implementation would use libnitrokey headers
-// #include <libnitrokey/NitrokeyManager.h>
+#ifdef HAVE_NITROKEY
+#include <libnitrokey/NitrokeyManager.h>
+#include <libnitrokey/DeviceCommunicationExceptions.h>
+#include <libnitrokey/CommandFailedException.h>
+#include <libnitrokey/Command.h>
+#endif
 
 namespace gr {
 namespace linux_crypto {
@@ -52,12 +55,18 @@ nitrokey_interface_impl::nitrokey_interface_impl(int slot, bool auto_repeat)
       d_key_size(0),
       d_key_loaded(false),
       d_key_offset(0),
-      d_nitrokey_available(false),
-      d_device(nullptr)
+      d_nitrokey_available(false)
+#ifdef HAVE_NITROKEY
+      , d_nitrokey_manager(nullptr)
+#else
+      , d_device(nullptr)
+#endif
 {
     connect_to_nitrokey();
     if (d_nitrokey_available) {
-        load_key_from_nitrokey();
+        // Use unlocked version since constructor runs before other threads can access
+        std::lock_guard<std::mutex> lock(d_mutex);
+        load_key_from_nitrokey_unlocked();
     }
 }
 
@@ -68,11 +77,14 @@ nitrokey_interface_impl::~nitrokey_interface_impl()
         memset(d_key_data.data(), 0, d_key_data.size());
     }
 
-    // Disconnect from Nitrokey
-    if (d_device) {
-        // Real implementation would call libnitrokey disconnect
-        d_device = nullptr;
-    }
+#ifdef HAVE_NITROKEY
+    // NitrokeyManager is a singleton, don't delete it
+    // Just release our reference
+    d_nitrokey_manager = nullptr;
+#else
+    // Disconnect from Nitrokey placeholder
+    d_device = nullptr;
+#endif
 }
 
 void
@@ -80,55 +92,161 @@ nitrokey_interface_impl::connect_to_nitrokey()
 {
     std::lock_guard<std::mutex> lock(d_mutex);
 
-    // Framework implementation - requires libnitrokey for full functionality
-    // This provides the interface structure; actual Nitrokey integration requires:
-    // 1. libnitrokey library integration
-    // 2. Device connection handling
-    // 3. Slot management
-    // 4. Key storage/retrieval operations
-    
-    // Current status: Framework ready, awaiting libnitrokey integration
-    // When libnitrokey is available, implement as follows:
-    //   1. Initialize libnitrokey: NK_initialize();
-    //   2. Connect: NK_device* device = NK_connect();
-    //   3. Check connection: if (device) { ... }
-    //   4. Get device info: d_device_info = NK_get_device_info(device);
-    //   5. Set d_nitrokey_available = true if connection succeeds
-    
+#ifdef HAVE_NITROKEY
+    try {
+        // Get NitrokeyManager singleton instance (returns shared_ptr)
+        d_nitrokey_manager = nitrokey::NitrokeyManager::instance().get();
+        
+        if (d_nitrokey_manager) {
+            // Try to connect to a Nitrokey device
+            auto devices = d_nitrokey_manager->list_devices();
+            
+            if (!devices.empty()) {
+                // Found at least one device, try to connect
+                // Connect to first available device
+                bool connected = d_nitrokey_manager->connect();
+                
+                if (connected && d_nitrokey_manager->is_connected()) {
+                    d_nitrokey_available = true;
+                    
+                    // Get device info
+                    try {
+                        auto model = d_nitrokey_manager->get_connected_device_model();
+                        if (model == nitrokey::device::DeviceModel::PRO) {
+                            d_device_info = "Nitrokey Pro";
+                        } else if (model == nitrokey::device::DeviceModel::STORAGE) {
+                            d_device_info = "Nitrokey Storage";
+                        } else {
+                            d_device_info = "Nitrokey (connected)";
+                        }
+                    } catch (...) {
+                        d_device_info = "Nitrokey (connected)";
+                    }
+                } else {
+                    // Devices found but connection failed
+                    d_nitrokey_available = false;
+                    d_device_info = "Nitrokey (connection failed)";
+                }
+            } else {
+                // No devices found
+                d_nitrokey_available = false;
+                d_device_info = "Nitrokey (no device found)";
+            }
+        } else {
+            d_nitrokey_available = false;
+            d_device_info = "Nitrokey (manager unavailable)";
+        }
+    } catch (const nitrokey::DeviceNotConnectedException&) {
+        d_nitrokey_available = false;
+        d_device_info = "Nitrokey (not connected)";
+    } catch (const std::exception& e) {
+        d_nitrokey_available = false;
+        d_device_info = std::string("Nitrokey (error: ") + e.what() + ")";
+    } catch (...) {
+        d_nitrokey_available = false;
+        d_device_info = "Nitrokey (unknown error)";
+    }
+#else
+    // libnitrokey not available at compile time
     d_nitrokey_available = false;
-    d_device_info = "Nitrokey (framework - libnitrokey integration pending)";
+    d_device_info = "Nitrokey (libnitrokey not available - rebuild with libnitrokey)";
+#endif
 }
 
 void
 nitrokey_interface_impl::load_key_from_nitrokey()
 {
     std::lock_guard<std::mutex> lock(d_mutex);
+    load_key_from_nitrokey_unlocked();
+}
 
-    if (!d_nitrokey_available || !d_device) {
+void
+nitrokey_interface_impl::load_key_from_nitrokey_unlocked()
+{
+    // Note: This function assumes d_mutex is already locked by caller
+    if (!d_nitrokey_available) {
         d_key_loaded = false;
         d_key_size = 0;
+        d_key_data.clear();
+        d_key_offset = 0;
         return;
     }
 
-    // Framework implementation - requires libnitrokey for full functionality
-    // This provides the interface structure; actual key loading requires:
-    // 1. libnitrokey NK_read_slot_data() calls
-    // 2. Slot validation and error handling
-    // 3. Key integrity verification
-    
-    // Current status: Framework ready, awaiting libnitrokey integration
-    // When libnitrokey is available, implement as follows:
-    //   1. Get slot size: size_t key_size = NK_get_slot_data_size(d_device, d_slot);
-    //   2. Validate: if (key_size > 0 && key_size <= MAX_KEY_SIZE) { ... }
-    //   3. Allocate: d_key_data.resize(key_size);
-    //   4. Read data: if (NK_read_slot_data(d_device, d_slot, d_key_data.data(), key_size)) {
-    //   5. Set state: d_key_size = key_size; d_key_loaded = true;
-    
-    // Framework implementation: No key loaded until libnitrokey is integrated
+#ifdef HAVE_NITROKEY
+    if (!d_nitrokey_manager) {
+        d_key_loaded = false;
+        d_key_size = 0;
+        d_key_data.clear();
+        d_key_offset = 0;
+        return;
+    }
+
+    try {
+        // Validate slot number (Nitrokey devices typically have 16 slots: 0-15)
+        if (d_slot < 0 || d_slot > 15) {
+            d_key_loaded = false;
+            d_key_size = 0;
+            d_key_data.clear();
+            d_key_offset = 0;
+            return;
+        }
+
+        // Read password safe slot (Nitrokey stores passwords in slots)
+        // libnitrokey API: get_password_safe_slot_password() returns char*
+        // The returned pointer is owned by libnitrokey and may be freed on next call
+        // We need to copy the data immediately
+        
+        char* password_ptr = d_nitrokey_manager->get_password_safe_slot_password(static_cast<uint8_t>(d_slot));
+        
+        if (password_ptr && password_ptr[0] != '\0') {
+            // Copy password data to string (libnitrokey owns the pointer)
+            std::string password = password_ptr;
+            
+            if (!password.empty()) {
+                // Copy password data to key buffer
+                d_key_data.resize(password.size());
+                memcpy(d_key_data.data(), password.c_str(), password.size());
+                d_key_size = password.size();
+                d_key_loaded = true;
+                d_key_offset = 0;
+            } else {
+                // Empty password
+                d_key_loaded = false;
+                d_key_size = 0;
+                d_key_data.clear();
+                d_key_offset = 0;
+            }
+        } else {
+            // Slot doesn't exist or is empty
+            d_key_loaded = false;
+            d_key_size = 0;
+            d_key_data.clear();
+            d_key_offset = 0;
+        }
+    } catch (const nitrokey::DeviceNotConnectedException&) {
+        d_nitrokey_available = false;
+        d_key_loaded = false;
+        d_key_size = 0;
+        d_key_data.clear();
+        d_key_offset = 0;
+    } catch (const std::exception&) {
+        d_key_loaded = false;
+        d_key_size = 0;
+        d_key_data.clear();
+        d_key_offset = 0;
+    } catch (...) {
+        d_key_loaded = false;
+        d_key_size = 0;
+        d_key_data.clear();
+        d_key_offset = 0;
+    }
+#else
+    // libnitrokey not available at compile time
+    d_key_loaded = false;
     d_key_size = 0;
     d_key_data.clear();
-    d_key_loaded = false;
     d_key_offset = 0;
+#endif
 }
 
 bool
@@ -173,12 +291,10 @@ nitrokey_interface_impl::get_auto_repeat() const
 void
 nitrokey_interface_impl::reload_key()
 {
-    {
-        std::lock_guard<std::mutex> lock(d_mutex);
-        d_key_offset = 0;  // Reset offset before reloading
-    }
-    // Lock is automatically released here, then load_key_from_nitrokey() will lock again
-    load_key_from_nitrokey();
+    std::lock_guard<std::mutex> lock(d_mutex);
+    d_key_offset = 0;  // Reset offset before reloading
+    // Call unlocked version since we already hold the lock
+    load_key_from_nitrokey_unlocked();
 }
 
 std::string
@@ -193,18 +309,53 @@ nitrokey_interface_impl::get_available_slots() const
 {
     std::lock_guard<std::mutex> lock(d_mutex);
 
-    // Framework implementation - requires libnitrokey for full functionality
     std::vector<int> slots;
 
-    if (d_nitrokey_available) {
-        // When libnitrokey is integrated, replace with:
-        // return NK_get_available_slots(d_device);
-        // Standard Nitrokey devices support 16 slots (0-15)
-        // This is framework placeholder until libnitrokey integration
-        for (int i = 0; i < 16; i++) {
-            slots.push_back(i);
-        }
+    if (!d_nitrokey_available) {
+        return slots;  // Return empty vector
     }
+
+#ifdef HAVE_NITROKEY
+    if (!d_nitrokey_manager) {
+        return slots;  // Return empty vector
+    }
+
+    try {
+        // Nitrokey devices have 16 password safe slots (0-15)
+        // Use get_password_safe_slot_status() to check which slots are populated
+        // Note: This may throw if password safe is not enabled or requires authentication
+        auto slot_status = d_nitrokey_manager->get_password_safe_slot_status();
+        
+        // slot_status is a vector<uint8_t> where each byte indicates slot status
+        // Check slots 0-15 (up to size of status vector)
+        for (size_t i = 0; i < slot_status.size() && i < 16; i++) {
+            if (slot_status[i] != 0) {
+                // Slot is populated, verify it has a password
+                try {
+                    char* password_ptr = d_nitrokey_manager->get_password_safe_slot_password(static_cast<uint8_t>(i));
+                    if (password_ptr && password_ptr[0] != '\0') {
+                        slots.push_back(static_cast<int>(i));
+                    }
+                } catch (...) {
+                    // Skip this slot if password retrieval fails (may require authentication)
+                    continue;
+                }
+            }
+        }
+    } catch (const nitrokey::DeviceNotConnectedException&) {
+        // Device disconnected, return empty
+    } catch (const nitrokey::CommandFailedException&) {
+        // Password safe may be disabled or requires authentication
+        // Return empty vector - device is connected but password safe unavailable
+    } catch (const std::exception&) {
+        // Other exceptions (e.g., password safe not enabled)
+        // Return empty vector - device detected but slots not accessible
+    } catch (...) {
+        // Unknown error accessing slots, return empty
+    }
+#else
+    // libnitrokey not available - return empty vector
+#endif
 
     return slots;
 }
@@ -221,6 +372,14 @@ nitrokey_interface_impl::work(int noutput_items,
         memset(out, 0, noutput_items);
         return noutput_items;
     }
+
+#ifdef HAVE_NITROKEY
+    // Verify device is still connected
+    if (!d_nitrokey_manager) {
+        memset(out, 0, noutput_items);
+        return noutput_items;
+    }
+#endif
 
     std::lock_guard<std::mutex> lock(d_mutex);
 

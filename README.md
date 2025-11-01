@@ -16,6 +16,37 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 - **Hardware acceleration**: Use hardware crypto when available
 - **No duplication**: This is NOT available in existing modules
 
+**Nitrokey Functionality with libnitrokey Library**
+
+The `nitrokey_interface` block provides full Nitrokey hardware security module integration when `libnitrokey` is available at compile time.
+
+**When libnitrokey is available:**
+- `is_nitrokey_available()` → Returns `TRUE` if Nitrokey device is connected
+- `is_key_loaded()` → Returns `TRUE` if key data is loaded from password safe slot
+- `get_key_size()` → Returns size of loaded key data
+- `load_key_from_nitrokey()` → Loads key from specified password safe slot (0-15)
+- `get_available_slots()` → Returns list of slots that contain data
+- `work()` → Outputs key data (repeating or single-shot based on `auto_repeat` setting)
+
+**When libnitrokey is NOT available at compile time:**
+- All functions return safe defaults (FALSE, 0, empty)
+- `work()` outputs zeros
+- Error messages indicate libnitrokey is not available
+
+**To use Nitrokey functionality:**
+1. Install `libnitrokey-dev` package: `sudo apt-get install libnitrokey-dev` (or equivalent)
+2. Ensure CMake detects libnitrokey (should happen automatically via pkg-config)
+3. Rebuild the module: `cmake .. && make`
+4. Connect a Nitrokey device to your system
+5. Store key data in Nitrokey password safe slots (0-15) using Nitrokey App or CLI tools
+
+**Implementation Notes:**
+- Uses libnitrokey C++ API (`NitrokeyManager`)
+- Reads key data from Nitrokey password safe slots
+- Supports all Nitrokey models (Pro, Storage, etc.)
+- Thread-safe with proper mutex protection
+- Gracefully handles device disconnection
+
 ### 3. **Kernel Crypto API Integration**
 - **AF_ALG sockets**: Direct use of Linux kernel crypto subsystem
 - **Hardware acceleration**: CPU crypto instructions via kernel
