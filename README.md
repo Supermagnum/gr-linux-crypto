@@ -12,37 +12,41 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
    - [Basic OpenSSL Operations (Use gr-openssl)](#basic-openssl-operations-use-gr-openssl)
    - [Modern Crypto (NaCl/libsodium) - Use gr-nacl](#modern-crypto-nacllibsodium---use-gr-nacl)
    - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
-3. [Integration Architecture](#integration-architecture)
-4. [Key Design Principles](#key-design-principles)
-5. [Usage Flowchart](#usage-flowchart)
-6. [Documentation](#documentation)
-7. [Usage Examples](#usage-examples)
+3. [Legal Considerations](#legal-considerations)
+   - [Legal and Appropriate Uses for Amateur Radio](#legal-and-appropriate-uses-for-amateur-radio)
+   - [Experimental and Research Uses](#experimental-and-research-uses)
+   - [User Responsibility and Disclaimer](#user-responsibility-and-disclaimer)
+4. [Integration Architecture](#integration-architecture)
+5. [Key Design Principles](#key-design-principles)
+6. [Usage Flowchart](#usage-flowchart)
+7. [Documentation](#documentation)
+8. [Usage Examples](#usage-examples)
    - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
    - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
-8. [Dependencies](#dependencies)
+9. [Dependencies](#dependencies)
    - [Required](#required)
    - [Python Dependencies](#python-dependencies)
    - [Optional](#optional)
-9. [Installation](#installation)
-10. [Important Note](#important-note)
-11. [Cryptographic Operations Overview](#cryptographic-operations-overview)
+10. [Installation](#installation)
+11. [Important Note](#important-note)
+12. [Cryptographic Operations Overview](#cryptographic-operations-overview)
     - [Encryption (AES block)](#1-encryption-aes-block)
     - [Signing & Key Exchange (Brainpool ECC block)](#2-signing--key-exchange-brainpool-ecc-block)
     - [Common Use Pattern](#common-use-pattern)
-12. [Supported Ciphers and Algorithms](#supported-ciphers-and-algorithms)
+13. [Supported Ciphers and Algorithms](#supported-ciphers-and-algorithms)
     - [Symmetric Encryption](#symmetric-encryption)
     - [Asymmetric Cryptography](#asymmetric-cryptography)
     - [Key Management](#key-management)
     - [Authentication Modes](#authentication-modes)
-13. [Security & Testing](#security--testing)
-14. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
+14. [Security & Testing](#security--testing)
+15. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
     - [Native C++ Blocks (Implemented)](#1-native-c-blocks-implemented)
     - [Integration Helpers (Implemented)](#2-integration-helpers-implemented)
     - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
-15. [Why This Approach?](#why-this-approach)
-16. [Comparison with Existing Modules](#comparison-with-existing-modules)
-17. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
+16. [Why This Approach?](#why-this-approach)
+17. [Comparison with Existing Modules](#comparison-with-existing-modules)
+18. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
     - [Cryptographic Ciphers Influenced by the NSA](#cryptographic-ciphers-influenced-by-the-nsa)
     - [Cryptographic Ciphers NOT Influenced by the NSA](#cryptographic-ciphers-not-influenced-by-the-nsa)
     - [Known Scandals Involving NSA and Cryptography](#known-scandals-involving-nsa-and-cryptography)
@@ -227,7 +231,11 @@ GnuPG also supports digital signatures to verify who sent a message and that it 
 - [Public-key cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) - Separate public/private keys
 - [Hybrid cryptosystem](https://en.wikipedia.org/wiki/Hybrid_cryptosystem) - Combining symmetric and public-key encryption
 
-**Legal and Appropriate Uses for Amateur Radio:**
+**See**: [Legal Considerations](#legal-considerations) section for important legal information about using cryptographic features.
+
+## Legal Considerations
+
+### **Legal and Appropriate Uses for Amateur Radio**
 
 1. **Digital Signatures (Primary Use Case)**
    - Cryptographically sign transmissions to verify sender identity
@@ -247,21 +255,46 @@ GnuPG also supports digital signatures to verify who sent a message and that it 
    - Authentication key distribution
    - **Legal**: Key management does not encrypt on-air content
 
-**Experimental and Research Uses:**
+### **Experimental and Research Uses**
 
 For experiments or research on frequencies where encryption is legally permitted:
 - Encryption may be used in accordance with local regulations
 - Users must verify applicable frequency bands and regulations
 - This module provides the technical capability; users are responsible for legal compliance
 
-**User Responsibility:**
+### **User Responsibility and Disclaimer**
 
 **Critical:** Users must check local regulations before using cryptographic features.
-- Encryption regulations vary by country and jurisdiction
-- Frequency bands have different rules (amateur, ISM, experimental allocations)
+
+- **Encryption regulations vary by country and jurisdiction**
+  - Different countries have different rules regarding encryption
+  - Some jurisdictions prohibit encryption on certain frequency bands
+  - Amateur radio regulations typically prohibit obscuring message content
+
+- **Frequency bands have different rules**
+  - Amateur radio bands: Generally prohibit message encryption (signatures and integrity checks usually permitted)
+  - ISM bands: Varies by jurisdiction
+  - Experimental allocations: May permit encryption with proper authorization
+
 - **The responsibility for legal compliance is 100% the user's**
-- This module and its developers assume no liability for improper use
-- Consult with local regulatory authorities (FCC, OFCOM, etc.) for specific requirements
+  - This module and its developers assume no liability for improper use
+  - Users must understand and comply with all applicable regulations
+  - Ignorance of regulations is not a valid defense
+
+- **Consult with local regulatory authorities**
+  - **United States**: Federal Communications Commission (FCC)
+  - **United Kingdom**: Office of Communications (OFCOM)
+  - **Other jurisdictions**: Contact your local telecommunications/radio regulatory authority
+
+**Disclaimer of Liability:**
+
+This software is provided "as is" without warranty of any kind. The developers and contributors of this module:
+- Make no representation about the legal status of cryptographic operations in your jurisdiction
+- Assume no liability for misuse, illegal use, or violation of regulations
+- Do not provide legal advice
+- Strongly recommend consulting with legal counsel or regulatory authorities before using cryptographic features
+
+**It is your responsibility to ensure all use of this software complies with applicable laws and regulations.**
 
 ## Integration Architecture
 
