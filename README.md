@@ -119,6 +119,13 @@ This module supports cryptographic keys that enable two main functions: **digita
 - The **private key** is secret - you keep it secure and never share it
 - The **public key** is shared openly - others use it to verify your signatures
 
+**PIN Protection:**
+- Private keys are protected with a PIN (Personal Identification Number)
+- PIN supports both **numbers and letters** for stronger security
+- **Recommended minimum PIN length: 5 characters** (but longer is better)
+- The PIN prevents unauthorized use even if someone gains access to your key storage
+- Choose a strong PIN that you can remember but others can't easily guess
+
 **How Signing Works:**
 1. **Signing**: You sign messages or files with your **private key**, creating a unique cryptographic signature
 2. **Verification**: Others use your **public key** to verify the signature, which proves:
@@ -171,6 +178,21 @@ The security relies on keeping your private key secret while distributing your p
 **7. Email Authentication**
 - Sign emails where privacy isn't needed but authenticity matters
 - Recipients verify with your public key, confirming you (not an imposter) sent that exact message
+
+**8. Website and Web Service Authentication**
+- Use your private key to authenticate to websites and web services supporting public key authentication
+- More secure than passwords - cryptographic proof of identity
+- Websites verify your identity using your public key
+- Examples: Git hosting services (GitHub, GitLab), cloud services, secure web portals
+- Your private key (protected by PIN) proves your identity without transmitting passwords
+
+**9. SSH Connection Authentication**
+- Authenticate to remote servers using SSH key pairs
+- Replace password-based SSH login with key-based authentication
+- Your private key (protected by PIN) proves your identity to the server
+- Server verifies your connection using your public key
+- Much more secure than password authentication - prevents brute force attacks and password interception
+- Commonly used for secure server administration and remote access
 
 **Common Pattern for Signing Without Encryption:**
 ```
