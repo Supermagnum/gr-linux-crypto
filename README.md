@@ -5,6 +5,15 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 ## Table of Contents
 
 0. [What does this module do?](#what-does-this-module-do)
+0.1. [Getting Started for Beginners](#getting-started-for-beginners)
+   - [What Are GnuPG Keys?](#what-are-gnupg-keys)
+   - [What is "Session Key Exchange"?](#what-is-session-key-exchange)
+   - [What is a "GnuPG Agent"?](#what-is-a-gnupg-agent)
+   - [What Are "Pinentry Programs"?](#what-are-pinentry-programs)
+   - [How to Create a GnuPG Key](#how-to-create-a-gnupg-key)
+   - [What to Do With a GnuPG Key](#what-to-do-with-a-gnupg-key)
+   - [GnuPG vs Brainpool ECC: When to Use Which?](#gnupg-vs-brainpool-ecc-when-to-use-which)
+   - [How It Fits Into Your SDR Workflow](#how-it-fits-into-your-sdr-workflow)
 1. [What This Module Provides (Unique Features)](#what-this-module-provides-unique-features)
    - [Kernel Keyring Integration](#1-kernel-keyring-integration)
    - [Hardware Security Module Integration](#2-hardware-security-module-integration)
@@ -55,6 +64,298 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
 ## What does this module do?
 
 **gr-linux-crypto** is a GNU Radio module that connects GNU Radio applications to Linux-specific security features that aren't available in other cryptographic modules.
+
+## Getting Started for Beginners
+
+If you're new to cryptographic keys and wondering how to actually use this module, this section explains everything step-by-step.
+
+### What Are GnuPG Keys?
+
+**GnuPG keys** are cryptographic key pairs (public key + private key) used for:
+- **Signing messages** (proving you sent them and they weren't modified)
+- **Encrypting messages** (keeping them secret from unauthorized readers)
+- **Verifying identity** (proving you are who you claim to be)
+
+**Think of it like a lock and key:**
+- **Public key** = Your lock (anyone can use it to encrypt messages for you or verify your signatures)
+- **Private key** = Your key (only you have it, used to decrypt messages or create signatures)
+- **PIN** = Password to protect your private key from being stolen
+
+**GnuPG keys are files stored on your computer** (or on hardware devices like Nitrokey). They're created using the `gpg` command-line tool, and this module helps you use those keys in GNU Radio applications.
+
+### What is "Session Key Exchange"?
+
+**Session key exchange** is how GnuPG securely shares encryption keys between people.
+
+**The Problem:**
+- Public-key encryption (like RSA) is slow and can only encrypt small amounts of data
+- Symmetric encryption (like AES) is fast but requires both parties to have the same key
+- How do you securely share that symmetric key?
+
+**The Solution (Session Key Exchange):**
+1. **You generate a random "session key"** (e.g., 256-bit AES key)
+2. **You encrypt your message** with the fast session key
+3. **You encrypt the session key** with the recipient's public key (slow but secure)
+4. **You send both:** encrypted session key + encrypted message
+5. **Recipient decrypts the session key** with their private key
+6. **Recipient decrypts your message** with the session key
+
+**Why "Session"?** Because each encrypted message uses a different random session key. This is more secure than reusing the same key.
+
+**In SDR/GNU Radio context:** You might use this to securely exchange encryption keys over the air before starting encrypted communications, without having to encrypt all your radio data with slow public-key encryption.
+
+### What is a "GnuPG Agent"?
+
+**GnuPG agent** is a background program that manages your private keys securely.
+
+**What it does:**
+- Stores your private keys in memory (encrypted)
+- Caches your PIN so you don't have to enter it repeatedly
+- Handles PIN entry securely
+- Protects keys from being accessed by unauthorized programs
+
+**Why you need it:**
+- Without the agent, every cryptographic operation would require you to enter your PIN
+- The agent keeps keys loaded in memory for a limited time (e.g., 30 minutes)
+- After the timeout, you'll need to enter your PIN again
+
+**How to start it:**
+```bash
+# Usually starts automatically, but you can start it manually:
+gpg-agent --daemon
+```
+
+**In this module:** The module uses GnuPG agent to access your keys, which reduces the need for constant PIN entry. However, **this module does NOT include a GUI, keypad, or touchscreen interface** for PIN entry. The standard pinentry programs (pinentry-gtk-2, pinentry-qt, etc.) work for desktop use, but if you need custom PIN entry interfaces (alphanumeric keypad, touchscreen, etc.) for your GNU Radio application, you must implement them yourself using the guidelines in the [GnuPG Integration Guide](docs/gnupg_integration.md).
+
+### What Are "Pinentry Programs"?
+
+**Pinentry programs** are graphical or text-based programs that securely prompt you for your PIN.
+
+**What they do:**
+- Display a secure dialog box asking for your PIN
+- Protect your PIN from being intercepted by other programs
+- Support different interfaces: GUI (graphical), terminal (text), or curses (ncurses)
+
+**Common pinentry programs:**
+- `pinentry-gtk-2` - Graphical dialog (recommended for desktop)
+- `pinentry-qt` - Qt-based graphical dialog
+- `pinentry-curses` - Terminal-based (for SSH sessions)
+- `pinentry-tty` - Plain text terminal (less secure, not recommended)
+
+**Why you need them:**
+- When using hardware keys (Nitrokey, YubiKey), the PIN is required for every operation
+- Pinentry provides a secure way to enter your PIN without other programs seeing it
+- Prevents malware from intercepting your PIN
+
+**How to configure:**
+Edit `~/.gnupg/gpg-agent.conf`:
+```
+pinentry-program /usr/bin/pinentry-gtk-2
+```
+
+**In this module:** When you use GnuPG features with hardware keys, the standard pinentry programs will prompt you for your PIN. If you need custom PIN entry interfaces (alphanumeric keypad, touchscreen, etc.) integrated into your GNU Radio application, see the [GnuPG Integration Guide](docs/gnupg_integration.md) for implementation guidelines and example code.
+
+### How to Create a GnuPG Key
+
+**Step 1: Generate your key pair**
+```bash
+gpg --full-generate-key
+```
+
+**Step 2: Follow the prompts:**
+1. **Key type:** Choose "RSA and RSA" (recommended) or "ECC" (modern, smaller keys)
+2. **Key size:** Choose 3072 or 4096 bits (higher is more secure, slower)
+3. **Expiration:** Choose how long the key is valid (or "Key does not expire")
+4. **Your name:** Enter your real name or callsign
+5. **Email:** Enter your email address
+6. **Comment:** Optional (e.g., "Amateur Radio Callsign: KG7ABC")
+7. **Passphrase:** Enter a strong passphrase (this protects your private key)
+
+**Step 3: Verify your key was created**
+```bash
+# List your keys
+gpg --list-keys        # Shows public keys
+gpg --list-secret-keys # Shows private keys
+```
+
+**Example output:**
+```
+/home/user/.gnupg/pubring.kbx
+-------------------------------------
+pub   rsa3072 2024-01-15 [SC]
+      ABC123DEF4567890ABCDEF1234567890ABCDEF12
+uid           [ultimate] John Doe <john@example.com>
+sub   rsa3072 2024-01-15 [E]
+```
+
+**Step 4: Export your public key (to share with others)**
+```bash
+gpg --export --armor john@example.com > my_public_key.asc
+# Share this file - it's safe to share publicly
+```
+
+**Your private key stays on your computer** - never share it!
+
+### What to Do With a GnuPG Key
+
+**1. Sign Messages (Digital Signatures)**
+```bash
+# Sign a message/file
+echo "Hello world" | gpg --clearsign > message.sig
+# Creates a readable message with signature attached
+```
+
+**2. Encrypt Messages**
+```bash
+# Encrypt for a recipient (they need your public key)
+echo "Secret message" | gpg --encrypt --recipient recipient@example.com > encrypted.asc
+```
+
+**3. In GNU Radio / SDR Context:**
+
+**Example: Signing radio transmissions**
+```python
+from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+
+# Sign a message to prove your identity
+message = b"Repeater config: adjust squelch to -120 dBm"
+sender_key_id = "0xABCD1234"  # Your GnuPG key ID
+
+signed = M17SessionKeyExchange.sign_key_offer(message, sender_key_id)
+# Send signed message over radio
+# Receiver verifies signature to confirm it came from you
+```
+
+**Example: Secure key exchange for encrypted communications**
+```python
+# 1. Generate session key for AES encryption
+session_key = M17SessionKeyExchange.generate_session_key()
+
+# 2. Encrypt session key with recipient's GnuPG public key
+recipient_key_id = "0x5678EFAB"
+encrypted_key = M17SessionKeyExchange.encrypt_key_for_recipient(
+    session_key, 
+    recipient_key_id
+)
+
+# 3. Send encrypted key over radio (or secure channel)
+# 4. Recipient decrypts session key with their private key
+# 5. Both parties now have the same session key for AES encryption
+```
+
+### GnuPG vs Brainpool ECC: When to Use Which?
+
+**Use GnuPG when:**
+- You want **interoperability** with existing email/software tools
+- You need **OpenPGP standard compliance** (widely supported)
+- You want to **integrate with existing key infrastructure** (keyservers, web of trust)
+- You prefer **proven, battle-tested software** (GnuPG has been around since 1999)
+- You're working with **email encryption or file signing** (standard uses of GnuPG)
+
+**Use Brainpool ECC when:**
+- You want **algorithm diversity** (avoid NSA-influenced algorithms)
+- You need **smaller key sizes** for the same security level
+- You're building **custom cryptographic protocols** in GNU Radio
+- You want **direct integration** with GNU Radio blocks (no subprocess calls)
+- You're doing **real-time SDR encryption/signing** (Brainpool is implemented as GNU Radio blocks)
+
+**Example: When to use each**
+
+**Use GnuPG:**
+- Signing software releases for distribution
+- Email encryption with amateur radio contacts
+- Key exchange with people who already have GnuPG keys
+- Integration with existing OpenPGP infrastructure
+
+**Use Brainpool ECC:**
+- Real-time radio encryption in GNU Radio flowgraphs
+- Custom digital signature protocol for repeater control
+- Direct ECDH key exchange in GNU Radio applications
+- When you need cryptographic operations as GNU Radio blocks (not subprocess calls)
+
+**You can use both:** You might use GnuPG for initial key exchange (off-air), then use Brainpool ECC for on-air communications.
+
+### How It Fits Into Your SDR Workflow
+
+**Typical SDR cryptographic workflow:**
+
+**Step 1: Key Management (Off-Air)**
+```bash
+# Create your GnuPG key
+gpg --full-generate-key
+
+# Exchange public keys with contacts (off-air: email, website, keyserver)
+gpg --import contact_public_key.asc
+```
+
+**Step 2: Session Key Exchange (Initial Setup)**
+```python
+# In your GNU Radio Python script
+from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+
+# Exchange encryption keys securely (using GnuPG)
+session_key = M17SessionKeyExchange.generate_session_key()
+encrypted_key = M17SessionKeyExchange.encrypt_key_for_recipient(
+    session_key, 
+    recipient_key_id
+)
+# Send encrypted_key over a secure channel or initial radio contact
+```
+
+**Step 3: Store Keys Securely**
+```python
+# Store session key in kernel keyring (secure, Linux-specific)
+from gr_linux_crypto.python.keyring_helper import KeyringHelper
+helper = KeyringHelper()
+key_id = helper.add_key('user', 'session_key', session_key)
+```
+
+**Step 4: Use Keys for Real-Time Operations**
+```python
+# Load key from kernel keyring into GNU Radio flowgraph
+from gnuradio import linux_crypto, blocks
+
+tb = gr.top_block()
+
+# Load key from secure storage
+key_source = linux_crypto.kernel_keyring_source(key_id=key_id)
+
+# Encrypt radio data in real-time
+encryptor = linux_crypto.kernel_crypto_aes(
+    mode='gcm',
+    encrypt=True
+)
+
+# Connect: radio data -> encryption -> transmission
+tb.connect(radio_source, encryptor, transmitter)
+```
+
+**Step 5: Digital Signatures for Authentication**
+```python
+# Sign repeater control commands
+message = b"SET_SQUELCH -120"
+signature = M17SessionKeyExchange.sign_key_offer(message, sender_key_id)
+# Send message + signature over radio
+# Repeater verifies signature before executing command
+```
+
+**Complete Flow Example:**
+```
+1. Off-Air: Exchange GnuPG public keys (email/website)
+2. Off-Air: Exchange session key (encrypted with GnuPG)
+3. Secure Storage: Store session key in kernel keyring (via gr-linux-crypto)
+4. On-Air: Use session key for real-time AES encryption (via gr-linux-crypto blocks)
+5. On-Air: Sign commands with GnuPG (via gr-linux-crypto Python helpers)
+6. Verification: Receivers verify signatures and decrypt with session key
+```
+
+**Why this workflow?**
+- **GnuPG** handles secure key exchange (slow but secure, done once)
+- **Kernel keyring** provides secure key storage (Linux-specific feature)
+- **GNU Radio blocks** provide real-time encryption/signing (fast, for continuous radio data)
+- **Brainpool ECC** provides algorithm diversity (avoid NSA-influenced algorithms)
+
+This combines the best of all worlds: proven key exchange (GnuPG), secure storage (kernel keyring), and real-time performance (GNU Radio blocks).
 
 ### Simple Explanation
 
@@ -395,9 +696,9 @@ nitrokey_src = linux_crypto.nitrokey_interface(slot=1)
 
 ### **GnuPG/OpenPGP Operations**
 - **Limited integration**: Provides subprocess-based GnuPG wrapper for session key exchange
-- **PIN handling**: Uses GnuPG agent and pinentry programs (see documentation)
+- **PIN handling**: Uses GnuPG agent and pinentry programs (see [Getting Started for Beginners](#getting-started-for-beginners) for explanations)
 - **Not native blocks**: Python utilities only, not stream-processing blocks
-- **See**: [GnuPG Integration Guide](docs/gnupg_integration.md) for setup, PIN handling, and usage patterns
+- **See**: [GnuPG Integration Guide](docs/gnupg_integration.md) for advanced setup, PIN handling, and usage patterns
 
 **What is GnuPG?**
 
@@ -417,6 +718,13 @@ Instead of encrypting the entire message with slow public-key encryption, GnuPG:
 The recipient uses their private key to decrypt the session key, then uses the session key to decrypt your message. This gives you both speed (from symmetric encryption) and secure key exchange (from public-key encryption).
 
 GnuPG also supports digital signatures to verify who sent a message and that it wasn't changed. It follows the OpenPGP standard, which is widely used for email encryption.
+
+**For beginners:** See [Getting Started for Beginners](#getting-started-for-beginners) for detailed explanations of:
+- What GnuPG keys are and how to create them
+- What "session key exchange" means
+- What "GnuPG agent" and "pinentry programs" are
+- How to use GnuPG keys in GNU Radio / SDR workflows
+- When to use GnuPG vs Brainpool ECC
 
 **References:**
 - [Symmetric-key algorithms](https://en.wikipedia.org/wiki/Symmetric-key_algorithm) - Same key for encryption and decryption
