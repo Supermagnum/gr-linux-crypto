@@ -77,7 +77,7 @@ pytest test_brainpool_vectors.py -v
 - Aligns with fuzzing results (no memory leaks detected)
 
 **Validation:**
-- Fuzzing: 18.4+ billion executions, 0 memory leaks
+- Fuzzing: 805+ million executions, 0 memory leaks
 - Performance test: Now passes with realistic GC variance allowance
 
 ---
