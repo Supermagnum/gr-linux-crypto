@@ -51,6 +51,7 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
     - [Asymmetric Cryptography](#asymmetric-cryptography)
     - [Key Management](#key-management)
     - [Authentication Modes](#authentication-modes)
+    - [Battery-Friendly Cryptography](#battery-friendly-cryptography)
 14. [Security & Testing](#security--testing)
 15. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
     - [Native C++ Blocks (Implemented)](#1-native-c-blocks-implemented)
@@ -1220,6 +1221,111 @@ This module provides two distinct types of cryptographic operations:
 - HMAC (SHA-1, SHA-256, SHA-512)
 
 **Note:** For additional algorithms (RSA, more ECC curves, etc.), use **gr-openssl** which provides comprehensive OpenSSL support.
+
+### Battery-Friendly Cryptography
+
+For battery-powered devices (portable radios, embedded systems, mobile SDR platforms), choosing the right cryptographic algorithms can significantly impact battery life. The recommended combination for maximum battery efficiency is:
+
+**Recommended: BrainpoolP256r1 + ChaCha20Poly1305**
+
+#### Why This Combination is Battery-Friendly
+
+**1. ChaCha20Poly1305 (from gr-nacl)**
+- **Software-optimized**: Designed for efficient software implementation without requiring special hardware instructions
+- **ARM-friendly**: Provides excellent performance on ARM processors (common in battery-powered devices)
+- **No hardware dependency**: Unlike AES, which benefits from AES-NI instructions (Intel/AMD), ChaCha20 works efficiently in pure software
+- **Lower power consumption**: Software implementations consume less power than hardware-accelerated instructions that require specialized CPU features
+- **High throughput**: Even without hardware acceleration, ChaCha20 achieves high encryption speeds
+
+**2. BrainpoolP256r1 (from gr-linux-crypto)**
+- **Lightweight ECC**: Smaller key sizes compared to RSA (256 bits vs. 2048+ bits for equivalent security)
+- **Efficient key exchange**: ECDH operations are computationally efficient
+- **Battery-conscious**: Fewer CPU cycles = less power consumption during key exchange operations
+
+#### How to Use This Combination
+
+```python
+from gr_linux_crypto.crypto_helpers import CryptoHelpers
+from gnuradio import nacl
+
+# Step 1: ECDH Key Exchange using BrainpoolP256r1 (gr-linux-crypto)
+crypto = CryptoHelpers()
+
+# Alice generates Brainpool key pair
+alice_private, alice_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+
+# Bob generates Brainpool key pair  
+bob_private, bob_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+
+# Both compute shared secret via ECDH
+alice_secret = crypto.brainpool_ecdh(alice_private, bob_public)
+bob_secret = crypto.brainpool_ecdh(bob_private, alice_public)
+# alice_secret == bob_secret
+
+# Step 2: Derive encryption key from shared secret using HKDF
+salt = crypto.generate_random_key(16)
+info = b'battery-friendly-encryption-v1'
+encryption_key = crypto.derive_key_hkdf(
+    alice_secret, 
+    salt=salt, 
+    info=info, 
+    length=32  # 256-bit key for ChaCha20
+)
+
+# Step 3: Encrypt with ChaCha20Poly1305 (gr-nacl)
+# Note: Consult gr-nacl documentation for exact API calls
+# encrypted = nacl.encrypt_chacha20poly1305(message, encryption_key, nonce)
+```
+
+#### Comparison with Alternatives
+
+**AES (Hardware-Accelerated)**
+- **Pros**: Very fast when AES-NI instructions are available
+- **Cons**: 
+  - Requires hardware acceleration for best performance
+  - Inefficient in software-only implementations
+  - Higher power consumption on devices without AES-NI (ARM, older CPUs)
+  - Not ideal for battery-powered devices without hardware acceleration
+
+**AES (Software-Only)**
+- **Pros**: Widely supported
+- **Cons**: Significantly slower than ChaCha20 in software, higher power consumption
+
+**RSA Key Exchange**
+- **Pros**: Widely supported
+- **Cons**: 
+  - Much larger key sizes (2048+ bits vs. 256 bits)
+  - More computationally intensive
+  - Higher power consumption
+  - Not recommended for battery-powered devices
+
+**X25519 (from gr-nacl)**
+- **Alternative to Brainpool**: Also efficient for key exchange
+- **Pros**: Often slightly faster than Brainpool on some platforms
+- **Note**: Both X25519 and BrainpoolP256r1 are good choices; Brainpool provides algorithm diversity (non-NSA-influenced)
+
+#### Best Practices for Battery-Powered Devices
+
+1. **Use ECDH for Key Exchange**: Prefer elliptic curve cryptography (Brainpool or X25519) over RSA
+2. **Use ChaCha20 for Encryption**: Prefer ChaCha20Poly1305 over AES when hardware acceleration isn't available
+3. **Minimize Key Exchanges**: Establish keys once, reuse for multiple encrypted sessions
+4. **Cache Keys Securely**: Use kernel keyring (from gr-linux-crypto) to store derived keys securely
+5. **Profile Your Device**: Test actual power consumption; results may vary based on CPU architecture
+
+#### When to Use Each
+
+**Use BrainpoolP256r1 + ChaCha20Poly1305 when:**
+- Running on battery-powered devices (portable radios, embedded systems, mobile platforms)
+- CPU lacks AES-NI hardware acceleration (ARM processors, older x86 CPUs)
+- Maximum battery life is critical
+- Algorithm diversity is desired (avoiding NSA-influenced algorithms)
+
+**Use AES-GCM when:**
+- Running on modern Intel/AMD CPUs with AES-NI support
+- Hardware acceleration is available and verified
+- Power consumption is less of a concern (desktop/server applications)
+
+**Note**: This combination requires both `gr-linux-crypto` (for Brainpool ECDH) and `gr-nacl` (for ChaCha20Poly1305). Both modules work together seamlessly for battery-efficient cryptography.
 
 ## Security & Testing
 
