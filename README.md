@@ -322,7 +322,7 @@ Although PGP keys are generally used with personal computers for Internet-relate
 - This helps verify digital signatures on radio transmissions and messages
 - Creates cryptographic proof of callsign ownership
 
-**Key servers - what are those?**
+### Key servers - what are those?
 
 Keyservers are distributed databases that store and synchronize public PGP/GPG keys across the internet. They enable the web of trust by making public keys discoverable and allowing people to find and verify keys from others around the world.
 
