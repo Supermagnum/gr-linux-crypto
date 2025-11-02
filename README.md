@@ -11,6 +11,8 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
    - [What is a "GnuPG Agent"?](#what-is-a-gnupg-agent)
    - [What Are "Pinentry Programs"?](#what-are-pinentry-programs)
    - [How to Create a GnuPG Key](#how-to-create-a-gnupg-key)
+   - [Advanced Key Management: Centralized Key Generation and Distribution](#advanced-key-management-centralized-key-generation-and-distribution)
+   - [Web of Trust and Key Signing Parties](#web-of-trust-and-key-signing-parties)
    - [What to Do With a GnuPG Key](#what-to-do-with-a-gnupg-key)
    - [GnuPG vs Brainpool ECC: When to Use Which?](#gnupg-vs-brainpool-ecc-when-to-use-which)
    - [How It Fits Into Your SDR Workflow](#how-it-fits-into-your-sdr-workflow)
@@ -195,6 +197,152 @@ gpg --export --armor john@example.com > my_public_key.asc
 ```
 
 **Your private key stays on your computer** - never share it!
+
+### Advanced Key Management: Centralized Key Generation and Distribution
+
+For organizations, teams, or groups that need to manage multiple users, a centralized key management approach can provide better security and easier administration.
+
+**How It Works:**
+
+1. **Primary Key Generation (Secure System)**
+   - One trusted individual generates a primary PGP key on a secure, isolated system
+   - The primary key pair includes the master key and multiple subkeys
+   - The primary key is kept extremely secure (never leaves the secure system)
+   - This centralizes key generation under controlled, secure conditions
+
+2. **Subkey Export and Distribution**
+   - After creation, individual subkeys are exported from the secure system
+   - Each subkey is securely transferred to individual Nitrokey devices or GnuPG cards
+   - Each user receives their own hardware device (Nitrokey or GnuPG card) with a pre-loaded subkey
+   - Users never handle the primary key generation process
+
+**Security Benefits:**
+
+- **Centralized Control**: Key generation happens in a controlled, secure environment
+- **Simplified Onboarding**: New users receive pre-loaded hardware devices - no complex key generation process required
+- **Reduced Risk**: Users don't directly handle key generation, reducing the chance of mistakes or key compromise
+- **Consistent Security**: All keys are generated with the same security parameters and best practices
+
+**Backup and Redundancy:**
+
+- This system works with multiple Nitrokey devices and GnuPG cards
+- Users can have backup devices (extra Nitrokey devices, GnuPG cards) with the same or different subkeys
+- If one device is lost or damaged, the backup device can be used immediately
+- Multiple devices provide redundancy for critical operations
+
+**Use Cases:**
+
+- **Amateur Radio Clubs**: One trusted administrator generates keys, distributes Nitrokey devices to club members
+- **Research Teams**: Centralized key management for collaborative projects
+- **Emergency Services**: Pre-configured hardware devices for rapid deployment
+- **Any organization**: Where centralized security control is preferred over individual key generation
+
+**Important Notes:**
+
+- The primary key must be stored in an extremely secure location (air-gapped system, secure vault)
+- Subkey export and transfer to hardware devices must be done securely
+- Users still protect their devices with PINs (recommended minimum 5 characters)
+- Consult the `gpg` manual for complete instructions on key generation, subkey creation, and export procedures
+
+This approach provides enterprise-grade key management while maintaining the security benefits of hardware-backed keys.
+
+### Web of Trust and Key Signing Parties
+
+OpenPGP and GnuPG use a decentralized trust model called the **web of trust** to verify the identity of key owners and establish trust in public keys.
+
+**What is the Web of Trust?**
+
+All OpenPGP-compliant implementations include a certificate vetting scheme to assist with verifying key ownership; its operation has been termed a **web of trust**. OpenPGP certificates (which include one or more public keys along with owner information) can be digitally signed by other users who, by that act, endorse the association of that public key with the person or entity listed in the certificate.
+
+**How It Works:**
+
+1. **Key Distribution**: You distribute your public key (the one you generated with `gpg --full-generate-key`)
+2. **Identity Verification**: Others verify that the public key actually belongs to you (they confirm your identity in person or through other trusted means)
+3. **Key Signing**: Once confident, they digitally sign your public key certificate using their own private key
+4. **Trust Building**: Each signature on your key adds to the "web of trust" - others who trust the signer may also trust your key
+
+**Key Signing Parties:**
+
+A **key signing party** is an event at which people present their public keys to others in person. At these events:
+
+- Participants meet face-to-face to verify each other's identity
+- Each person confirms the identity of others (checking ID cards, business cards, or other proof)
+- Once identity is verified, participants digitally sign each other's public key certificates
+- This creates a network of trust - if Alice trusts Bob and Bob signed Charlie's key, Alice may trust Charlie's key
+
+**Why Key Signing Parties Matter:**
+
+- **In-Person Verification**: Physical presence allows stronger identity verification than online methods
+- **Trust Network**: Builds a web of trust that extends beyond direct relationships
+- **Community Building**: Common practice in amateur radio, open source communities, and cryptography conferences
+- **Security**: Reduces the risk of accepting fake or compromised keys
+
+**Common Workflow at a Key Signing Party:**
+
+Although PGP keys are generally used with personal computers for Internet-related applications, key signing parties themselves generally do not involve computers, since that would give adversaries increased opportunities for subterfuge. The workflow typically follows this pattern:
+
+1. **Before the Event**: Generate your key fingerprint (not the full key)
+   ```bash
+   # Get your key fingerprint
+   gpg --fingerprint YOUR_KEY_ID
+   ```
+   - The fingerprint is a string of letters and numbers created by a cryptographic hash function
+   - It condenses your public key down to a shorter, more manageable string
+   - Write down or print your fingerprint to bring to the event
+   - Example fingerprint: `ABCD 1234 EFGH 5678 90AB CDEF 1234 5678 90AB CDEF`
+
+2. **At the Event (No Computers)**: 
+   - Participants meet in person and exchange **fingerprints only** (not full public keys)
+   - Write down the fingerprints of participants whose identity you verify
+   - Verify each person's identity (check ID cards, government-issued identification, business cards, or other proof)
+   - Confirm that the fingerprint matches the person's claimed identity
+   - The absence of computers prevents attackers from swapping keys or performing other attacks during the event
+
+3. **After the Event**:
+   - Obtain the full public keys corresponding to the fingerprints you received
+   - You can search for keys on keyservers using the fingerprint or email/name
+   - Verify that the fingerprint of the key you downloaded matches what was exchanged at the party
+   - Sign the public keys of people whose identity you verified at the event
+   - Upload your signed public key to keyservers so others can benefit from the web of trust
+
+**Why Use Fingerprints Instead of Full Keys at the Event?**
+
+- **Security**: Prevents attackers from swapping keys on computers during the event
+- **Simplicity**: Fingerprints are short strings that can be written down or printed
+- **Verification**: After obtaining the full key, you can verify the fingerprint matches
+- **Trust**: In-person fingerprint exchange combined with identity verification builds stronger trust
+
+**In Amateur Radio Context:**
+
+- Operators can meet at hamfests, club meetings, or special events
+- Verify each other's callsigns and identity
+- Sign each other's GnuPG keys to build a trusted network
+- This helps verify digital signatures on radio transmissions and messages
+- Creates cryptographic proof of callsign ownership
+
+**Keyserver Distribution:**
+
+After signing keys, you can upload them to public keyservers (like `keys.openpgp.org`):
+```bash
+# Upload your signed key to a keyserver
+gpg --send-keys YOUR_KEY_ID
+
+# Search for keys on a keyserver
+gpg --search-keys email@example.com
+
+# Refresh keys from keyservers
+gpg --refresh-keys
+```
+
+**Important Notes:**
+
+- Key signing is about **verifying identity**, not about encryption strength
+- Sign only keys when you are confident of the owner's identity
+- A signed key indicates: "I have verified this key belongs to this person"
+- The web of trust helps others decide whether to trust a key they haven't personally verified
+- This is a social/cryptographic hybrid approach to building trust networks
+
+For complete instructions on key signing, key distribution, and managing the web of trust, consult the `gpg` manual and GnuPG documentation.
 
 ### What to Do With a GnuPG Key
 
