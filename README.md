@@ -13,6 +13,7 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
    - [How to Create a GnuPG Key](#how-to-create-a-gnupg-key)
    - [Advanced Key Management: Centralized Key Generation and Distribution](#advanced-key-management-centralized-key-generation-and-distribution)
    - [Web of Trust and Key Signing Parties](#web-of-trust-and-key-signing-parties)
+   - [Key servers - what are those?](#key-servers-what-are-those)
    - [What to Do With a GnuPG Key](#what-to-do-with-a-gnupg-key)
    - [GnuPG vs Brainpool ECC: When to Use Which?](#gnupg-vs-brainpool-ecc-when-to-use-which)
    - [How It Fits Into Your SDR Workflow](#how-it-fits-into-your-sdr-workflow)
@@ -321,23 +322,11 @@ Although PGP keys are generally used with personal computers for Internet-relate
 - This helps verify digital signatures on radio transmissions and messages
 - Creates cryptographic proof of callsign ownership
 
-**Keyserver Distribution:**
+**Key servers - what are those?**
 
-After signing keys, you can upload them to public keyservers (like `keys.openpgp.org`):
-```bash
-# Upload your signed key to a keyserver
-gpg --send-keys YOUR_KEY_ID
-
-# Search for keys on a keyserver
-gpg --search-keys email@example.com
-
-# Refresh keys from keyservers
-gpg --refresh-keys
-```
+Keyservers are distributed databases that store and synchronize public PGP/GPG keys across the internet. They enable the web of trust by making public keys discoverable and allowing people to find and verify keys from others around the world.
 
 **How Keyservers Work:**
-
-Keyservers are distributed databases that store and synchronize public PGP/GPG keys across the internet. Here's how they function:
 
 1. **Distributed Network**: Keyservers form a peer-to-peer network that automatically synchronizes public keys
    - When you upload a key to one keyserver, it propagates to other keyservers in the network
@@ -366,6 +355,20 @@ Keyservers are distributed databases that store and synchronize public PGP/GPG k
    - For a detailed list of SKS peer servers with status, IP addresses, versions, and connectivity information, see: [https://spider.pgpkeys.eu/sks-peers](https://spider.pgpkeys.eu/sks-peers)
    - These visualizations show which keyservers are connected and synchronizing with each other
    - The graph and peer list help understand the distributed nature of the keyserver infrastructure
+
+**Using Keyservers:**
+
+After signing keys, you can upload them to public keyservers (like `keys.openpgp.org`):
+```bash
+# Upload your signed key to a keyserver
+gpg --send-keys YOUR_KEY_ID
+
+# Search for keys on a keyserver
+gpg --search-keys email@example.com
+
+# Refresh keys from keyservers
+gpg --refresh-keys
+```
 
 **Common Keyservers:**
 
