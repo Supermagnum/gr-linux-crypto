@@ -335,6 +335,51 @@ gpg --search-keys email@example.com
 gpg --refresh-keys
 ```
 
+**How Keyservers Work:**
+
+Keyservers are distributed databases that store and synchronize public PGP/GPG keys across the internet. Here's how they function:
+
+1. **Distributed Network**: Keyservers form a peer-to-peer network that automatically synchronizes public keys
+   - When you upload a key to one keyserver, it propagates to other keyservers in the network
+   - Keyserver networks (like the SKS keyserver pool) sync updates between peers
+   - This ensures keys are available from multiple locations, providing redundancy and availability
+
+2. **Synchronization**: Keyservers continuously synchronize with each other
+   - Updates to keys (new keys, revocations, signatures) are propagated across the network
+   - The sync process ensures that keys uploaded to one server become available on others
+   - This creates a distributed, resilient system where no single point of failure exists
+
+3. **Public Read Access**: Anyone can search and download public keys
+   - Public keys are meant to be shared - they contain no secret information
+   - Keyservers allow searching by email address, key ID, or fingerprint
+   - This enables the web of trust by making signed keys discoverable
+
+4. **Privacy Considerations**: 
+   - Public keys are public by design - they cannot be deleted from keyservers
+   - Email addresses and user IDs in public keys are permanently associated with the key
+   - Upload revocation certificates if you need to invalidate a key
+   - Be aware that keyserver data is permanent and publicly accessible
+
+5. **Keyserver Mesh Network**: 
+   - Keyservers form a mesh network where they peer with each other
+   - You can view a graph of the keyserver network showing synchronization relationships at: [https://spider.pgpkeys.eu/graphs/](https://spider.pgpkeys.eu/graphs/)
+   - For a detailed list of SKS peer servers with status, IP addresses, versions, and connectivity information, see: [https://spider.pgpkeys.eu/sks-peers](https://spider.pgpkeys.eu/sks-peers)
+   - These visualizations show which keyservers are connected and synchronizing with each other
+   - The graph and peer list help understand the distributed nature of the keyserver infrastructure
+
+**Common Keyservers:**
+
+- `keys.openpgp.org` - Modern keyserver with privacy features
+- `pgp.mit.edu` - MIT keyserver (legacy SKS network)
+- `pool.sks-keyservers.net` - Pool of SKS keyservers
+
+**Best Practices:**
+
+- Upload your public key to a keyserver after creating it
+- Upload signed keys after key signing parties to contribute to the web of trust
+- Use `gpg --refresh-keys` periodically to update keys you have imported
+- Revoke keys immediately if compromised, then upload the revocation certificate
+
 **Important Notes:**
 
 - Key signing is about **verifying identity**, not about encryption strength
