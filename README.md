@@ -13,7 +13,7 @@ A GNU Radio module that provides **Linux-specific cryptographic infrastructure i
    - [How to Create a GnuPG Key](#how-to-create-a-gnupg-key)
    - [Advanced Key Management: Centralized Key Generation and Distribution](#advanced-key-management-centralized-key-generation-and-distribution)
    - [Web of Trust and Key Signing Parties](#web-of-trust-and-key-signing-parties)
-   - [Key servers - what are those?](#key-servers-what-are-those)
+   - [Key servers - what are those?](#key-servers---what-are-those)
    - [What to Do With a GnuPG Key](#what-to-do-with-a-gnupg-key)
    - [GnuPG vs Brainpool ECC: When to Use Which?](#gnupg-vs-brainpool-ecc-when-to-use-which)
    - [How It Fits Into Your SDR Workflow](#how-it-fits-into-your-sdr-workflow)
