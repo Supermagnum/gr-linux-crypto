@@ -22,7 +22,7 @@ pytest test_brainpool_vectors.py -v
 **Notes:**
 - Script handles network errors gracefully
 - Vectors stored locally for offline testing
-- NIST CAVP vectors may need separate download (manual process)
+- NIST CAVP vectors are downloaded automatically (with fallback to minimal vectors if download fails)
 
 ## 2. M17 Framework Tests [COMPLETE]
 

@@ -129,6 +129,18 @@ Test vectors are automatically used by:
 
 EOF
 
+# Download NIST CAVP vectors
+echo ""
+echo "4. Downloading NIST CAVP test vectors..."
+if command -v python3 &> /dev/null; then
+    python3 "${SCRIPT_DIR}/download_nist_vectors.py" "${VECTORS_DIR}" || {
+        echo "   WARNING: NIST vector download failed (using minimal vectors if available)"
+    }
+else
+    echo "   WARNING: python3 not found, skipping NIST vector download"
+    echo "   Run manually: python3 tests/download_nist_vectors.py tests/test_vectors"
+fi
+
 echo ""
 echo "Setup complete!"
 echo "==============="
@@ -139,6 +151,6 @@ echo "You can now run tests that require vectors:"
 echo "  pytest tests/test_brainpool_vectors.py -v"
 echo "  pytest tests/test_nist_vectors.py -v"
 echo ""
-echo "Note: Some vectors may need to be downloaded separately"
-echo "      (e.g., NIST CAVP vectors from NIST website)"
+echo "Note: NIST vectors are downloaded automatically. For full comprehensive"
+echo "      vectors, you may download from NIST CAVP website if needed."
 

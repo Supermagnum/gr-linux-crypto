@@ -11,6 +11,7 @@ Provides parsers for:
 import re
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -271,25 +272,68 @@ class RFC8439Parser:
         return result if result else None
 
 
-def download_nist_vectors(url: Optional[str] = None) -> str:
+def download_nist_vectors(url: Optional[str] = None, output_dir: Optional[Path] = None) -> Path:
     """
     Download NIST CAVP test vectors.
     
-    Returns path to downloaded file or raises exception.
+    Uses the download_nist_vectors.py script to download and prepare vectors.
+    
+    Args:
+        url: Optional URL (currently unused, script handles URLs)
+        output_dir: Directory to save vectors (defaults to tests/test_vectors)
+    
+    Returns:
+        Path to the test vectors directory
     """
-    import urllib.request
-    import tempfile
+    import subprocess
+    import sys
     
-    # Default NIST CAVP AES-GCM test vectors URL
-    # Note: You may need to update this URL based on NIST's current location
-    if url is None:
-        url = "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/AES_GCM.zip"
+    if output_dir is None:
+        # Default to tests/test_vectors relative to this file
+        script_dir = Path(__file__).parent
+        output_dir = script_dir / 'test_vectors'
+    else:
+        output_dir = Path(output_dir)
     
-    # For now, return a path that should contain manually downloaded vectors
-    # Users should download from NIST and place in tests/test_vectors/ directory
-    raise NotImplementedError(
-        "Automatic download not implemented. Please download NIST CAVP test vectors "
-        "from https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/validation-testing"
-        " and place in tests/test_vectors/ directory"
-    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Call the download script
+    script_path = Path(__file__).parent / 'download_nist_vectors.py'
+    
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script_path), str(output_dir)],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if result.returncode == 0:
+            # Check if files were created
+            aes_128 = output_dir / 'aes_gcm_128.txt'
+            aes_256 = output_dir / 'aes_gcm_256.txt'
+            
+            if aes_128.exists() and aes_256.exists():
+                return output_dir
+            else:
+                raise RuntimeError(
+                    "Download script completed but vector files not found. "
+                    "Check script output for details."
+                )
+        else:
+            raise RuntimeError(
+                f"Download script failed: {result.stderr}\n"
+                "You may need to download vectors manually from "
+                "https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/validation-testing"
+            )
+    except FileNotFoundError:
+        raise RuntimeError(
+            f"Download script not found at {script_path}. "
+            "Please ensure download_nist_vectors.py is in the tests directory."
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to download NIST vectors: {e}\n"
+            "You may download them manually and place in tests/test_vectors/ directory."
+        )
 

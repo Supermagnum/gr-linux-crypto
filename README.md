@@ -1385,6 +1385,20 @@ encryption_key = crypto.derive_key_hkdf(
 - Zero crashes = Memory safety validated
 - Comprehensive edge case exploration
 
+**NIST Standards Validation:**
+- **NIST CAVP Test Vectors:** Code tested against official NIST Cryptographic Algorithm Validation Program test vectors
+- AES-128-GCM: 100% of test vectors passing (4/4 vectors, including AAD support)
+- AES-256-GCM: 100% of test vectors passing (4/4 vectors, including AAD support)
+- **RFC 8439 ChaCha20-Poly1305:** 100% of test vectors passing (3/3 vectors, including AAD support)
+- Full AAD (Additional Authenticated Data) support implemented and validated
+- **Full test results:** [View NIST validation details in TEST_RESULTS.md](tests/TEST_RESULTS.md#nist-validation)
+
+**Brainpool Cryptography Validation:**
+- **Brainpool ECC ECDH:** All tests passing, validated with **2,534+ Wycheproof test vectors** across all Brainpool curves
+- **Brainpool ECC ECDSA:** All tests passing, validated with **475+ Wycheproof test vectors per curve** (brainpoolP256r1, P384r1, P512r1)
+- Comprehensive validation against multiple test vector sources including Wycheproof, RFC 5639, and BSI specifications
+- **Full test results:** [View Brainpool validation details in TEST_RESULTS.md](tests/TEST_RESULTS.md#brainpool-ecc-support)
+
 **Combined Result:**
 - Memory safety validated through extensive fuzzing
 - **Zero security vulnerabilities** found

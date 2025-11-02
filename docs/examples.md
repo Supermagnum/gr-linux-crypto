@@ -364,6 +364,147 @@ if __name__ == "__main__":
     hkdf_advanced_example()
 ```
 
+### Authenticated Encryption with Additional Data (AAD)
+
+```python
+#!/usr/bin/env python3
+"""AES-GCM and ChaCha20-Poly1305 with AAD (Additional Authenticated Data) support."""
+
+from gr_linux_crypto.linux_crypto import encrypt, decrypt
+
+def aes_gcm_with_aad_example():
+    """AES-GCM encryption with AAD support."""
+    key = b'0' * 32  # 256-bit key for AES-256
+    iv = b'0' * 12   # 96-bit IV for GCM
+    plaintext = b"Secret message content"
+    aad = b"Message metadata that should be authenticated but not encrypted"
+    
+    # Encrypt with AAD
+    ciphertext, iv_out, auth_tag = encrypt(
+        'aes-256',
+        key,
+        plaintext,
+        iv_mode=iv,
+        auth='gcm',
+        aad=aad  # Additional Authenticated Data
+    )
+    
+    print(f"Plaintext: {plaintext}")
+    print(f"AAD: {aad}")
+    print(f"Ciphertext: {ciphertext.hex()}")
+    print(f"Auth Tag: {auth_tag.hex()}")
+    
+    # Decrypt with same AAD
+    decrypted = decrypt(
+        'aes-256',
+        key,
+        ciphertext,
+        iv_out,
+        auth='gcm',
+        auth_tag=auth_tag,
+        aad=aad  # Must match encryption AAD
+    )
+    
+    print(f"Decrypted: {decrypted}")
+    print(f"Success: {decrypted == plaintext}")
+    
+    # Attempting to decrypt with wrong AAD will fail
+    wrong_aad = b"Different metadata"
+    try:
+        decrypt(
+            'aes-256',
+            key,
+            ciphertext,
+            iv_out,
+            auth='gcm',
+            auth_tag=auth_tag,
+            aad=wrong_aad  # Wrong AAD - will raise ValueError
+        )
+        print("ERROR: Decryption should have failed with wrong AAD!")
+    except ValueError as e:
+        print(f"Correctly rejected wrong AAD: {e}")
+
+def chacha20_poly1305_with_aad_example():
+    """ChaCha20-Poly1305 encryption with AAD support."""
+    key = b'0' * 32  # 256-bit key for ChaCha20
+    nonce = b'0' * 12  # 96-bit nonce
+    plaintext = b"Message to encrypt"
+    aad = b"Header information (authenticated but not encrypted)"
+    
+    # Encrypt with AAD
+    ciphertext, nonce_out, auth_tag = encrypt(
+        'chacha20',
+        key,
+        plaintext,
+        iv_mode=nonce,
+        auth='poly1305',
+        aad=aad
+    )
+    
+    # Decrypt with same AAD
+    decrypted = decrypt(
+        'chacha20',
+        key,
+        ciphertext,
+        nonce_out,
+        auth='poly1305',
+        auth_tag=auth_tag,
+        aad=aad
+    )
+    
+    print(f"Original: {plaintext}")
+    print(f"Decrypted: {decrypted}")
+    print(f"Match: {plaintext == decrypted}")
+
+def aad_use_cases():
+    """Common use cases for AAD in AEAD encryption."""
+    
+    # Use case 1: Encrypting message with metadata
+    message = b"Sensitive payload data"
+    metadata = b"From: alice@example.com\nTo: bob@example.com\nSubject: Encrypted"
+    
+    key = b'0' * 32
+    iv = b'0' * 12
+    
+    # Encrypt payload, authenticate metadata
+    ciphertext, iv_out, tag = encrypt(
+        'aes-256',
+        key,
+        message,
+        iv_mode=iv,
+        auth='gcm',
+        aad=metadata
+    )
+    
+    # Metadata is authenticated but not encrypted (more efficient)
+    # Changing metadata will be detected during decryption
+    
+    # Use case 2: Encrypting with protocol headers
+    protocol_header = b"M17_PROTOCOL_V1\nCALLSIGN: KA1ABC\nTIMESTAMP: 2025-11-02"
+    payload = b"Actual radio transmission data"
+    
+    ciphertext2, iv2, tag2 = encrypt(
+        'aes-256',
+        key,
+        payload,
+        iv_mode=iv,
+        auth='gcm',
+        aad=protocol_header
+    )
+    
+    print("Use cases demonstrated:")
+    print("1. Message encryption with authenticated metadata")
+    print("2. Protocol header authentication")
+
+if __name__ == "__main__":
+    print("=== AES-GCM with AAD ===")
+    aes_gcm_with_aad_example()
+    print("\n=== ChaCha20-Poly1305 with AAD ===")
+    chacha20_poly1305_with_aad_example()
+    print("\n=== AAD Use Cases ===")
+    aad_use_cases()
+```
+
 ### Multi-Algorithm Support
 
 ```python

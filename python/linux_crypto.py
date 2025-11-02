@@ -15,7 +15,7 @@ import os
 import secrets
 
 
-def encrypt(algorithm: str, key: bytes, data: bytes = b"", iv_mode: Union[str, bytes] = "random", auth: Optional[str] = None) -> Tuple[bytes, bytes, Optional[bytes]]:
+def encrypt(algorithm: str, key: bytes, data: bytes = b"", iv_mode: Union[str, bytes] = "random", auth: Optional[str] = None, aad: Optional[bytes] = None) -> Tuple[bytes, bytes, Optional[bytes]]:
     """
     Encrypt data using specified algorithm.
     
@@ -25,6 +25,7 @@ def encrypt(algorithm: str, key: bytes, data: bytes = b"", iv_mode: Union[str, b
         data: Plaintext data to encrypt (optional, can be provided via stream)
         iv_mode: IV mode ('random', 'fixed', or provide IV bytes)
         auth: Authentication mode ('gcm', 'poly1305', or None)
+        aad: Additional Authenticated Data (optional, for AEAD modes like GCM/Poly1305)
     
     Returns:
         Tuple of (ciphertext, iv, auth_tag)
@@ -37,7 +38,7 @@ def encrypt(algorithm: str, key: bytes, data: bytes = b"", iv_mode: Union[str, b
             raise ValueError(f"Key size mismatch: {algorithm} requires {key_size // 8} bytes, got {len(key)}")
         
         if auth == 'gcm':
-            return _aes_gcm_encrypt(key, data, iv_mode)
+            return _aes_gcm_encrypt(key, data, iv_mode, aad)
         else:
             return _aes_encrypt(key, data, key_size, iv_mode)
     
@@ -46,7 +47,7 @@ def encrypt(algorithm: str, key: bytes, data: bytes = b"", iv_mode: Union[str, b
             raise ValueError(f"ChaCha20 requires 32-byte key, got {len(key)}")
         
         if auth == 'poly1305':
-            return _chacha20_poly1305_encrypt(key, data, iv_mode)
+            return _chacha20_poly1305_encrypt(key, data, iv_mode, aad)
         else:
             raise ValueError("ChaCha20 requires Poly1305 authentication")
     
@@ -55,7 +56,7 @@ def encrypt(algorithm: str, key: bytes, data: bytes = b"", iv_mode: Union[str, b
 
 
 def decrypt(algorithm: str, key: bytes, ciphertext: bytes, iv: bytes, 
-            auth: Optional[str] = None, auth_tag: Optional[bytes] = None) -> bytes:
+            auth: Optional[str] = None, auth_tag: Optional[bytes] = None, aad: Optional[bytes] = None) -> bytes:
     """
     Decrypt data using specified algorithm.
     
@@ -66,6 +67,7 @@ def decrypt(algorithm: str, key: bytes, ciphertext: bytes, iv: bytes,
         iv: Initialization vector
         auth: Authentication mode ('gcm', 'poly1305', or None)
         auth_tag: Authentication tag (required for authenticated modes)
+        aad: Additional Authenticated Data (optional, for AEAD modes like GCM/Poly1305)
     
     Returns:
         Decrypted plaintext
@@ -78,7 +80,7 @@ def decrypt(algorithm: str, key: bytes, ciphertext: bytes, iv: bytes,
         if auth == 'gcm':
             if auth_tag is None:
                 raise ValueError("GCM mode requires auth_tag")
-            return _aes_gcm_decrypt(key, ciphertext, iv, auth_tag)
+            return _aes_gcm_decrypt(key, ciphertext, iv, auth_tag, aad)
         else:
             return _aes_decrypt(key, ciphertext, iv, key_size)
     
@@ -89,7 +91,7 @@ def decrypt(algorithm: str, key: bytes, ciphertext: bytes, iv: bytes,
         if auth == 'poly1305':
             if auth_tag is None:
                 raise ValueError("Poly1305 authentication requires auth_tag")
-            return _chacha20_poly1305_decrypt(key, ciphertext, iv, auth_tag)
+            return _chacha20_poly1305_decrypt(key, ciphertext, iv, auth_tag, aad)
         else:
             raise ValueError("ChaCha20 requires Poly1305 authentication")
     
@@ -97,7 +99,7 @@ def decrypt(algorithm: str, key: bytes, ciphertext: bytes, iv: bytes,
         raise ValueError(f"Unsupported algorithm: {algorithm}")
 
 
-def _aes_gcm_encrypt(key: bytes, data: bytes, iv_mode: Union[str, bytes]) -> Tuple[bytes, bytes, bytes]:
+def _aes_gcm_encrypt(key: bytes, data: bytes, iv_mode: Union[str, bytes], aad: Optional[bytes] = None) -> Tuple[bytes, bytes, bytes]:
     """AES-GCM encryption with authentication."""
     if iv_mode == "random":
         iv = secrets.token_bytes(12)  # 96-bit IV for GCM
@@ -108,8 +110,11 @@ def _aes_gcm_encrypt(key: bytes, data: bytes, iv_mode: Union[str, bytes]) -> Tup
     else:
         iv = iv_mode.encode() if len(iv_mode) == 12 else secrets.token_bytes(12)
     
+    # Handle AAD: use empty bytes if None, otherwise use provided AAD
+    associated_data = aad if aad is not None else b""
+    
     cipher = AESGCM(key)
-    ciphertext_with_tag = cipher.encrypt(iv, data, None)  # Empty associated data
+    ciphertext_with_tag = cipher.encrypt(iv, data, associated_data)
     
     # Extract tag (16 bytes at the end)
     tag_size = 16
@@ -119,13 +124,17 @@ def _aes_gcm_encrypt(key: bytes, data: bytes, iv_mode: Union[str, bytes]) -> Tup
     return ciphertext_only, iv, auth_tag
 
 
-def _aes_gcm_decrypt(key: bytes, ciphertext: bytes, iv: bytes, auth_tag: bytes) -> bytes:
+def _aes_gcm_decrypt(key: bytes, ciphertext: bytes, iv: bytes, auth_tag: bytes, aad: Optional[bytes] = None) -> bytes:
     """AES-GCM decryption with authentication verification."""
     cipher = AESGCM(key)
     # Combine ciphertext and tag
     encrypted_data = ciphertext + auth_tag
+    
+    # Handle AAD: use empty bytes if None, otherwise use provided AAD
+    associated_data = aad if aad is not None else b""
+    
     try:
-        plaintext = cipher.decrypt(iv, encrypted_data, None)
+        plaintext = cipher.decrypt(iv, encrypted_data, associated_data)
         return plaintext
     except Exception as e:
         raise ValueError(f"GCM authentication failed: {e}")
@@ -173,7 +182,7 @@ def _aes_decrypt(key: bytes, ciphertext: bytes, iv: bytes, key_size: int) -> byt
     return plaintext
 
 
-def _chacha20_poly1305_encrypt(key: bytes, data: bytes, iv_mode: Union[str, bytes]) -> Tuple[bytes, bytes, bytes]:
+def _chacha20_poly1305_encrypt(key: bytes, data: bytes, iv_mode: Union[str, bytes], aad: Optional[bytes] = None) -> Tuple[bytes, bytes, bytes]:
     """ChaCha20-Poly1305 encryption."""
     if iv_mode == "random":
         nonce = secrets.token_bytes(12)  # 96-bit nonce
@@ -184,8 +193,11 @@ def _chacha20_poly1305_encrypt(key: bytes, data: bytes, iv_mode: Union[str, byte
     else:
         nonce = iv_mode.encode() if isinstance(iv_mode, str) and len(iv_mode) == 12 else secrets.token_bytes(12)
     
+    # Handle AAD: use empty bytes if None, otherwise use provided AAD
+    associated_data = aad if aad is not None else b""
+    
     cipher = ChaCha20Poly1305(key)
-    ciphertext_with_tag = cipher.encrypt(nonce, data, None)  # Empty associated data
+    ciphertext_with_tag = cipher.encrypt(nonce, data, associated_data)
     
     tag_size = 16
     auth_tag = ciphertext_with_tag[-tag_size:]
@@ -194,12 +206,16 @@ def _chacha20_poly1305_encrypt(key: bytes, data: bytes, iv_mode: Union[str, byte
     return ciphertext_only, nonce, auth_tag
 
 
-def _chacha20_poly1305_decrypt(key: bytes, ciphertext: bytes, nonce: bytes, auth_tag: bytes) -> bytes:
+def _chacha20_poly1305_decrypt(key: bytes, ciphertext: bytes, nonce: bytes, auth_tag: bytes, aad: Optional[bytes] = None) -> bytes:
     """ChaCha20-Poly1305 decryption."""
     cipher = ChaCha20Poly1305(key)
     encrypted_data = ciphertext + auth_tag
+    
+    # Handle AAD: use empty bytes if None, otherwise use provided AAD
+    associated_data = aad if aad is not None else b""
+    
     try:
-        plaintext = cipher.decrypt(nonce, encrypted_data, None)
+        plaintext = cipher.decrypt(nonce, encrypted_data, associated_data)
         return plaintext
     except Exception as e:
         raise ValueError(f"Poly1305 authentication failed: {e}")

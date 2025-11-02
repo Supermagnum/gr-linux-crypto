@@ -98,13 +98,14 @@ def test_nist_aes_gcm_128_vectors():
     
     for vector in vectors:
         try:
-            # Encrypt with our implementation
+            # Encrypt with our implementation (pass AAD if available)
             ciphertext, iv_out, auth_tag = encrypt(
                 'aes-128',
                 vector.key,
                 vector.plaintext,
                 iv_mode=vector.iv,
-                auth='gcm'
+                auth='gcm',
+                aad=vector.aad
             )
             
             # Verify IV matches (should be the same as input)
@@ -134,7 +135,7 @@ def test_nist_aes_gcm_128_vectors():
                 )
                 continue
             
-            # Verify decryption works
+            # Verify decryption works (pass AAD if available)
             try:
                 decrypted = decrypt(
                     'aes-128',
@@ -142,7 +143,8 @@ def test_nist_aes_gcm_128_vectors():
                     ciphertext,
                     vector.iv,
                     auth='gcm',
-                    auth_tag=auth_tag
+                    auth_tag=auth_tag,
+                    aad=vector.aad
                 )
                 
                 if decrypted != vector.plaintext:
@@ -197,13 +199,14 @@ def test_nist_aes_gcm_256_vectors():
     
     for vector in vectors:
         try:
-            # Encrypt with our implementation
+            # Encrypt with our implementation (pass AAD if available)
             ciphertext, iv_out, auth_tag = encrypt(
                 'aes-256',
                 vector.key,
                 vector.plaintext,
                 iv_mode=vector.iv,
-                auth='gcm'
+                auth='gcm',
+                aad=vector.aad
             )
             
             # Verify IV matches
@@ -233,7 +236,7 @@ def test_nist_aes_gcm_256_vectors():
                 )
                 continue
             
-            # Verify decryption
+            # Verify decryption (pass AAD if available)
             try:
                 decrypted = decrypt(
                     'aes-256',
@@ -241,7 +244,8 @@ def test_nist_aes_gcm_256_vectors():
                     ciphertext,
                     vector.iv,
                     auth='gcm',
-                    auth_tag=auth_tag
+                    auth_tag=auth_tag,
+                    aad=vector.aad
                 )
                 
                 if decrypted != vector.plaintext:
@@ -293,13 +297,14 @@ def test_rfc8439_chacha20_poly1305_vectors():
     
     for vector in vectors:
         try:
-            # Encrypt with our implementation
+            # Encrypt with our implementation (pass AAD if available)
             ciphertext, nonce_out, auth_tag = encrypt(
                 'chacha20',
                 vector.key,
                 vector.plaintext,
                 iv_mode=vector.nonce,
-                auth='poly1305'
+                auth='poly1305',
+                aad=vector.aad
             )
             
             # Verify nonce matches
@@ -329,7 +334,7 @@ def test_rfc8439_chacha20_poly1305_vectors():
                 )
                 continue
             
-            # Verify decryption
+            # Verify decryption (pass AAD if available)
             try:
                 decrypted = decrypt(
                     'chacha20',
@@ -337,7 +342,8 @@ def test_rfc8439_chacha20_poly1305_vectors():
                     ciphertext,
                     vector.nonce,
                     auth='poly1305',
-                    auth_tag=auth_tag
+                    auth_tag=auth_tag,
+                    aad=vector.aad
                 )
                 
                 if decrypted != vector.plaintext:
