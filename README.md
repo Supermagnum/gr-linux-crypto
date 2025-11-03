@@ -460,7 +460,7 @@ encrypted_key = M17SessionKeyExchange.encrypt_key_for_recipient(
 
 **Use GnuPG:**
 - Signing software releases for distribution
-- Email encryption with amateur radio contacts
+- Signing emails with amateur radio contacts
 - Key exchange with people who already have GnuPG keys
 - Integration with existing OpenPGP infrastructure
 
