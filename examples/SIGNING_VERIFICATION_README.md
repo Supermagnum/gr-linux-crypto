@@ -10,18 +10,24 @@ The `signing_verification/` folder contains GNU Radio Companion (GRC) flowgraphs
 
 #### APRS (Automatic Packet Reporting System)
 - **`aprs_nitrokey_signing.grc`**: Signs APRS messages using Ed25519 private key from Nitrokey slot
+  - [PDF Documentation](signing_verification/aprs_nitrokey_signing.pdf)
 - **`aprs_nitrokey_verification.grc`**: Verifies APRS message signatures using Ed25519 public key from Nitrokey slot
 - **`aprs_kernel_keyring_signing.grc`**: Signs APRS messages using Ed25519 private key from Linux kernel keyring
+  - [PDF Documentation](signing_verification/aprs_kernel_keyring_signing.pdf)
 - **`aprs_kernel_keyring_verification.grc`**: Verifies APRS message signatures using Ed25519 public key from Linux kernel keyring
+  - [PDF Documentation](signing_verification/aprs_kernel_keyring_verification.pdf)
 
 #### MFSK (Multi-Frequency Shift Keying)
 - **`MFSK_nitrokey_nacl_signing.grc`**: Signs MFSK messages using Ed25519 private key from Nitrokey slot
+  - [PDF Documentation](signing_verification/MFSK_nitrokey_nacl_signing.pdf)
 - **`mfsk_nitrokey_verification.grc`**: Verifies MFSK message signatures using Ed25519 public key from Nitrokey slot
 - **`mfsk_kernel_keyring_verification.grc`**: Verifies MFSK message signatures using Ed25519 public key from Linux kernel keyring
 
 #### FreeDV (Digital Voice)
 - **`freedv_nitrokey_signing.grc`**: Signs FreeDV voice data using Ed25519 private key from Nitrokey slot
+  - [PDF Documentation](signing_verification/freedv_nitrokey_signing.pdf)
 - **`freedv_nitrokey_verification.grc`**: Verifies FreeDV voice data signatures using Ed25519 public key from Nitrokey slot
+  - [PDF Documentation](signing_verification/freedv_nitrokey_verification.pdf)
 
 ## How Digital Signing Works
 
@@ -445,6 +451,36 @@ keyctl add user ed25519_pubkey <public_key_data> @u
 
 4. **Nonce Management**: For encryption/decryption examples, ensure nonce counters are synchronized between TX and RX.
 
+## Encryption/Decryption Examples
+
+The `encrypt_decrypt/` folder contains GNU Radio Companion (GRC) flowgraphs that demonstrate encryption and decryption using ChaCha20-Poly1305 authenticated encryption with Nitrokey.
+
+### Available Examples
+
+#### FreeDV (Digital Voice Encryption)
+- **`freedv_nitrokey_encryption.grc`**: Encrypts FreeDV voice data using ChaCha20-Poly1305 with key from Nitrokey slot
+  - [PDF Documentation](encrypt_decrypt/freedv_nitrokey_encryption.pdf)
+- **`freedv_nitrokey_decryption.grc`**: Decrypts FreeDV voice data using ChaCha20-Poly1305 with key from Nitrokey slot
+  - [PDF Documentation](encrypt_decrypt/freedv_nitrokey_decryption.pdf)
+
+### How Encryption/Decryption Works
+
+#### Encryption Process (TX)
+1. Audio input is resampled to 8 kHz
+2. Codec2 encoder compresses voice data
+3. ChaCha20-Poly1305 encryption key is loaded from Nitrokey slot
+4. Codec2 frames are encrypted using ChaCha20-Poly1305 (includes authentication tag)
+5. Encrypted frames are modulated with FreeDV and transmitted
+
+#### Decryption Process (RX)
+1. Encrypted frames are received and demodulated with FreeDV
+2. ChaCha20-Poly1305 decryption key is loaded from Nitrokey slot
+3. Encrypted frames are decrypted (includes authentication verification)
+4. Decrypted Codec2 frames are decoded
+5. Audio output is resampled and played
+
+**Note**: Encryption/decryption examples use nonce counters that must be synchronized between TX and RX. The nonce counter increments for each frame and must start at the same value on both sides.
+
 ## References
 
 - Ed25519: High-speed high-security signatures (RFC 8032)
@@ -452,4 +488,5 @@ keyctl add user ed25519_pubkey <public_key_data> @u
 - FreeDV: Open source digital voice mode
 - APRS: Automatic Packet Reporting System protocol
 - MFSK: Multi-Frequency Shift Keying modulation
+- ChaCha20-Poly1305: Authenticated encryption (RFC 8439)
 
