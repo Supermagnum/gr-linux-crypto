@@ -1,6 +1,6 @@
 id: linux_crypto_nitrokey_interface
 label: Nitrokey Interface
-category: '[Linux Crypto]'
+category: '[gr-linux-crypto]/Hardware'
 flags: [python, cpp]
 templates:
   imports: |-

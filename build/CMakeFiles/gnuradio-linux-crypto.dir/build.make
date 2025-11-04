@@ -69,76 +69,76 @@ include CMakeFiles/gnuradio-linux-crypto.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/gnuradio-linux-crypto.dir/flags.make
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o: CMakeFiles/gnuradio-linux-crypto.dir/flags.make
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o: /home/haaken/github-projects/gr-linux-crypto/lib/kernel_keyring_source_impl.cc
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o: CMakeFiles/gnuradio-linux-crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o -MF CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o.d -o CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o -c /home/haaken/github-projects/gr-linux-crypto/lib/kernel_keyring_source_impl.cc
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o: CMakeFiles/gnuradio-linux-crypto.dir/flags.make
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o: /home/haaken/github-projects/gr-linux-crypto/lib/kernel_keyring_source_impl.cc
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o: CMakeFiles/gnuradio-linux-crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o -MF CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o.d -o CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o -c /home/haaken/github-projects/gr-linux-crypto/lib/kernel_keyring_source_impl.cc
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/haaken/github-projects/gr-linux-crypto/lib/kernel_keyring_source_impl.cc > CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.i
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/haaken/github-projects/gr-linux-crypto/lib/kernel_keyring_source_impl.cc > CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.i
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/haaken/github-projects/gr-linux-crypto/lib/kernel_keyring_source_impl.cc -o CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.s
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/haaken/github-projects/gr-linux-crypto/lib/kernel_keyring_source_impl.cc -o CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.s
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o: CMakeFiles/gnuradio-linux-crypto.dir/flags.make
-CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o: /home/haaken/github-projects/gr-linux-crypto/lib/nitrokey_interface_impl.cc
-CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o: CMakeFiles/gnuradio-linux-crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o -MF CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o.d -o CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o -c /home/haaken/github-projects/gr-linux-crypto/lib/nitrokey_interface_impl.cc
+CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o: CMakeFiles/gnuradio-linux-crypto.dir/flags.make
+CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o: /home/haaken/github-projects/gr-linux-crypto/lib/nitrokey_interface_impl.cc
+CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o: CMakeFiles/gnuradio-linux-crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o -MF CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o.d -o CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o -c /home/haaken/github-projects/gr-linux-crypto/lib/nitrokey_interface_impl.cc
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/haaken/github-projects/gr-linux-crypto/lib/nitrokey_interface_impl.cc > CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.i
+CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/haaken/github-projects/gr-linux-crypto/lib/nitrokey_interface_impl.cc > CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.i
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/haaken/github-projects/gr-linux-crypto/lib/nitrokey_interface_impl.cc -o CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.s
+CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/haaken/github-projects/gr-linux-crypto/lib/nitrokey_interface_impl.cc -o CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.s
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o: CMakeFiles/gnuradio-linux-crypto.dir/flags.make
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o: /home/haaken/github-projects/gr-linux-crypto/lib/kernel_crypto_aes_impl.cc
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o: CMakeFiles/gnuradio-linux-crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o -MF CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o.d -o CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o -c /home/haaken/github-projects/gr-linux-crypto/lib/kernel_crypto_aes_impl.cc
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o: CMakeFiles/gnuradio-linux-crypto.dir/flags.make
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o: /home/haaken/github-projects/gr-linux-crypto/lib/kernel_crypto_aes_impl.cc
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o: CMakeFiles/gnuradio-linux-crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o -MF CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o.d -o CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o -c /home/haaken/github-projects/gr-linux-crypto/lib/kernel_crypto_aes_impl.cc
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/haaken/github-projects/gr-linux-crypto/lib/kernel_crypto_aes_impl.cc > CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.i
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/haaken/github-projects/gr-linux-crypto/lib/kernel_crypto_aes_impl.cc > CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.i
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/haaken/github-projects/gr-linux-crypto/lib/kernel_crypto_aes_impl.cc -o CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.s
+CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/haaken/github-projects/gr-linux-crypto/lib/kernel_crypto_aes_impl.cc -o CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.s
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o: CMakeFiles/gnuradio-linux-crypto.dir/flags.make
-CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o: /home/haaken/github-projects/gr-linux-crypto/lib/brainpool_ec_impl.cc
-CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o: CMakeFiles/gnuradio-linux-crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o -MF CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o.d -o CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o -c /home/haaken/github-projects/gr-linux-crypto/lib/brainpool_ec_impl.cc
+CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o: CMakeFiles/gnuradio-linux-crypto.dir/flags.make
+CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o: /home/haaken/github-projects/gr-linux-crypto/lib/brainpool_ec_impl.cc
+CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o: CMakeFiles/gnuradio-linux-crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o -MF CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o.d -o CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o -c /home/haaken/github-projects/gr-linux-crypto/lib/brainpool_ec_impl.cc
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/haaken/github-projects/gr-linux-crypto/lib/brainpool_ec_impl.cc > CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.i
+CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/haaken/github-projects/gr-linux-crypto/lib/brainpool_ec_impl.cc > CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.i
 
-CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/haaken/github-projects/gr-linux-crypto/lib/brainpool_ec_impl.cc -o CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.s
+CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/haaken/github-projects/gr-linux-crypto/lib/brainpool_ec_impl.cc -o CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.s
 
 # Object files for target gnuradio-linux-crypto
 gnuradio__linux__crypto_OBJECTS = \
-"CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o" \
-"CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o" \
-"CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o" \
-"CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o"
+"CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o" \
+"CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o" \
+"CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o" \
+"CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o"
 
 # External object files for target gnuradio-linux-crypto
 gnuradio__linux__crypto_EXTERNAL_OBJECTS =
 
-libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o
-libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o
-libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o
-libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o
+libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o
+libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o
+libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o
+libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o
 libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/build.make
 libgnuradio-linux-crypto.so.SOVERSION: CMakeFiles/gnuradio-linux-crypto.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX shared library libgnuradio-linux-crypto.so"

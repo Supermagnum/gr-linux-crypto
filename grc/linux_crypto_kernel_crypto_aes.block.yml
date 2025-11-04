@@ -1,6 +1,6 @@
 id: linux_crypto_kernel_crypto_aes
 label: Kernel Crypto AES
-category: '[Linux Crypto]'
+category: '[gr-linux-crypto]/Crypto'
 flags: [python, cpp]
 templates:
   imports: |-

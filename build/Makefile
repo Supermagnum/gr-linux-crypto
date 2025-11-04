@@ -174,65 +174,138 @@ gnuradio-linux-crypto/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/build
 .PHONY : gnuradio-linux-crypto/fast
 
-# target to build an object file
-lib/brainpool_ec_impl.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.o
+#=============================================================================
+# Target rules for targets named linux_crypto_python
+
+# Build rule for target.
+linux_crypto_python: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 linux_crypto_python
+.PHONY : linux_crypto_python
+
+# fast build rule for target.
+linux_crypto_python/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/linux_crypto_python.dir/build.make CMakeFiles/linux_crypto_python.dir/build
+.PHONY : linux_crypto_python/fast
+
+lib/brainpool_ec_impl.o: lib/brainpool_ec_impl.cc.o
 .PHONY : lib/brainpool_ec_impl.o
 
-# target to preprocess a source file
-lib/brainpool_ec_impl.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.i
+# target to build an object file
+lib/brainpool_ec_impl.cc.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.o
+.PHONY : lib/brainpool_ec_impl.cc.o
+
+lib/brainpool_ec_impl.i: lib/brainpool_ec_impl.cc.i
 .PHONY : lib/brainpool_ec_impl.i
 
-# target to generate assembly for a file
-lib/brainpool_ec_impl.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.s
+# target to preprocess a source file
+lib/brainpool_ec_impl.cc.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.i
+.PHONY : lib/brainpool_ec_impl.cc.i
+
+lib/brainpool_ec_impl.s: lib/brainpool_ec_impl.cc.s
 .PHONY : lib/brainpool_ec_impl.s
 
-# target to build an object file
-lib/kernel_crypto_aes_impl.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.o
+# target to generate assembly for a file
+lib/brainpool_ec_impl.cc.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/brainpool_ec_impl.cc.s
+.PHONY : lib/brainpool_ec_impl.cc.s
+
+lib/kernel_crypto_aes_impl.o: lib/kernel_crypto_aes_impl.cc.o
 .PHONY : lib/kernel_crypto_aes_impl.o
 
-# target to preprocess a source file
-lib/kernel_crypto_aes_impl.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.i
+# target to build an object file
+lib/kernel_crypto_aes_impl.cc.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.o
+.PHONY : lib/kernel_crypto_aes_impl.cc.o
+
+lib/kernel_crypto_aes_impl.i: lib/kernel_crypto_aes_impl.cc.i
 .PHONY : lib/kernel_crypto_aes_impl.i
 
-# target to generate assembly for a file
-lib/kernel_crypto_aes_impl.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.s
+# target to preprocess a source file
+lib/kernel_crypto_aes_impl.cc.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.i
+.PHONY : lib/kernel_crypto_aes_impl.cc.i
+
+lib/kernel_crypto_aes_impl.s: lib/kernel_crypto_aes_impl.cc.s
 .PHONY : lib/kernel_crypto_aes_impl.s
 
-# target to build an object file
-lib/kernel_keyring_source_impl.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.o
+# target to generate assembly for a file
+lib/kernel_crypto_aes_impl.cc.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_crypto_aes_impl.cc.s
+.PHONY : lib/kernel_crypto_aes_impl.cc.s
+
+lib/kernel_keyring_source_impl.o: lib/kernel_keyring_source_impl.cc.o
 .PHONY : lib/kernel_keyring_source_impl.o
 
-# target to preprocess a source file
-lib/kernel_keyring_source_impl.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.i
+# target to build an object file
+lib/kernel_keyring_source_impl.cc.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.o
+.PHONY : lib/kernel_keyring_source_impl.cc.o
+
+lib/kernel_keyring_source_impl.i: lib/kernel_keyring_source_impl.cc.i
 .PHONY : lib/kernel_keyring_source_impl.i
 
-# target to generate assembly for a file
-lib/kernel_keyring_source_impl.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.s
+# target to preprocess a source file
+lib/kernel_keyring_source_impl.cc.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.i
+.PHONY : lib/kernel_keyring_source_impl.cc.i
+
+lib/kernel_keyring_source_impl.s: lib/kernel_keyring_source_impl.cc.s
 .PHONY : lib/kernel_keyring_source_impl.s
 
-# target to build an object file
-lib/nitrokey_interface_impl.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.o
+# target to generate assembly for a file
+lib/kernel_keyring_source_impl.cc.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/kernel_keyring_source_impl.cc.s
+.PHONY : lib/kernel_keyring_source_impl.cc.s
+
+lib/nitrokey_interface_impl.o: lib/nitrokey_interface_impl.cc.o
 .PHONY : lib/nitrokey_interface_impl.o
 
-# target to preprocess a source file
-lib/nitrokey_interface_impl.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.i
+# target to build an object file
+lib/nitrokey_interface_impl.cc.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.o
+.PHONY : lib/nitrokey_interface_impl.cc.o
+
+lib/nitrokey_interface_impl.i: lib/nitrokey_interface_impl.cc.i
 .PHONY : lib/nitrokey_interface_impl.i
 
-# target to generate assembly for a file
-lib/nitrokey_interface_impl.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.s
+# target to preprocess a source file
+lib/nitrokey_interface_impl.cc.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.i
+.PHONY : lib/nitrokey_interface_impl.cc.i
+
+lib/nitrokey_interface_impl.s: lib/nitrokey_interface_impl.cc.s
 .PHONY : lib/nitrokey_interface_impl.s
+
+# target to generate assembly for a file
+lib/nitrokey_interface_impl.cc.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gnuradio-linux-crypto.dir/build.make CMakeFiles/gnuradio-linux-crypto.dir/lib/nitrokey_interface_impl.cc.s
+.PHONY : lib/nitrokey_interface_impl.cc.s
+
+python/linux_crypto_python.o: python/linux_crypto_python.cc.o
+.PHONY : python/linux_crypto_python.o
+
+# target to build an object file
+python/linux_crypto_python.cc.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/linux_crypto_python.dir/build.make CMakeFiles/linux_crypto_python.dir/python/linux_crypto_python.cc.o
+.PHONY : python/linux_crypto_python.cc.o
+
+python/linux_crypto_python.i: python/linux_crypto_python.cc.i
+.PHONY : python/linux_crypto_python.i
+
+# target to preprocess a source file
+python/linux_crypto_python.cc.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/linux_crypto_python.dir/build.make CMakeFiles/linux_crypto_python.dir/python/linux_crypto_python.cc.i
+.PHONY : python/linux_crypto_python.cc.i
+
+python/linux_crypto_python.s: python/linux_crypto_python.cc.s
+.PHONY : python/linux_crypto_python.s
+
+# target to generate assembly for a file
+python/linux_crypto_python.cc.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/linux_crypto_python.dir/build.make CMakeFiles/linux_crypto_python.dir/python/linux_crypto_python.cc.s
+.PHONY : python/linux_crypto_python.cc.s
 
 # Help Target
 help:
@@ -247,6 +320,7 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... gnuradio-linux-crypto"
+	@echo "... linux_crypto_python"
 	@echo "... lib/brainpool_ec_impl.o"
 	@echo "... lib/brainpool_ec_impl.i"
 	@echo "... lib/brainpool_ec_impl.s"
@@ -259,6 +333,9 @@ help:
 	@echo "... lib/nitrokey_interface_impl.o"
 	@echo "... lib/nitrokey_interface_impl.i"
 	@echo "... lib/nitrokey_interface_impl.s"
+	@echo "... python/linux_crypto_python.o"
+	@echo "... python/linux_crypto_python.i"
+	@echo "... python/linux_crypto_python.s"
 .PHONY : help
 
 

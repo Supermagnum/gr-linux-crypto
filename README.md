@@ -1,6 +1,6 @@
 # GNU Radio Linux Crypto Module
 
-A GNU Radio module that provides **Linux-specific cryptographic infrastructure integration**, focusing on what's missing from existing crypto modules (gr-openssl, gr-nacl).
+A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptographic infrastructure integration**, focusing on what's missing from existing crypto modules (gr-openssl, gr-nacl).
 
 ## Table of Contents
 
@@ -1161,6 +1161,8 @@ See `examples/brainpool_example.py` for a complete demonstration.
 
 ## Installation
 
+### Step 1: Install System Dependencies
+
 ```bash
 # Install system dependencies
 sudo apt-get update
@@ -1182,13 +1184,65 @@ sudo apt-get install gr-openssl gr-nacl
 
 # Optional: Install additional crypto libraries
 sudo apt-get install libssl-dev libsodium-dev
-
-# Build gr-linux-crypto
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
-sudo make install
 ```
+
+### Step 2: Build the Module
+
+**Option A: Manual Build (Recommended)**
+
+```bash
+# Navigate to project directory
+cd /path/to/gr-linux-crypto
+
+# Create and enter build directory
+mkdir -p build
+cd build
+
+# Configure with CMake
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local
+
+# Build (use all CPU cores)
+make -j$(nproc)
+```
+
+**Option B: Using the Build Script**
+
+```bash
+# Navigate to project directory
+cd /path/to/gr-linux-crypto
+
+# Run the build script
+./build.sh
+```
+
+### Step 3: Install the Module
+
+**Important:** You must run `make install` from the `build` directory, not from the project root.
+
+```bash
+# Make sure you're in the build directory
+cd build
+
+# Install (requires sudo)
+sudo make install
+
+# Update library cache (required after installation)
+sudo ldconfig
+```
+
+### Step 4: Verify Installation
+
+```bash
+# Check if library was installed
+ldconfig -p | grep linux-crypto
+
+# Test Python import
+python3 -c "from gnuradio import linux_crypto; print('Module installed successfully!')"
+```
+
+**Note:** If you get "No rule to make target 'install'" error, you're likely in the wrong directory. Make sure you're in the `build` directory before running `sudo make install`.
 
 ## Important Note
 

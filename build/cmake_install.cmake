@@ -2,7 +2,7 @@
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/usr/local")
+  set(CMAKE_INSTALL_PREFIX "/usr")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -43,51 +43,119 @@ if(NOT DEFINED CMAKE_OBJDUMP)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  if(EXISTS "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION")
+  if(EXISTS "$ENV{DESTDIR}/usr/lib/python3/dist-packages/linux_crypto_python.cpython-312-x86_64-linux-gnu.so" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/lib/python3/dist-packages/linux_crypto_python.cpython-312-x86_64-linux-gnu.so")
     file(RPATH_CHECK
-         FILE "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION"
+         FILE "$ENV{DESTDIR}/usr/lib/python3/dist-packages/linux_crypto_python.cpython-312-x86_64-linux-gnu.so"
          RPATH "")
   endif()
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION")
+   "/usr/lib/python3/dist-packages/linux_crypto_python.cpython-312-x86_64-linux-gnu.so")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/usr/local/lib" TYPE SHARED_LIBRARY FILES "/home/haaken/github-projects/gr-linux-crypto/build/libgnuradio-linux-crypto.so.SOVERSION")
-  if(EXISTS "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION")
+  file(INSTALL DESTINATION "/usr/lib/python3/dist-packages" TYPE MODULE FILES "/home/haaken/github-projects/gr-linux-crypto/build/linux_crypto_python.cpython-312-x86_64-linux-gnu.so")
+  if(EXISTS "$ENV{DESTDIR}/usr/lib/python3/dist-packages/linux_crypto_python.cpython-312-x86_64-linux-gnu.so" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/lib/python3/dist-packages/linux_crypto_python.cpython-312-x86_64-linux-gnu.so")
+    file(RPATH_CHANGE
+         FILE "$ENV{DESTDIR}/usr/lib/python3/dist-packages/linux_crypto_python.cpython-312-x86_64-linux-gnu.so"
+         OLD_RPATH "/home/haaken/github-projects/gr-linux-crypto/build:"
+         NEW_RPATH "")
     if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}/usr/local/lib/libgnuradio-linux-crypto.so.SOVERSION")
+      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}/usr/lib/python3/dist-packages/linux_crypto_python.cpython-312-x86_64-linux-gnu.so")
+    endif()
+  endif()
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  include("/home/haaken/github-projects/gr-linux-crypto/build/CMakeFiles/linux_crypto_python.dir/install-cxx-module-bmi-noconfig.cmake" OPTIONAL)
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
+   "/usr/lib/python3/dist-packages/gnuradio/linux_crypto.py")
+  if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
+    message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
+  endif()
+  if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
+    message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
+  endif()
+  file(INSTALL DESTINATION "/usr/lib/python3/dist-packages/gnuradio" TYPE FILE RENAME "linux_crypto.py" FILES "/home/haaken/github-projects/gr-linux-crypto/python/gnuradio_linux_crypto_init.py")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
+   "/usr/share/gnuradio/grc/blocks/")
+  if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
+    message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
+  endif()
+  if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
+    message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
+  endif()
+  file(INSTALL DESTINATION "/usr/share/gnuradio/grc/blocks" TYPE DIRECTORY FILES "/home/haaken/github-projects/gr-linux-crypto/grc/" FILES_MATCHING REGEX "/[^/]*\\.yml$")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
+   "/usr/share/gr-linux-crypto/examples/")
+  if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
+    message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
+  endif()
+  if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
+    message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
+  endif()
+  file(INSTALL DESTINATION "/usr/share/gr-linux-crypto/examples" TYPE DIRECTORY FILES "/home/haaken/github-projects/gr-linux-crypto/examples/" FILES_MATCHING REGEX "/[^/]*\\.py$")
+endif()
+
+if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  if(EXISTS "$ENV{DESTDIR}/usr/lib/libgnuradio-linux-crypto.so.SOVERSION" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/lib/libgnuradio-linux-crypto.so.SOVERSION")
+    file(RPATH_CHECK
+         FILE "$ENV{DESTDIR}/usr/lib/libgnuradio-linux-crypto.so.SOVERSION"
+         RPATH "")
+  endif()
+  list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
+   "/usr/lib/libgnuradio-linux-crypto.so.SOVERSION")
+  if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
+    message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
+  endif()
+  if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
+    message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
+  endif()
+  file(INSTALL DESTINATION "/usr/lib" TYPE SHARED_LIBRARY FILES "/home/haaken/github-projects/gr-linux-crypto/build/libgnuradio-linux-crypto.so.SOVERSION")
+  if(EXISTS "$ENV{DESTDIR}/usr/lib/libgnuradio-linux-crypto.so.SOVERSION" AND
+     NOT IS_SYMLINK "$ENV{DESTDIR}/usr/lib/libgnuradio-linux-crypto.so.SOVERSION")
+    if(CMAKE_INSTALL_DO_STRIP)
+      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}/usr/lib/libgnuradio-linux-crypto.so.SOVERSION")
     endif()
   endif()
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/lib/libgnuradio-linux-crypto.so")
+   "/usr/lib/libgnuradio-linux-crypto.so")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/usr/local/lib" TYPE SHARED_LIBRARY FILES "/home/haaken/github-projects/gr-linux-crypto/build/libgnuradio-linux-crypto.so")
+  file(INSTALL DESTINATION "/usr/lib" TYPE SHARED_LIBRARY FILES "/home/haaken/github-projects/gr-linux-crypto/build/libgnuradio-linux-crypto.so")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/include/gnuradio/linux_crypto/")
+   "/usr/include/gnuradio/linux_crypto/")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/usr/local/include/gnuradio/linux_crypto" TYPE DIRECTORY FILES "/home/haaken/github-projects/gr-linux-crypto/include/gnuradio/linux_crypto/" FILES_MATCHING REGEX "/[^/]*\\.h$")
+  file(INSTALL DESTINATION "/usr/include/gnuradio/linux_crypto" TYPE DIRECTORY FILES "/home/haaken/github-projects/gr-linux-crypto/include/gnuradio/linux_crypto/" FILES_MATCHING REGEX "/[^/]*\\.h$")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)

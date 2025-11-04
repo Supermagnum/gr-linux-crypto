@@ -1,6 +1,6 @@
 id: linux_crypto_kernel_keyring_source
 label: Kernel Keyring Source
-category: '[Linux Crypto]'
+category: '[gr-linux-crypto]/Sources'
 flags: [python, cpp]
 templates:
   imports: |-

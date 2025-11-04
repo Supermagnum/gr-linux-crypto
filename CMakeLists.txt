@@ -5,9 +5,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+cmake_minimum_required(VERSION 3.16)
+if(POLICY CMP0057)
+    cmake_policy(SET CMP0057 NEW)
+endif()
+
 ########################################################################
 # Find dependencies
 ########################################################################
+# Set CMAKE_MODULE_PATH to find GNU Radio CMake modules
+list(APPEND CMAKE_MODULE_PATH /usr/lib/x86_64-linux-gnu/cmake/gnuradio)
 include(GrBoost)
 
 # Required dependencies
@@ -25,8 +32,24 @@ pkg_check_modules(NITROKEY QUIET libnitrokey-1 libnitrokey)
 ########################################################################
 # Register component
 ########################################################################
+# Find GNU Radio via pkg-config first (sets ENABLE_GNURADIO_RUNTIME)
+pkg_check_modules(GNURADIO_RUNTIME REQUIRED gnuradio-runtime)
+if(GNURADIO_RUNTIME_FOUND)
+    set(ENABLE_GNURADIO_RUNTIME ON)
+endif()
+
 include(GrComponent)
 gr_register_component("gr-linux-crypto" ENABLE_GR_LINUX_CRYPTO KEYUTILS_FOUND ENABLE_GNURADIO_RUNTIME)
+
+########################################################################
+# Build options
+########################################################################
+option(ENABLE_PYTHON "Enable Python bindings" ON)
+option(ENABLE_GRC "Enable GRC block definitions" ON)
+option(ENABLE_EXAMPLES "Install example scripts" ON)
+option(ENABLE_DOXYGEN "Build Doxygen documentation" OFF)
+option(ENABLE_TESTING "Enable testing" OFF)
+option(ENABLE_FUZZING "Enable fuzzing targets" OFF)
 
 ########################################################################
 # Begin conditional configuration
@@ -127,6 +150,12 @@ if(ENABLE_PYTHON)
     # Install Python module
     install(TARGETS linux_crypto_python
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/python3/dist-packages
+    )
+    
+    # Install Python wrapper module to gnuradio package
+    install(FILES python/gnuradio_linux_crypto_init.py
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/python3/dist-packages/gnuradio
+        RENAME linux_crypto.py
     )
 endif()
 
