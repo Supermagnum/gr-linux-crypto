@@ -1,0 +1,321 @@
+options:
+  parameters:
+    author: gr-linux-crypto
+    catch_exceptions: 'True'
+    category: '[gr-linux-crypto]/Examples'
+    cmake_opt: ''
+    comment: ''
+    copyright: Copyright 2024
+    description: FreeDV voice signature verification using gr-nacl Ed25519. Verifies
+      signatures embedded in FreeDV Codec2 frames after demodulation.
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: freedv_nitrokey_verification
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: FreeDV Verification with Nitrokey
+    window_size: (1400, 900)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 0.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: nitrokey_slot
+  id: variable_qtgui_entry
+  parameters:
+    comment: Nitrokey slot number (0-15) containing Ed25519 public key
+    entry_signal: editingFinished
+    gui_hint: 1,0,1,1
+    label: Nitrokey Slot
+    type: int
+    value: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 552.0]
+    rotation: 0
+    state: enabled
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: Sample rate for audio processing
+    value: '8000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [440, 24.0]
+    rotation: 0
+    state: enabled
+- name: audio_sink_0
+  id: audio_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Audio output for verified voice
+    device_name: ''
+    num_inputs: '1'
+    ok_to_block: 'True'
+    samp_rate: '48000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1480, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_file_source_0
+  id: blocks_file_source
+  parameters:
+    affinity: ''
+    alias: ''
+    begin_tag: pmt.PMT_NIL
+    comment: Load signed FreeDV signal from file (replace with radio hardware for
+      RX)
+    file: /tmp/freedv_signed_transmission.bin
+    length: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    repeat: 'False'
+    type: short
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 168.0]
+    rotation: 0
+    state: enabled
+- name: blocks_short_to_char_0
+  id: blocks_short_to_char
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert short to bytes for verification
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [576, 192.0]
+    rotation: 0
+    state: enabled
+- name: blocks_short_to_float_0
+  id: blocks_short_to_float
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert short audio to float
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '32768'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1144, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_throttle2_0
+  id: blocks_throttle2
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    ignoretag: 'True'
+    limit: auto
+    maximum: '0.1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samples_per_second: samp_rate
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [224, 192.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_0
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\ntry:\n    from gnuradio\
+      \ import nacl\n    NACL_AVAILABLE = True\nexcept ImportError:\n    NACL_AVAILABLE\
+      \ = False\n    print(\"Warning: gr-nacl not available. Verification will not\
+      \ work.\")\n\nclass blk(gr.sync_block):\n    def __init__(self):\n        gr.sync_block.__init__(\n\
+      \            self,\n            name='FreeDV Voice Verifier',\n            in_sig=[np.uint8,\
+      \ np.uint8],\n            out_sig=[np.uint8]\n        )\n        self._signed_buffer\
+      \ = bytearray()\n        self._key_buffer = bytearray()\n        self._signature_length\
+      \ = 64  # Ed25519 signature is 64 bytes\n        self._frame_size_with_signature\
+      \ = 8 + 64  # Codec2 frame (8) + signature (64) = 72 bytes\n        \n    def\
+      \ work(self, input_items, output_items):\n        signed_in = input_items[0]\n\
+      \        key_in = input_items[1]\n        \n        # Collect signed Codec2\
+      \ data\n        if len(signed_in) > 0:\n            self._signed_buffer.extend(signed_in.tolist())\n\
+      \        \n        # Collect key data from Nitrokey (need 32 bytes for Ed25519)\n\
+      \        if len(key_in) > 0:\n            self._key_buffer.extend(key_in.tolist())\n\
+      \        \n        out_len = min(len(output_items[0]), len(signed_in))\n   \
+      \     \n        # Verify when we have complete signed frame\n        if len(self._signed_buffer)\
+      \ >= self._frame_size_with_signature and len(self._key_buffer) >= 32:\n    \
+      \        try:\n                # Get signed frame (8 bytes Codec2 + 64 bytes\
+      \ signature)\n                signed_frame = bytes(self._signed_buffer[:self._frame_size_with_signature])\n\
+      \                self._signed_buffer = self._signed_buffer[self._frame_size_with_signature:]\n\
+      \                \n                # Extract Codec2 frame and signature\n  \
+      \              codec2_frame = signed_frame[:8]\n                signature =\
+      \ signed_frame[8:]\n                 \n                # Get public key (32\
+      \ bytes for Ed25519)\n                public_key = bytes(self._key_buffer[:32])\n\
+      \                \n                if NACL_AVAILABLE and len(public_key) ==\
+      \ 32 and len(signature) == 64:\n                    # Verify Ed25519 signature\
+      \ using gr-nacl\n                    try:\n                        is_valid\
+      \ = nacl.verify_ed25519(codec2_frame, signature, public_key)\n             \
+      \            if is_valid:\n                            # Output verified Codec2\
+      \ frame\n                            out_data = np.frombuffer(codec2_frame[:out_len],\
+      \ dtype=np.uint8)\n                            if len(out_data) <= len(output_items[0]):\n\
+      \                                output_items[0][:len(out_data)] = out_data\n\
+      \                                 return len(out_data)\n                   \
+      \     else:\n                            print(f\"FAILED: FreeDV Codec2 frame\
+      \ signature is INVALID\")\n                            # Output silent frame\
+      \ on verification failure\n                            silent_frame = b'\\x00'\
+      \ * 8\n                            out_data = np.frombuffer(silent_frame[:out_len],\
+      \ dtype=np.uint8)\n                            if len(out_data) <= len(output_items[0]):\n\
+      \                                output_items[0][:len(out_data)] = out_data\n\
+      \                                 return len(out_data)\n                   \
+      \ except AttributeError:\n                        print(\"Warning: gr-nacl verify_ed25519\
+      \ not found. Cannot verify.\")\n                        # Pass through without\
+      \ verification\n                        out_data = np.frombuffer(codec2_frame[:out_len],\
+      \ dtype=np.uint8)\n                        if len(out_data) <= len(output_items[0]):\n\
+      \                            output_items[0][:len(out_data)] = out_data\n  \
+      \                           return len(out_data)\n                else:\n  \
+      \                  print(\"Warning: Verification not available - missing key\
+      \ or signature\")\n                    # Pass through without verification\n\
+      \                    out_data = np.frombuffer(codec2_frame[:out_len], dtype=np.uint8)\n\
+      \                    if len(out_data) <= len(output_items[0]):\n           \
+      \             output_items[0][:len(out_data)] = out_data\n                 \
+      \        return len(out_data)\n            except Exception as e:\n        \
+      \        print(f\"Verification error: {e}\")\n                import traceback\n\
+      \                traceback.print_exc()\n                # Output silent frame\
+      \ on error\n                silent_frame = b'\\x00' * 8\n                out_data\
+      \ = np.frombuffer(silent_frame[:out_len], dtype=np.uint8)\n                if\
+      \ len(out_data) <= len(output_items[0]):\n                    output_items[0][:len(out_data)]\
+      \ = out_data\n                    return len(out_data)\n        \n        #\
+      \ No data to output yet\n        return 0\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('FreeDV Voice Verifier', 'blk', [], [('0', 'byte', 1), ('1', 'byte',
+      1)], [('0', 'byte', 1)], '', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [744, 192.0]
+    rotation: 0
+    state: enabled
+- name: linux_crypto_nitrokey_interface_0
+  id: linux_crypto_nitrokey_interface
+  parameters:
+    affinity: ''
+    alias: ''
+    auto_repeat: 'False'
+    comment: Load Ed25519 public key from Nitrokey slot for verification
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    slot: nitrokey_slot
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [520, 328.0]
+    rotation: 0
+    state: enabled
+- name: rational_resampler_xxx_0
+  id: rational_resampler_xxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Resample audio from 8kHz to 48kHz
+    decim: '1'
+    fbw: '0'
+    interp: '6'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    taps: ''
+    type: fff
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1328, 176.0]
+    rotation: 0
+    state: enabled
+- name: vocoder_codec2_decode_ps_0
+  id: vocoder_codec2_decode_ps
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Codec2 decoder - decompresses verified voice bits
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mode: codec2.MODE_2400
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [936, 200.0]
+    rotation: 0
+    state: enabled
+- name: vocoder_freedv_rx_ss_0
+  id: vocoder_freedv_rx_ss
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: FreeDV demodulator - receives signed voice
+    interleave_frames: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mode: freedv_api.MODE_1600
+    squelch_enable: 'True'
+    squelch_thresh: '-100.0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [376, 176.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [blocks_file_source_0, '0', blocks_throttle2_0, '0']
+- [blocks_short_to_char_0, '0', epy_block_0, '0']
+- [blocks_short_to_float_0, '0', rational_resampler_xxx_0, '0']
+- [blocks_throttle2_0, '0', vocoder_freedv_rx_ss_0, '0']
+- [epy_block_0, '0', vocoder_codec2_decode_ps_0, '0']
+- [linux_crypto_nitrokey_interface_0, '0', epy_block_0, '1']
+- [rational_resampler_xxx_0, '0', audio_sink_0, '0']
+- [vocoder_codec2_decode_ps_0, '0', blocks_short_to_float_0, '0']
+- [vocoder_freedv_rx_ss_0, '0', blocks_short_to_char_0, '0']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.9.2

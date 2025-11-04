@@ -1,0 +1,383 @@
+options:
+  parameters:
+    author: gr-linux-crypto
+    catch_exceptions: 'True'
+    category: '[gr-linux-crypto]/Examples'
+    cmake_opt: ''
+    comment: ''
+    copyright: Copyright 2024
+    description: FreeDV voice signing using Nitrokey + gr-nacl Ed25519. Signs Codec2
+      compressed voice frames before FreeDV modulation.
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: freedv_nitrokey_signing
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: FreeDV Signing with Nitrokey
+    window_size: (1400, 900)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 0.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: nitrokey_slot
+  id: variable_qtgui_entry
+  parameters:
+    comment: Nitrokey slot number (0-15) containing Ed25519 private key
+    entry_signal: editingFinished
+    gui_hint: 1,0,1,1
+    label: Nitrokey Slot
+    type: int
+    value: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 552.0]
+    rotation: 0
+    state: enabled
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: Sample rate for audio processing
+    value: '8000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [440, 24.0]
+    rotation: 0
+    state: enabled
+- name: audio_source_0
+  id: audio_source
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Audio input for voice
+    device_name: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_outputs: '1'
+    ok_to_block: 'True'
+    samp_rate: '48000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_char_to_short_0
+  id: blocks_char_to_short
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert signed bytes to short for FreeDV
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [808, 224.0]
+    rotation: 0
+    state: enabled
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: Save signed FreeDV signal to file (replace with radio hardware for TX)
+    file: /tmp/freedv_signed_transmission.bin
+    type: short
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1384, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_float_to_short_0
+  id: blocks_float_to_short
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert float audio to short for Codec2
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '32768'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [304, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_throttle2_0
+  id: blocks_throttle2
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    ignoretag: 'True'
+    limit: auto
+    maximum: '0.1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samples_per_second: samp_rate
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1184, 208.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_0
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\ntry:\n    from gnuradio\
+      \ import nacl\n    NACL_AVAILABLE = True\nexcept ImportError:\n    NACL_AVAILABLE\
+      \ = False\n    print(\"Warning: gr-nacl not available. Signing will not work.\"\
+      )\n\nclass blk(gr.sync_block):\n    def __init__(self):\n        gr.sync_block.__init__(\n\
+      \            self,\n            name='FreeDV Voice Signer',\n            in_sig=[np.uint8,\
+      \ np.uint8],\n            out_sig=[np.uint8]\n        )\n        self._codec2_buffer\
+      \ = bytearray()\n        self._key_buffer = bytearray()\n        self._signature_length\
+      \ = 64  # Ed25519 signature is 64 bytes\n        \n    def work(self, input_items,\
+      \ output_items):\n        codec2_in = input_items[0]\n        key_in = input_items[1]\n\
+      \        \n        # Collect Codec2 compressed voice data\n        if len(codec2_in)\
+      \ > 0:\n            self._codec2_buffer.extend(codec2_in.tolist())\n       \
+      \ \n        # Collect key data from Nitrokey (need 32 bytes for Ed25519)\n \
+      \       if len(key_in) > 0:\n            self._key_buffer.extend(key_in.tolist())\n\
+      \        \n        out_len = min(len(output_items[0]), len(codec2_in))\n   \
+      \     \n        # Sign Codec2 frames (typically 8 bytes for 3200 bps mode)\n\
+      \        if len(self._codec2_buffer) >= 8 and len(self._key_buffer) >= 32:\n\
+      \            try:\n                # Get Codec2 frame (8 bytes)\n          \
+      \      codec2_frame = bytes(self._codec2_buffer[:8])\n                self._codec2_buffer\
+      \ = self._codec2_buffer[8:]\n                 \n                # Get private\
+      \ key (32 bytes for Ed25519)\n                private_key = bytes(self._key_buffer[:32])\n\
+      \                \n                if NACL_AVAILABLE and len(private_key) ==\
+      \ 32:\n                    # Create Ed25519 signature using gr-nacl\n      \
+      \              try:\n                        signature = nacl.sign_ed25519(codec2_frame,\
+      \ private_key)\n                    except AttributeError:\n               \
+      \         print(\"Warning: gr-nacl sign_ed25519 not found. Using placeholder.\"\
+      )\n                        signature = b'\\x00' * 64\n                    \n\
+      \                    # Append signature to Codec2 frame\n                  \
+      \  signed_frame = codec2_frame + signature\n                    \n         \
+      \           # Output signed frame (8 bytes Codec2 + 64 bytes signature = 72\
+      \ bytes total)\n                    out_data = np.frombuffer(signed_frame[:out_len],\
+      \ dtype=np.uint8)\n                    if len(out_data) <= len(output_items[0]):\n\
+      \                        output_items[0][:len(out_data)] = out_data\n      \
+      \                   return len(out_data)\n                else:\n          \
+      \          # No signing available, just pass Codec2 frame\n                \
+      \    out_data = np.frombuffer(codec2_frame[:out_len], dtype=np.uint8)\n    \
+      \                if len(out_data) <= len(output_items[0]):\n               \
+      \         output_items[0][:len(out_data)] = out_data\n                     \
+      \    return len(out_data)\n            except Exception as e:\n            \
+      \    print(f\"Signing error: {e}\")\n                import traceback\n    \
+      \            traceback.print_exc()\n        \n        # No data to output yet\n\
+      \        return 0\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('FreeDV Voice Signer', 'blk', [], [('0', 'byte', 1), ('1', 'byte',
+      1)], [('0', 'byte', 1)], '', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [632, 208.0]
+    rotation: 0
+    state: enabled
+- name: linux_crypto_nitrokey_interface_0
+  id: linux_crypto_nitrokey_interface
+  parameters:
+    affinity: ''
+    alias: ''
+    auto_repeat: 'False'
+    comment: Load Ed25519 private key from Nitrokey slot for signing
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    slot: nitrokey_slot
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [376, 368.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_freq_sink_x_0
+  id: qtgui_freq_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'True'
+    average: '1.0'
+    axislabels: 'True'
+    bw: samp_rate
+    color1: '"blue"'
+    color10: '"dark blue"'
+    color2: '"red"'
+    color3: '"green"'
+    color4: '"black"'
+    color5: '"cyan"'
+    color6: '"magenta"'
+    color7: '"yellow"'
+    color8: '"dark red"'
+    color9: '"dark green"'
+    comment: Visualize FreeDV signal spectrum
+    ctrlpanel: 'False'
+    fc: '0'
+    fftsize: '1024'
+    freqhalf: 'True'
+    grid: 'False'
+    gui_hint: ''
+    label: Relative Gain
+    label1: FreeDV Signal
+    label10: ''''''
+    label2: ''
+    label3: ''''''
+    label4: ''''''
+    label5: ''''''
+    label6: ''''''
+    label7: ''''''
+    label8: ''''''
+    label9: ''''''
+    legend: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: '"FreeDV Spectrum"'
+    nconnections: '1'
+    norm_window: 'False'
+    showports: 'False'
+    tr_chan: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_tag: '""'
+    type: complex
+    units: dB
+    update_time: '0.10'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    wintype: window.WIN_BLACKMAN_hARRIS
+    ymax: '10'
+    ymin: '-140'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1400, 352.0]
+    rotation: 0
+    state: enabled
+- name: rational_resampler_xxx_0
+  id: rational_resampler_xxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Resample audio to 8kHz for Codec2
+    decim: '6'
+    fbw: '0'
+    interp: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    taps: ''
+    type: fff
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [160, 200.0]
+    rotation: 0
+    state: enabled
+- name: vocoder_codec2_encode_sp_0
+  id: vocoder_codec2_encode_sp
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Codec2 encoder - compresses voice to bits
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mode: codec2.MODE_2400
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [432, 200.0]
+    rotation: 0
+    state: enabled
+- name: vocoder_freedv_tx_ss_0
+  id: vocoder_freedv_tx_ss
+  parameters:
+    affinity: ''
+    alias: ''
+    clip_val: 'False'
+    comment: FreeDV modulator - transmits signed voice
+    interleave_frames: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mode: freedv_api.MODE_1600
+    tx_bpf_val: 'True'
+    txt_msg: Signed FreeDV
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [960, 184.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [audio_source_0, '0', rational_resampler_xxx_0, '0']
+- [blocks_char_to_short_0, '0', vocoder_freedv_tx_ss_0, '0']
+- [blocks_float_to_short_0, '0', vocoder_codec2_encode_sp_0, '0']
+- [blocks_throttle2_0, '0', blocks_file_sink_0, '0']
+- [blocks_throttle2_0, '0', qtgui_freq_sink_x_0, '0']
+- [epy_block_0, '0', blocks_char_to_short_0, '0']
+- [linux_crypto_nitrokey_interface_0, '0', epy_block_0, '1']
+- [rational_resampler_xxx_0, '0', blocks_float_to_short_0, '0']
+- [vocoder_codec2_encode_sp_0, '0', epy_block_0, '0']
+- [vocoder_freedv_tx_ss_0, '0', blocks_throttle2_0, '0']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.9.2

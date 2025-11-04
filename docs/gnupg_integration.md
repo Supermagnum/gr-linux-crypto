@@ -82,15 +82,43 @@ Edit `~/.gnupg/gpg-agent.conf`:
 # Pinentry program (GUI for PIN entry)
 pinentry-program /usr/bin/pinentry-gtk-2
 
-# Cache PINs for specified time
+# Cache PINs for specified time (in seconds)
+# Default: 3600 (1 hour)
 default-cache-ttl 3600
+
+# Maximum cache time (in seconds)
+# Default: 7200 (2 hours)
 max-cache-ttl 7200
 
 # Enable SSH agent emulation (optional)
 enable-ssh-support
 ```
 
-Reload the agent:
+**For Battery-Powered Devices:**
+
+For devices that may be turned on/off frequently (e.g., battery-powered SDR devices), you can configure longer timeouts so you only need to enter the PIN when the device is first powered on:
+
+```
+# Cache PIN for a week (7 days * 24 hours * 3600 seconds = 604800)
+default-cache-ttl 604800
+
+# Maximum cache time for a month (30 days * 24 hours * 3600 seconds = 2592000)
+max-cache-ttl 2592000
+```
+
+**Timeout Configuration:**
+- `default-cache-ttl`: Time before PIN is required again after last use
+- `max-cache-ttl`: Maximum time PIN can be cached (even if not used)
+- Values are in seconds
+- Common values:
+  - 1 hour: `3600`
+  - 1 day: `86400`
+  - 1 week: `604800`
+  - 1 month (30 days): `2592000`
+
+**Security Note:** Longer timeouts reduce security but improve usability. The PIN will still be required when the device is first powered on or after the timeout expires. Choose a timeout that balances security and convenience for your use case.
+
+Reload the agent after making changes:
 ```bash
 gpg-connect-agent reloadagent /bye
 ```

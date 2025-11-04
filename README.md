@@ -120,8 +120,39 @@ If you're new to cryptographic keys and wondering how to actually use this modul
 
 **Why you need it:**
 - Without the agent, every cryptographic operation would require you to enter your PIN
-- The agent keeps keys loaded in memory for a limited time (e.g., 30 minutes)
+- The agent keeps keys loaded in memory for a limited time (configurable)
 - After the timeout, you'll need to enter your PIN again
+
+**Configuring Agent Timeout:**
+
+For battery-powered devices that may be turned on/off frequently, you can configure longer timeouts so you only need to enter the PIN when the device is first powered on:
+
+Edit `~/.gnupg/gpg-agent.conf`:
+```
+# Cache PINs for specified time (in seconds)
+# For a week: 7 days * 24 hours * 3600 seconds = 604800
+default-cache-ttl 604800
+
+# Maximum cache time (in seconds)
+# For a month: 30 days * 24 hours * 3600 seconds = 2592000
+max-cache-ttl 2592000
+
+# Pinentry program (GUI for PIN entry)
+pinentry-program /usr/bin/pinentry-gtk-2
+```
+
+After editing, reload the agent:
+```bash
+gpg-connect-agent reloadagent /bye
+```
+
+**Timeout values:**
+- `default-cache-ttl`: Time before PIN is required again (default: 3600 = 1 hour)
+- `max-cache-ttl`: Maximum time PIN can be cached (default: 7200 = 2 hours)
+- For a week: `604800` seconds
+- For a month: `2592000` seconds (30 days)
+
+**Note:** Longer timeouts reduce security but improve usability for battery-powered devices. The PIN will still be required when the device is first powered on or after the timeout expires.
 
 **How to start it:**
 ```bash
@@ -1048,6 +1079,7 @@ See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing 
 - [GnuPG Integration Guide](docs/gnupg_integration.md) - GnuPG setup, PIN handling, and examples
 - [Architecture Documentation](docs/architecture.md) - Module architecture and design
 - [Examples](docs/examples.md) - Code examples and tutorials
+- [Signing and Verification Examples](examples/SIGNING_VERIFICATION_README.md) - GRC examples for digital signing and verification with Nitrokey and kernel keyring
 
 ## Usage Examples
 
