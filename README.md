@@ -1073,15 +1073,47 @@ This software is provided "as is" without warranty of any kind. The developers a
 
 See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing how to integrate gr-linux-crypto with gr-openssl and gr-nacl.
 
+
 ## Documentation
 
 - [Usage Flowchart](docs/USAGE_FLOWCHART.md) - Integration patterns and workflows
 - [GnuPG Integration Guide](docs/gnupg_integration.md) - GnuPG setup, PIN handling, and examples
 - [Architecture Documentation](docs/architecture.md) - Module architecture and design
 - [Examples](docs/examples.md) - Code examples and tutorials
-- [Signing and Verification Examples](examples/SIGNING_VERIFICATION_README.md) - GRC examples for digital signing and verification with Nitrokey and kernel keyring
+
 
 ## Usage Examples
+
+- [Signing and Verification Examples](examples/SIGNING_VERIFICATION_README.md) - GRC examples for digital signing and verification with Nitrokey and kernel keyring
+
+### Inline Signatures Work For
+
+**M17, PSK, MFSK, APRS (flexible formats)** - Modes where you can modify the frame structure, and the length of the frames is not critical.
+
+### For FT8, FT4, WSPR (WSJT-X modes)
+
+**Any fixed-format protocol** - Weak-signal modes where you can't add length, use this proposed method:
+
+**During operation:**
+- Station transmits normal FT8 (unchanged)
+- Software signs each transmission locally
+- Signatures stored in ADIF log with custom fields
+
+**Log upload (users already do this):**
+- Upload ADIF to QRZ, LoTW, ClubLog, etc.
+- Includes signature fields in ADIF
+- Services store callsign + signature + timestamp
+
+**Verification (offline or online):**
+- Import other stations' ADIF logs
+- Software verifies signatures against public keys
+- Shows verified/disputed contacts in log
+
+**Database Architecture - Central registry:**
+- **If online:** Callsign → Public Key mapping
+- Station publishes signature for each transmission
+- Other stations query database to verify
+- Similar to how PSK Reporter works
 
 ### Kernel Keyring as Key Source for gr-openssl
 ```python
