@@ -58,7 +58,8 @@ kernel_keyring_source_impl::kernel_keyring_source_impl(key_serial_t key_id, bool
       d_auto_repeat(auto_repeat),
       d_key_size(0),
       d_key_loaded(false),
-      d_key_offset(0)
+      d_key_offset(0),
+      d_key_check_counter(0)
 {
     load_key_from_keyring();
 }
@@ -149,6 +150,33 @@ kernel_keyring_source_impl::reload_key()
     load_key_from_keyring();
 }
 
+void
+kernel_keyring_source_impl::clear_key_data_unlocked()
+{
+    // Note: This function assumes d_mutex is already locked by caller
+    // Securely clear key data from memory
+    if (!d_key_data.empty()) {
+        memset(d_key_data.data(), 0, d_key_data.size());
+    }
+    d_key_data.clear();
+    d_key_size = 0;
+    d_key_loaded = false;
+    d_key_offset = 0;
+}
+
+bool
+kernel_keyring_source_impl::check_key_exists()
+{
+    // Check if key still exists in kernel keyring
+    // Returns true if key exists, false if removed
+    long key_size = keyctl(KEYCTL_READ, d_key_id, nullptr, 0);
+    if (key_size < 0) {
+        // Key doesn't exist or was removed
+        return false;
+    }
+    return true;
+}
+
 /**
  * Output key data from kernel keyring.
  * If auto_repeat enabled, repeats key to fill output.
@@ -160,6 +188,19 @@ kernel_keyring_source_impl::work(int noutput_items,
                                  gr_vector_void_star& output_items)
 {
     unsigned char* out = (unsigned char*)output_items[0];
+    
+    // Periodically check if key still exists in keyring (every 1000 work() calls)
+    // This balances security with performance
+    d_key_check_counter++;
+    bool should_check_key = (d_key_check_counter % 1000 == 0);
+
+    if (should_check_key && d_key_loaded) {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        if (!check_key_exists()) {
+            // Key removed from keyring - clear cached key data immediately
+            clear_key_data_unlocked();
+        }
+    }
     
     if (!d_key_loaded || d_key_data.empty()) {
         // No key loaded, output zeros

@@ -55,7 +55,8 @@ nitrokey_interface_impl::nitrokey_interface_impl(int slot, bool auto_repeat)
       d_key_size(0),
       d_key_loaded(false),
       d_key_offset(0),
-      d_nitrokey_available(false)
+      d_nitrokey_available(false),
+      d_connection_check_counter(0)
 #ifdef HAVE_NITROKEY
       , d_nitrokey_manager(nullptr)
 #else
@@ -360,12 +361,68 @@ nitrokey_interface_impl::get_available_slots() const
     return slots;
 }
 
+void
+nitrokey_interface_impl::clear_key_data_unlocked()
+{
+    // Note: This function assumes d_mutex is already locked by caller
+    // Securely clear key data from memory
+    if (!d_key_data.empty()) {
+        memset(d_key_data.data(), 0, d_key_data.size());
+    }
+    d_key_data.clear();
+    d_key_size = 0;
+    d_key_loaded = false;
+    d_key_offset = 0;
+    d_nitrokey_available = false;
+}
+
+bool
+nitrokey_interface_impl::check_device_connected()
+{
+    // Check if Nitrokey device is still connected
+    // Returns true if connected, false if disconnected
+#ifdef HAVE_NITROKEY
+    if (!d_nitrokey_manager) {
+        return false;
+    }
+    
+    try {
+        // Check if device is still connected
+        if (d_nitrokey_manager->is_connected()) {
+            return true;
+        }
+        return false;
+    } catch (const nitrokey::DeviceNotConnectedException&) {
+        return false;
+    } catch (...) {
+        // Unknown error, assume disconnected
+        return false;
+    }
+#else
+    return false;
+#endif
+}
+
 int
 nitrokey_interface_impl::work(int noutput_items,
                               gr_vector_const_void_star& input_items,
                               gr_vector_void_star& output_items)
 {
     unsigned char* out = (unsigned char*)output_items[0];
+
+    // Periodically check if device is still connected (every 1000 work() calls)
+    // This balances security with performance
+    d_connection_check_counter++;
+    bool should_check_connection = (d_connection_check_counter % 1000 == 0);
+
+    if (should_check_connection && d_key_loaded) {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        if (!check_device_connected()) {
+            // Device disconnected - clear cached key data immediately
+            clear_key_data_unlocked();
+            d_device_info = "Nitrokey (disconnected)";
+        }
+    }
 
     if (!d_nitrokey_available || !d_key_loaded || d_key_data.empty()) {
         // No Nitrokey or key loaded, output zeros
@@ -374,7 +431,7 @@ nitrokey_interface_impl::work(int noutput_items,
     }
 
 #ifdef HAVE_NITROKEY
-    // Verify device is still connected
+    // Verify device manager pointer is valid
     if (!d_nitrokey_manager) {
         memset(out, 0, noutput_items);
         return noutput_items;

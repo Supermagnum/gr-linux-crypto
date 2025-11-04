@@ -53,6 +53,7 @@ private:
     size_t d_key_offset;  // Track position when auto_repeat == false
     bool d_nitrokey_available;
     mutable std::mutex d_mutex;
+    int d_connection_check_counter;  // Counter for periodic connection checks
 
 #ifdef HAVE_NITROKEY
     nitrokey::NitrokeyManager* d_nitrokey_manager;
@@ -64,7 +65,9 @@ private:
     void connect_to_nitrokey();
     void load_key_from_nitrokey();  // Public: acquires lock
     void load_key_from_nitrokey_unlocked();  // Private: assumes lock is held
+    void clear_key_data_unlocked();  // Private: securely clears key data (assumes lock is held)
     void output_key_data(int noutput_items, gr_vector_void_star& output_items);
+    bool check_device_connected();  // Private: checks if device is still connected
 
 public:
     nitrokey_interface_impl(int slot, bool auto_repeat);

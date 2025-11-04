@@ -42,8 +42,11 @@ private:
     bool d_key_loaded;
     size_t d_key_offset;  // Track position when auto_repeat == false
     mutable std::mutex d_mutex;
+    int d_key_check_counter;  // Counter for periodic key existence checks
 
     void load_key_from_keyring();
+    void clear_key_data_unlocked();  // Private: securely clears key data (assumes lock is held)
+    bool check_key_exists();  // Private: checks if key still exists in keyring
     void output_key_data(int noutput_items, gr_vector_void_star& output_items);
 
 public:

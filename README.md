@@ -29,38 +29,40 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
    - [Legal and Appropriate Uses for Amateur Radio](#legal-and-appropriate-uses-for-amateur-radio)
    - [Experimental and Research Uses](#experimental-and-research-uses)
    - [User Responsibility and Disclaimer](#user-responsibility-and-disclaimer)
-4. [Integration Architecture](#integration-architecture)
-5. [Key Design Principles](#key-design-principles)
-6. [Usage Flowchart](#usage-flowchart)
-7. [Documentation](#documentation)
-8. [Usage Examples](#usage-examples)
+4. [What happens if I remove my Nitrokey or GnuPG card?](#what-happens-if-i-remove-my-nitrokey-or-gnupg-card)
+5. [Why Nitrokey?](#why-nitrokey)
+6. [Integration Architecture](#integration-architecture)
+7. [Key Design Principles](#key-design-principles)
+8. [Usage Flowchart](#usage-flowchart)
+9. [Documentation](#documentation)
+10. [Usage Examples](#usage-examples)
    - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
    - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
-9. [Dependencies](#dependencies)
+11. [Dependencies](#dependencies)
    - [Required](#required)
    - [Python Dependencies](#python-dependencies)
    - [Optional](#optional)
-10. [Installation](#installation)
-11. [Important Note](#important-note)
-12. [Cryptographic Operations Overview](#cryptographic-operations-overview)
+12. [Installation](#installation)
+13. [Important Note](#important-note)
+14. [Cryptographic Operations Overview](#cryptographic-operations-overview)
     - [Encryption (AES block)](#1-encryption-aes-block)
     - [Signing & Key Exchange (Brainpool ECC block)](#2-signing--key-exchange-brainpool-ecc-block)
     - [Common Use Pattern](#common-use-pattern)
-13. [Supported Ciphers and Algorithms](#supported-ciphers-and-algorithms)
+15. [Supported Ciphers and Algorithms](#supported-ciphers-and-algorithms)
     - [Symmetric Encryption](#symmetric-encryption)
     - [Asymmetric Cryptography](#asymmetric-cryptography)
     - [Key Management](#key-management)
     - [Authentication Modes](#authentication-modes)
     - [Battery-Friendly Cryptography](#battery-friendly-cryptography)
-14. [Security & Testing](#security--testing)
-15. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
+16. [Security & Testing](#security--testing)
+17. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
     - [Native C++ Blocks (Implemented)](#1-native-c-blocks-implemented)
     - [Integration Helpers (Implemented)](#2-integration-helpers-implemented)
     - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
-16. [Why This Approach?](#why-this-approach)
-17. [Comparison with Existing Modules](#comparison-with-existing-modules)
-18. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
+18. [Why This Approach?](#why-this-approach)
+19. [Comparison with Existing Modules](#comparison-with-existing-modules)
+20. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
     - [Cryptographic Ciphers Influenced by the NSA](#cryptographic-ciphers-influenced-by-the-nsa)
     - [Cryptographic Ciphers NOT Influenced by the NSA](#cryptographic-ciphers-not-influenced-by-the-nsa)
     - [Known Scandals Involving NSA and Cryptography](#known-scandals-involving-nsa-and-cryptography)
@@ -1027,6 +1029,57 @@ This software is provided "as is" without warranty of any kind. The developers a
 - Strongly recommend consulting with legal counsel or regulatory authorities before using cryptographic features
 
 **It is your responsibility to ensure all use of this software complies with applicable laws and regulations.**
+
+## What happens if I remove my Nitrokey or GnuPG card?
+
+**Important Security Behavior:**
+
+When you remove a Nitrokey device or GnuPG smart card during operation, the module automatically detects the disconnection and **immediately clears all cached key data from memory**.
+
+**Nitrokey (Password Safe Slots):**
+- The module periodically checks if the Nitrokey device is still connected (every 1000 work() function calls)
+- If disconnection is detected, all cached key data is immediately and securely cleared from memory
+- The block will output zeros until the device is reconnected and keys are reloaded
+- **Security**: Keys stored in password safe slots are removed from the computer's memory when the device is unplugged
+
+**Kernel Keyring:**
+- The module periodically checks if the key still exists in the kernel keyring (every 1000 work() function calls)
+- If the key is removed from the keyring, all cached key data is immediately and securely cleared from memory
+- The block will output zeros until the key is re-added to the keyring
+- **Security**: Keys are removed from the computer's memory when removed from the keyring
+
+**GnuPG Card (OpenPGP Smart Card):**
+- Private keys stored on GnuPG cards (including Nitrokey in OpenPGP mode) **never leave the card**
+- GnuPG operations require the physical card to be present
+- If the card is removed, subsequent cryptographic operations will fail until the card is reinserted
+- **Security**: Private keys cannot be extracted from the card - they remain secure even if the card is removed
+
+**Summary:**
+- **Nitrokey Password Safe**: Keys are cleared from memory when device is removed
+- **Kernel Keyring**: Keys are cleared from memory when removed from keyring
+- **GnuPG Card**: Keys never leave the card, so removal simply prevents operations
+
+This ensures that removing your hardware security device also removes the keys from the computer's memory, providing protection against unauthorized access if the device is removed while the system is running.
+
+## Why Nitrokey?
+
+**Firmware Updates Enable Future-Proof Security:**
+
+Nitrokey devices support firmware updates, which is a significant advantage over YubiKeys and GnuPG cards that do not have this function.
+
+**Key Benefits:**
+- **Firmware Updates**: Nitrokey devices can be updated with new firmware versions
+- **Access to New Ciphers**: By updating the firmware, you gain access to new cryptographic algorithms and ciphers
+- **No Need for New Hardware**: Unlike YubiKeys and GnuPG cards, you don't need to purchase a new device to support new cryptographic standards
+- **Future-Proof**: As new cryptographic algorithms are developed and standardized, firmware updates allow your Nitrokey to support them
+- **Tamper Protection**: Nitrokeys have protection from attempts at tampering, providing additional physical security
+
+**Comparison:**
+- **Nitrokey**: Supports firmware updates - can add new ciphers via software update
+- **YubiKey**: No firmware updates - requires new hardware for new cipher support
+- **GnuPG Cards**: No firmware updates - fixed functionality, cannot add new ciphers
+
+This makes Nitrokey a more flexible and future-proof choice for long-term cryptographic security needs, as you can adapt to evolving security standards without replacing hardware.
 
 ## Integration Architecture
 
