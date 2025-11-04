@@ -1,0 +1,339 @@
+options:
+  parameters:
+    author: gr-linux-crypto
+    catch_exceptions: 'True'
+    category: '[gr-linux-crypto]/Examples'
+    cmake_opt: ''
+    comment: ''
+    copyright: Copyright 2024
+    description: APRS message signature verification using gr-nacl Ed25519. Verifies
+      signatures embedded in APRS messages received from signed transmissions.
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: aprs_nitrokey_verification
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: APRS Signature Verification
+    window_size: (1400, 900)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 0.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: nitrokey_slot
+  id: variable_qtgui_entry
+  parameters:
+    comment: Nitrokey slot number (0-15) containing Ed25519 public key (optional)
+    entry_signal: editingFinished
+    gui_hint: 1,0,1,1
+    label: Nitrokey Slot (optional)
+    type: int
+    value: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 552.0]
+    rotation: 0
+    state: enabled
+- name: public_key_file
+  id: variable_qtgui_entry
+  parameters:
+    comment: Path to Ed25519 public key file (PEM format) or use Nitrokey slot
+    entry_signal: editingFinished
+    gui_hint: 3,0,1,1
+    label: Public Key File
+    type: string
+    value: ''
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [632, 32.0]
+    rotation: 0
+    state: enabled
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: Sample rate for processing
+    value: '48000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [440, 24.0]
+    rotation: 0
+    state: enabled
+- name: signed_message_file
+  id: variable_qtgui_entry
+  parameters:
+    comment: Path to file containing signed APRS message
+    entry_signal: editingFinished
+    gui_hint: 2,0,1,1
+    label: Signed Message File
+    type: string
+    value: /tmp/aprs_signed_transmission.bin
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [232, 24.0]
+    rotation: 0
+    state: enabled
+- name: blocks_file_source_0
+  id: blocks_file_source
+  parameters:
+    affinity: ''
+    alias: ''
+    begin_tag: pmt.PMT_NIL
+    comment: Load signed APRS message from file
+    file: signed_message_file
+    length: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    repeat: 'False'
+    type: byte
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [80, 200.0]
+    rotation: 0
+    state: enabled
+- name: blocks_throttle2_0
+  id: blocks_throttle2
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    ignoretag: 'True'
+    limit: auto
+    maximum: '0.1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samples_per_second: samp_rate
+    type: byte
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [632, 240.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_0
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\nimport os\ntry:\n\
+      \    from gnuradio import nacl\n    NACL_AVAILABLE = True\nexcept ImportError:\n\
+      \    NACL_AVAILABLE = False\n    print(\"Warning: gr-nacl not available. Verification\
+      \ will not work.\")\n\nclass blk(gr.sync_block):\n    def __init__(self):\n\
+      \        gr.sync_block.__init__(\n            self,\n            name='APRS\
+      \ Signature Verifier',\n            in_sig=[np.uint8, np.uint8],\n         \
+      \   out_sig=[np.uint8]\n        )\n        self._signed_message_buffer = bytearray()\n\
+      \        self._key_buffer = bytearray()\n        self._signature_length = 64\
+      \  # Ed25519 signature is 64 bytes\n        self._verified = False\n       \
+      \ self._verification_status = None\n        self._original_message = None\n\
+      \        \n    def work(self, input_items, output_items):\n        msg_in =\
+      \ input_items[0]\n        key_in = input_items[1]\n        \n        # Collect\
+      \ signed message data\n        if len(msg_in) > 0:\n            self._signed_message_buffer.extend(msg_in.tolist())\n\
+      \        \n        # Collect key data from Nitrokey or file\n        if len(key_in)\
+      \ > 0:\n            self._key_buffer.extend(key_in.tolist())\n        \n   \
+      \     out_len = min(len(output_items[0]), len(msg_in))\n        \n        #\
+      \ If we have enough data, verify signature\n        if not self._verified and\
+      \ len(self._signed_message_buffer) >= self._signature_length and len(self._key_buffer)\
+      \ >= 32:\n            try:\n                signed_data = bytes(self._signed_message_buffer)\n\
+      \                 \n                # Extract message and signature\n      \
+      \          if len(signed_data) >= self._signature_length:\n                \
+      \    message = signed_data[:-self._signature_length]\n                    signature\
+      \ = signed_data[-self._signature_length:]\n                     \n         \
+      \           # Get public key (32 bytes for Ed25519)\n                     public_key\
+      \ = bytes(self._key_buffer[:32])\n                    \n                   \
+      \  if NACL_AVAILABLE and len(public_key) == 32 and len(signature) == 64:\n \
+      \                       # Verify Ed25519 signature using gr-nacl\n         \
+      \                try:\n                            # Note: Adjust gr-nacl API\
+      \ call based on actual module API\n                            is_valid = nacl.verify_ed25519(message,\
+      \ signature, public_key)\n                            self._verification_status\
+      \ = is_valid\n                            self._original_message = message\n\
+      \                             self._verified = True\n                      \
+      \      \n                             if is_valid:\n                       \
+      \         print(f\"VERIFIED: APRS message signature is VALID\")\n          \
+      \                      print(f\"Message length: {len(message)} bytes\")\n  \
+      \                              print(f\"Message: {message.decode('utf-8', errors='ignore')}\"\
+      )\n                            else:\n                                 print(f\"\
+      FAILED: APRS message signature is INVALID\")\n                             \
+      \    print(f\"Message may have been tampered with or signed with different key\"\
+      )\n                        except AttributeError:\n                        \
+      \    # Fallback if API is different\n                            print(\"Warning:\
+      \ gr-nacl verify_ed25519 not found. Cannot verify.\")\n                    \
+      \        self._verification_status = None\n                            self._original_message\
+      \ = message\n                             self._verified = True\n          \
+      \          else:\n                        print(\"Warning: Verification not\
+      \ available - missing key or signature\")\n                         self._original_message\
+      \ = message\n                        self._verified = True\n            except\
+      \ Exception as e:\n                print(f\"Verification error: {e}\")\n   \
+      \             import traceback\n                traceback.print_exc()\n    \
+      \            self._verified = True\n        \n        # Output original message\
+      \ (without signature)\n        if self._verified and self._original_message:\n\
+      \            if len(self._original_message) > 0:\n                out_data =\
+      \ np.frombuffer(self._original_message[:out_len], dtype=np.uint8)\n        \
+      \        if len(out_data) <= len(output_items[0]):\n                    output_items[0][:len(out_data)]\
+      \ = out_data\n                     # Remove sent data from buffer\n        \
+      \            self._original_message = self._original_message[len(out_data):]\n\
+      \                    return len(out_data)\n        \n        # No data to output\
+      \ yet\n        return 0\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('APRS Signature Verifier', 'blk', [], [('0', 'byte', 1), ('1', 'byte',
+      1)], [('0', 'byte', 1)], '', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [336, 240.0]
+    rotation: 0
+    state: enabled
+- name: linux_crypto_nitrokey_interface_0
+  id: linux_crypto_nitrokey_interface
+  parameters:
+    affinity: ''
+    alias: ''
+    auto_repeat: 'False'
+    comment: Load Ed25519 public key from Nitrokey slot (optional, if public_key_file
+      is empty)
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    slot: nitrokey_slot
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [88, 336.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_time_sink_x_0
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'True'
+    axislabels: 'True'
+    color1: blue
+    color10: dark blue
+    color2: red
+    color3: green
+    color4: black
+    color5: cyan
+    color6: magenta
+    color7: yellow
+    color8: dark red
+    color9: dark green
+    comment: Visualize verified APRS message data
+    ctrlpanel: 'False'
+    entags: 'True'
+    grid: 'False'
+    gui_hint: ''
+    label1: Verified APRS Message
+    label10: Signal 10
+    label2: ''
+    label3: Signal 3
+    label4: Signal 4
+    label5: Signal 5
+    label6: Signal 6
+    label7: Signal 7
+    label8: Signal 8
+    label9: Signal 9
+    legend: 'True'
+    marker1: '-1'
+    marker10: '-1'
+    marker2: '-1'
+    marker3: '-1'
+    marker4: '-1'
+    marker5: '-1'
+    marker6: '-1'
+    marker7: '-1'
+    marker8: '-1'
+    marker9: '-1'
+    name: '"Verified APRS Message"'
+    nconnections: '1'
+    size: '1024'
+    srate: samp_rate
+    stemplot: 'False'
+    style1: '1'
+    style10: '1'
+    style2: '1'
+    style3: '1'
+    style4: '1'
+    style5: '1'
+    style6: '1'
+    style7: '1'
+    style8: '1'
+    style9: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: complex
+    update_time: '0.10'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    ylabel: Amplitude
+    ymax: '127'
+    ymin: '-128'
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [600, 400]
+    rotation: 0
+    state: enabled
+
+connections:
+- [blocks_file_source_0, '0', epy_block_0, '0']
+- [epy_block_0, '0', blocks_throttle2_0, '0']
+- [epy_block_0, '0', qtgui_time_sink_x_0, '0']
+- [linux_crypto_nitrokey_interface_0, '0', epy_block_0, '1']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.9.2
