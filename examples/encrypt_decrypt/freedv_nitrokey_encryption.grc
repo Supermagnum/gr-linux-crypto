@@ -110,7 +110,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [896, 216.0]
+    coordinate: [800, 216.0]
     rotation: 0
     state: enabled
 - name: blocks_file_sink_0
@@ -148,27 +148,6 @@ blocks:
     coordinate: [272, 224.0]
     rotation: 0
     state: enabled
-- name: blocks_throttle2_0
-  id: blocks_throttle2
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    ignoretag: 'True'
-    limit: auto
-    maximum: '0.1'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    samples_per_second: samp_rate
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1296, 200.0]
-    rotation: 0
-    state: enabled
 - name: epy_block_0
   id: epy_block
   parameters:
@@ -180,12 +159,12 @@ blocks:
       \ = False\n    print(\"Warning: cryptography library not available. Using fallback.\"\
       )\n\nclass blk(gr.sync_block):\n    def __init__(self):\n        gr.sync_block.__init__(\n\
       \            self,\n            name='FreeDV Voice Encryptor',\n           \
-      \ in_sig=[np.uint8, np.uint8],\n            out_sig=[np.uint8]\n        )\n\
-      \        self._codec2_buffer = bytearray()\n        self._key_buffer = bytearray()\n\
-      \        self._nonce_counter = 0\n        self._nonce_length = 12  # 96 bits\
-      \ for ChaCha20-Poly1305\n        \n    def work(self, input_items, output_items):\n\
-      \        codec2_in = input_items[0]\n        key_in = input_items[1]\n     \
-      \   \n        # Collect Codec2 compressed voice data\n        if len(codec2_in)\
+      \ in_sig=[(np.uint8, 48), np.uint8],\n            out_sig=[np.uint8]\n     \
+      \   )\n        self._codec2_buffer = bytearray()\n        self._key_buffer =\
+      \ bytearray()\n        self._nonce_counter = 0\n        self._nonce_length =\
+      \ 12  # 96 bits for ChaCha20-Poly1305\n        \n    def work(self, input_items,\
+      \ output_items):\n        codec2_in = input_items[0]\n        key_in = input_items[1]\n\
+      \        \n        # Collect Codec2 compressed voice data\n        if len(codec2_in)\
       \ > 0:\n            self._codec2_buffer.extend(codec2_in.tolist())\n       \
       \ \n        # Collect key from Nitrokey (need 32 bytes for ChaCha20)\n     \
       \   if len(key_in) > 0:\n            self._key_buffer.extend(key_in.tolist())\n\
@@ -194,8 +173,8 @@ blocks:
       \ >= 8 and len(self._key_buffer) >= 32:\n            try:\n                #\
       \ Get Codec2 frame (typically 8 bytes for 3200 bps mode)\n                frame_size\
       \ = min(8, len(self._codec2_buffer))\n                codec2_frame = bytes(self._codec2_buffer[:frame_size])\n\
-      \                 self._codec2_buffer = self._codec2_buffer[frame_size:]\n \
-      \               \n                # Get encryption key (32 bytes for ChaCha20)\n\
+      \                self._codec2_buffer = self._codec2_buffer[frame_size:]\n  \
+      \              \n                # Get encryption key (32 bytes for ChaCha20)\n\
       \                key = bytes(self._key_buffer[:32])\n                \n    \
       \            # Generate nonce (12 bytes, incrementing counter)\n           \
       \     nonce = self._nonce_counter.to_bytes(self._nonce_length, byteorder='little')\n\
@@ -212,23 +191,23 @@ blocks:
       \    # Output encrypted frame\n                if len(encrypted_frame) <= len(output_items[0]):\n\
       \                    out_data = np.frombuffer(encrypted_frame[:out_len], dtype=np.uint8)\n\
       \                    if len(out_data) <= len(output_items[0]):\n           \
-      \             output_items[0][:len(out_data)] = out_data\n                 \
-      \        return len(out_data)\n            except Exception as e:\n        \
-      \        print(f\"Encryption error: {e}\")\n                import traceback\n\
-      \                traceback.print_exc()\n        \n        # No data to output\
-      \ yet\n        return 0\n"
+      \             output_items[0][:len(out_data)] = out_data\n                return\
+      \ len(out_data)\n            except Exception as e:\n                print(f\"\
+      Encryption error: {e}\")\n                import traceback\n               \
+      \ traceback.print_exc()\n        \n        # No data to output yet\n       \
+      \ return 0\n"
     affinity: ''
     alias: ''
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
-    _io_cache: ('FreeDV Voice Encryptor', 'blk', [], [('0', 'byte', 1), ('1', 'byte',
+    _io_cache: ('FreeDV Voice Encryptor', 'blk', [], [('0', 'byte', 48), ('1', 'byte',
       1)], [('0', 'byte', 1)], '', [])
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [640, 208.0]
+    coordinate: [648, 432.0]
     rotation: 0
     state: enabled
 - name: linux_crypto_nitrokey_interface_0
@@ -245,88 +224,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [648, 432.0]
-    rotation: 0
-    state: enabled
-- name: qtgui_freq_sink_x_0
-  id: qtgui_freq_sink_x
-  parameters:
-    affinity: ''
-    alias: ''
-    alpha1: '1.0'
-    alpha10: '1.0'
-    alpha2: '1.0'
-    alpha3: '1.0'
-    alpha4: '1.0'
-    alpha5: '1.0'
-    alpha6: '1.0'
-    alpha7: '1.0'
-    alpha8: '1.0'
-    alpha9: '1.0'
-    autoscale: 'True'
-    average: '1.0'
-    axislabels: 'True'
-    bw: samp_rate
-    color1: '"blue"'
-    color10: '"dark blue"'
-    color2: '"red"'
-    color3: '"green"'
-    color4: '"black"'
-    color5: '"cyan"'
-    color6: '"magenta"'
-    color7: '"yellow"'
-    color8: '"dark red"'
-    color9: '"dark green"'
-    comment: Visualize FreeDV signal spectrum
-    ctrlpanel: 'False'
-    fc: '0'
-    fftsize: '1024'
-    freqhalf: 'True'
-    grid: 'False'
-    gui_hint: ''
-    label: Relative Gain
-    label1: FreeDV Signal
-    label10: ''''''
-    label2: ''
-    label3: ''''''
-    label4: ''''''
-    label5: ''''''
-    label6: ''''''
-    label7: ''''''
-    label8: ''''''
-    label9: ''''''
-    legend: 'True'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    name: '"FreeDV Spectrum"'
-    nconnections: '1'
-    norm_window: 'False'
-    showports: 'False'
-    tr_chan: '0'
-    tr_level: '0.0'
-    tr_mode: qtgui.TRIG_MODE_FREE
-    tr_tag: '""'
-    type: complex
-    units: dB
-    update_time: '0.10'
-    width1: '1'
-    width10: '1'
-    width2: '1'
-    width3: '1'
-    width4: '1'
-    width5: '1'
-    width6: '1'
-    width7: '1'
-    width8: '1'
-    width9: '1'
-    wintype: window.WIN_BLACKMAN_hARRIS
-    ymax: '10'
-    ymin: '-140'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1496, 328.0]
+    coordinate: [448, 532.0]
     rotation: 0
     state: enabled
 - name: rational_resampler_xxx_0

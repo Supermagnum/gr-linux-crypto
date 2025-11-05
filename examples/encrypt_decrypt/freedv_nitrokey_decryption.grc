@@ -63,7 +63,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [8, 552.0]
+    coordinate: [512, 448.0]
     rotation: 0
     state: enabled
 - name: samp_rate
@@ -162,7 +162,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     samples_per_second: samp_rate
-    type: complex
+    type: short
     vlen: '1'
   states:
     bus_sink: false
@@ -182,22 +182,22 @@ blocks:
       \ = False\n    print(\"Warning: cryptography library not available. Using fallback.\"\
       )\n\nclass blk(gr.sync_block):\n    def __init__(self):\n        gr.sync_block.__init__(\n\
       \            self,\n            name='FreeDV Voice Decryptor',\n           \
-      \ in_sig=[np.uint8, np.uint8],\n            out_sig=[np.uint8]\n        )\n\
-      \        self._encrypted_buffer = bytearray()\n        self._key_buffer = bytearray()\n\
-      \        self._nonce_counter = 0\n        self._nonce_length = 12  # 96 bits\
-      \ for ChaCha20-Poly1305\n         self._frame_size_with_tag = 8 + 16  # Codec2\
-      \ frame (8) + Poly1305 tag (16)\n        \n    def work(self, input_items, output_items):\n\
-      \        encrypted_in = input_items[0]\n        key_in = input_items[1]\n  \
-      \      \n        # Collect encrypted Codec2 data\n        if len(encrypted_in)\
-      \ > 0:\n            self._encrypted_buffer.extend(encrypted_in.tolist())\n \
-      \       \n        # Collect key from Nitrokey (need 32 bytes for ChaCha20)\n\
+      \ in_sig=[np.uint8, np.uint8],\n            out_sig=[(np.uint8, 48)]\n     \
+      \   )\n        self._encrypted_buffer = bytearray()\n        self._key_buffer\
+      \ = bytearray()\n        self._nonce_counter = 0\n        self._nonce_length\
+      \ = 12  # 96 bits for ChaCha20-Poly1305\n        self._frame_size_with_tag =\
+      \ 8 + 16  # Codec2 frame (8) + Poly1305 tag (16)\n        \n    def work(self,\
+      \ input_items, output_items):\n        encrypted_in = input_items[0]\n     \
+      \   key_in = input_items[1]\n        \n        # Collect encrypted Codec2 data\n\
+      \        if len(encrypted_in) > 0:\n            self._encrypted_buffer.extend(encrypted_in.tolist())\n\
+      \        \n        # Collect key from Nitrokey (need 32 bytes for ChaCha20)\n\
       \        if len(key_in) > 0:\n            self._key_buffer.extend(key_in.tolist())\n\
       \        \n        out_len = min(len(output_items[0]), len(encrypted_in))\n\
       \         \n        # Decrypt when we have enough data\n        if len(self._encrypted_buffer)\
       \ >= self._frame_size_with_tag and len(self._key_buffer) >= 32:\n          \
       \  try:\n                # Get encrypted frame (Codec2 frame + auth tag)\n \
       \               encrypted_frame = bytes(self._encrypted_buffer[:self._frame_size_with_tag])\n\
-      \                 self._encrypted_buffer = self._encrypted_buffer[self._frame_size_with_tag:]\n\
+      \                self._encrypted_buffer = self._encrypted_buffer[self._frame_size_with_tag:]\n\
       \                \n                # Get decryption key (32 bytes for ChaCha20)\n\
       \                key = bytes(self._key_buffer[:32])\n                \n    \
       \             # Generate nonce (12 bytes, incrementing counter - must match\
@@ -219,9 +219,9 @@ blocks:
       \                    out_data = np.frombuffer(decrypted_frame[:out_len], dtype=np.uint8)\n\
       \                    if len(out_data) <= len(output_items[0]):\n           \
       \             output_items[0][:len(out_data)] = out_data\n                 \
-      \        return len(out_data)\n            except Exception as e:\n        \
-      \        print(f\"Decryption error: {e}\")\n                import traceback\n\
-      \                traceback.print_exc()\n        \n        # No data to output\
+      \   return len(out_data)\n            except Exception as e:\n             \
+      \   print(f\"Decryption error: {e}\")\n                import traceback\n  \
+      \              traceback.print_exc()\n        \n        # No data to output\
       \ yet\n        return 0\n"
     affinity: ''
     alias: ''
@@ -230,11 +230,11 @@ blocks:
     minoutbuf: '0'
   states:
     _io_cache: ('FreeDV Voice Decryptor', 'blk', [], [('0', 'byte', 1), ('1', 'byte',
-      1)], [('0', 'byte', 1)], '', [])
+      1)], [('0', 'byte', 48)], '', [])
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [760, 208.0]
+    coordinate: [744, 272.0]
     rotation: 0
     state: enabled
 - name: linux_crypto_nitrokey_interface_0
@@ -251,7 +251,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [376, 384.0]
+    coordinate: [504, 352.0]
     rotation: 0
     state: enabled
 - name: rational_resampler_xxx_1

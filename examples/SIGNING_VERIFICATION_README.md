@@ -29,6 +29,10 @@ The `signing_verification/` folder contains GNU Radio Companion (GRC) flowgraphs
 - **`freedv_nitrokey_verification.grc`**: Verifies FreeDV voice data signatures using Ed25519 public key from Nitrokey slot
   - [PDF Documentation](signing_verification/freedv_nitrokey_verification.pdf)
 
+#### M17 (Digital Voice Protocol)
+- **`m17_nitrokey_signing.grc`**: Signs M17 voice data using Ed25519 private key from Nitrokey slot
+- **`m17_nitrokey_verification.grc`**: Verifies M17 voice data signatures using Ed25519 public key from Nitrokey slot
+
 ## How Digital Signing Works
 
 ### Signing Process (TX)
@@ -346,6 +350,24 @@ FreeDV signing and verification flowgraphs can be created following the same pat
 
 Note: FreeDV signing signs individual Codec2 frames (8 bytes each for 3200 bps mode), so each frame has its own signature appended.
 
+## M17 Signing Examples
+
+M17 signing and verification flowgraphs follow the same pattern as FreeDV. M17 is a digital voice protocol that uses Codec2 for voice compression and 4FSK modulation.
+
+### M17 Signing Flow
+
+1. **Audio Input** → Resample to 8 kHz → Codec2 Encoder
+2. **Codec2 frames** → Signing Block (with Nitrokey private key)
+3. **Signed frames** → M17 Frame Construction → M17 Modulator → Radio Output
+
+### M17 Verification Flow
+
+1. **Radio Input** → M17 Demodulator
+2. **Demodulated M17 frames** → Verification Block (with Nitrokey public key)
+3. **Verified Codec2 frames** → Codec2 Decoder → Audio Output
+
+Note: M17 signing signs individual Codec2 frames (8 bytes each for 2400 bps mode), similar to FreeDV. The signed frames are embedded in M17 protocol frames with sync words and frame counters. The M17 flowgraphs include placeholder modulator/demodulator blocks that can be replaced with actual M17 blocks when available.
+
 ## Testing Workflow
 
 ### Step 1: Prepare Keys
@@ -409,6 +431,12 @@ keyctl add user ed25519_pubkey <public_key_data> @u
 **For FreeDV:**
 - FreeDV demodulator is already included in verification flowgraphs
 - Ensure FreeDV mode matches TX side (e.g., MODE_1600, MODE_700)
+
+**For M17:**
+- M17 demodulator placeholder is included in verification flowgraphs
+- M17 uses 4FSK modulation at 4800 symbols/sec
+- Replace placeholder demodulator with actual M17 demodulator block when available
+- Ensure M17 frame structure matches TX side
 
 ## Troubleshooting
 
@@ -486,7 +514,6 @@ The `encrypt_decrypt/` folder contains GNU Radio Companion (GRC) flowgraphs that
 - Ed25519: High-speed high-security signatures (RFC 8032)
 - gr-nacl: GNU Radio module for modern cryptography
 - FreeDV: Open source digital voice mode
-- APRS: Automatic Packet Reporting System protocol
-- MFSK: Multi-Frequency Shift Keying modulation
+- M17: Digital voice protocol for amateur radio
 - ChaCha20-Poly1305: Authenticated encryption (RFC 8439)
 

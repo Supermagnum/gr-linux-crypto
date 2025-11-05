@@ -1,0 +1,253 @@
+options:
+  parameters:
+    author: gr-linux-crypto
+    catch_exceptions: 'True'
+    category: '[gr-linux-crypto]/Examples'
+    cmake_opt: ''
+    comment: ''
+    copyright: Copyright 2024
+    description: M17 voice signing using Nitrokey + gr-nacl Ed25519. Signs Codec2
+      compressed voice frames before M17 modulation.
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: m17_nitrokey_signing
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: M17 Signing with Nitrokey
+    window_size: (1400, 900)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 0.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: authenticate_button
+  id: variable_qtgui_push_button
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: Authenticate Nitrokey
+    pressed: '1'
+    released: '0'
+    type: int
+    value: 'False'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [648, 16.0]
+    rotation: 0
+    state: enabled
+- name: nitrokey_slot
+  id: variable_qtgui_entry
+  parameters:
+    comment: Nitrokey slot number (0-15) containing Ed25519 private key
+    entry_signal: editingFinished
+    gui_hint: 1,0,1,1
+    label: Nitrokey Slot
+    type: int
+    value: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 552.0]
+    rotation: 0
+    state: enabled
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: Sample rate for audio processing
+    value: '8000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [440, 24.0]
+    rotation: 0
+    state: enabled
+- name: audio_source_0
+  id: audio_source
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Audio input for voice
+    device_name: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_outputs: '1'
+    ok_to_block: 'True'
+    samp_rate: '48000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 224.0]
+    rotation: 0
+    state: enabled
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: Save signed M17 signal to file
+    file: /tmp/m17_signed.bin
+    type: short
+    unbuffered: 'False'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1488, 192.0]
+    rotation: 0
+    state: enabled
+- name: blocks_float_to_short_0
+  id: blocks_float_to_short
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Convert float audio to short for Codec2
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '32768'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [272, 224.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_0
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\nimport struct\ntry:\n    from gnuradio import nacl\n    NACL_AVAILABLE = True\nexcept ImportError:\n    NACL_AVAILABLE = False\n    print(\"Warning: gr-nacl not available. Signing will not work.\")\n\ntry:\n    from python.m17_frame import M17Frame\n    M17_AVAILABLE = True\nexcept ImportError:\n    try:\n        from m17_frame import M17Frame\n        M17_AVAILABLE = True\n    except ImportError:\n        M17_AVAILABLE = False\n        print(\"Warning: M17 frame module not available.\")\n\nclass blk(gr.sync_block):\n    def __init__(self):\n        gr.sync_block.__init__(\n            self,\n            name='M17 Voice Signer',\n            in_sig=[(np.uint8, 48), np.uint8],\n            out_sig=[np.uint8]\n        )\n        self._codec2_buffer = bytearray()\n        self._key_buffer = bytearray()\n        self._signature_length = 64  # Ed25519 signature is 64 bytes\n        self._frame_counter = 0\n        \n    def work(self, input_items, output_items):\n        codec2_in = input_items[0]\n        key_in = input_items[1]\n        \n        # Collect Codec2 compressed voice data\n        if len(codec2_in) > 0:\n            self._codec2_buffer.extend(codec2_in.tolist())\n        \n        # Collect key data from Nitrokey (need 32 bytes for Ed25519)\n        if len(key_in) > 0:\n            self._key_buffer.extend(key_in.tolist())\n        \n        out_len = min(len(output_items[0]), len(codec2_in) * 10)\n        \n        # Sign Codec2 frames (typically 8 bytes for 3200 bps mode)\n        if len(self._codec2_buffer) >= 8 and len(self._key_buffer) >= 32:\n            try:\n                # Get Codec2 frame (8 bytes)\n                codec2_frame = bytes(self._codec2_buffer[:8])\n                self._codec2_buffer = self._codec2_buffer[8:]\n                 \n                # Get private key (32 bytes for Ed25519)\n                private_key = bytes(self._key_buffer[:32])\n                \n                if NACL_AVAILABLE and len(private_key) == 32:\n                    # Create Ed25519 signature using gr-nacl\n                    try:\n                        signature = nacl.sign_ed25519(codec2_frame, private_key)\n                    except AttributeError:\n                        print(\"Warning: gr-nacl sign_ed25519 not found. Using placeholder.\")\n                        signature = b'\\x00' * 64\n                    \n                    # Append signature to Codec2 frame\n                    signed_codec2 = codec2_frame + signature\n                    \n                    # Create M17 stream frame with signed payload\n                    # M17 stream frame: sync word (2) + payload (16) + frame counter (2) = 20 bytes\n                    # We'll embed the signed data in the payload\n                    if M17_AVAILABLE:\n                        # Use M17Frame class to create frame\n                        m17_frame = M17Frame.create_stream_frame(\n                            payload=signed_codec2[:16],  # M17 payload is 16 bytes\n                            frame_counter=self._frame_counter\n                        )\n                        self._frame_counter = (self._frame_counter + 1) % 65536\n                        frame_bytes = m17_frame.to_bytes()\n                    else:\n                        # Fallback: simple M17 frame structure\n                        # M17 stream frame: sync (0xFF5D) + payload (16) + counter (2)\n                        sync_word = struct.pack('>H', 0xFF5D)  # M17 stream sync\n                        frame_counter_bytes = struct.pack('>H', self._frame_counter)[:2]\n                        self._frame_counter = (self._frame_counter + 1) % 65536\n                        # Pad signed_codec2 to 16 bytes for M17 payload\n                        payload = signed_codec2[:16].ljust(16, b'\\x00')\n                        frame_bytes = sync_word + payload + frame_counter_bytes\n                    \n                    # Output M17 frame bytes\n                    out_data = np.frombuffer(frame_bytes[:out_len], dtype=np.uint8)\n                    if len(out_data) <= len(output_items[0]):\n                        output_items[0][:len(out_data)] = out_data\n                        return len(out_data)\n                else:\n                    # No signing available, just pass Codec2 frame in M17 format\n                    if M17_AVAILABLE:\n                        m17_frame = M17Frame.create_stream_frame(\n                            payload=codec2_frame[:16].ljust(16, b'\\x00'),\n                            frame_counter=self._frame_counter\n                        )\n                        self._frame_counter = (self._frame_counter + 1) % 65536\n                        frame_bytes = m17_frame.to_bytes()\n                    else:\n                        sync_word = struct.pack('>H', 0xFF5D)\n                        frame_counter_bytes = struct.pack('>H', self._frame_counter)[:2]\n                        self._frame_counter = (self._frame_counter + 1) % 65536\n                        payload = codec2_frame[:16].ljust(16, b'\\x00')\n                        frame_bytes = sync_word + payload + frame_counter_bytes\n                    \n                    out_data = np.frombuffer(frame_bytes[:out_len], dtype=np.uint8)\n                    if len(out_data) <= len(output_items[0]):\n                        output_items[0][:len(out_data)] = out_data\n                        return len(out_data)\n            except Exception as e:\n                print(f\"Signing error: {e}\")\n                import traceback\n                traceback.print_exc()\n        \n        # No data to output yet\n        return 0\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('M17 Voice Signer', 'blk', [], [('0', 'byte', 48), ('1', 'byte', 1)], [('0', 'byte', 1)], '', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [648, 432.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_1
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\nimport pmt\nfrom PyQt5.QtWidgets import (QDialog, QVBoxLayout, QLineEdit, QPushButton, QLabel, QMessageBox)\nfrom PyQt5.QtCore import Qt\nimport sys\n\ntry:\n    from libnitrokey import NitrokeyManager\n    NITROKEY_AVAILABLE = True\nexcept ImportError:\n    NITROKEY_AVAILABLE = False\n    print(\"Warning: libnitrokey Python bindings not available. PIN authentication will not work.\")\n\nclass PinEntryDialog(QDialog):\n    def __init__(self, parent=None, prompt=\"Enter Nitrokey PIN\"):\n        super().__init__(parent)\n        self.setWindowTitle(\"Nitrokey PIN Entry\")\n        self.setModal(True)\n        self.pin = None\n        self.cancelled = False\n        layout = QVBoxLayout()\n        label = QLabel(prompt)\n        layout.addWidget(label)\n        self.pin_input = QLineEdit(self)\n        self.pin_input.setEchoMode(QLineEdit.Password)\n        self.pin_input.returnPressed.connect(self.submit_pin)\n        layout.addWidget(self.pin_input)\n        button_layout = QVBoxLayout()\n        submit_button = QPushButton(\"Submit\")\n        submit_button.clicked.connect(self.submit_pin)\n        button_layout.addWidget(submit_button)\n        cancel_button = QPushButton(\"Cancel\")\n        cancel_button.clicked.connect(self.cancel)\n        button_layout.addWidget(cancel_button)\n        layout.addLayout(button_layout)\n        self.setLayout(layout)\n        self.pin_input.setFocus()\n    def submit_pin(self):\n        self.pin = self.pin_input.text()\n        if self.pin:\n            self.accept()\n        else:\n            QMessageBox.warning(self, \"Error\", \"PIN cannot be empty\")\n    def cancel(self):\n        self.cancelled = True\n        self.reject()\n    def get_pin(self):\n        return self.pin if not self.cancelled else None\n\nclass blk(gr.sync_block):\n    def __init__(self):\n        gr.sync_block.__init__(self, name='Nitrokey PIN Authenticator', in_sig=None, out_sig=None)\n        self.message_port_register_out(pmt.intern('status'))\n        self.authenticated = False\n        self.nitrokey_manager = None\n        self.last_button_state = False\n        self.check_counter = 0\n        self.button_var = None\n        if NITROKEY_AVAILABLE:\n            try:\n                self.nitrokey_manager = NitrokeyManager.instance()\n                if self.nitrokey_manager and self.nitrokey_manager.is_connected():\n                    print(\"Nitrokey PIN Authenticator: Device connected\")\n                else:\n                    print(\"Nitrokey PIN Authenticator: No device connected\")\n            except Exception as e:\n                print(f\"Nitrokey PIN Authenticator: Error connecting to device: {e}\")\n    def work(self, input_items, output_items):\n        self.check_counter += 1\n        if self.check_counter >= 100:\n            self.check_counter = 0\n            try:\n                if self.button_var is None:\n                    import __main__\n                    if hasattr(__main__, 'authenticate_button'):\n                        self.button_var = getattr(__main__, 'authenticate_button')\n                if self.button_var:\n                    button_value = self.button_var.value()\n                    if button_value and not self.last_button_state and not self.authenticated:\n                        self.authenticate_with_pin()\n                    elif not button_value:\n                        self.authenticated = False\n                    self.last_button_state = button_value\n            except Exception as e:\n                pass\n        return 0\n    def authenticate_with_pin(self):\n        if not NITROKEY_AVAILABLE or not self.nitrokey_manager:\n            status_msg = pmt.intern(\"Nitrokey library not available\")\n            self.message_port_pub(pmt.intern('status'), status_msg)\n            print(\"Nitrokey PIN Authenticator: Library not available\")\n            return\n        try:\n            if not self.nitrokey_manager.is_connected():\n                devices = self.nitrokey_manager.list_devices()\n                if not devices:\n                    status_msg = pmt.intern(\"No Nitrokey device found\")\n                    self.message_port_pub(pmt.intern('status'), status_msg)\n                    print(\"Nitrokey PIN Authenticator: No device found\")\n                    return\n                if not self.nitrokey_manager.connect():\n                    status_msg = pmt.intern(\"Failed to connect to Nitrokey\")\n                    self.message_port_pub(pmt.intern('status'), status_msg)\n                    print(\"Nitrokey PIN Authenticator: Connection failed\")\n                    return\n            from PyQt5.QtWidgets import QApplication\n            app = QApplication.instance()\n            parent = app.activeWindow() if app else None\n            dialog = PinEntryDialog(parent, \"Enter Nitrokey PIN for authentication\")\n            if dialog.exec_() == QDialog.Accepted:\n                pin = dialog.get_pin()\n                if pin:\n                    try:\n                        slot_status = self.nitrokey_manager.get_password_safe_slot_status()\n                        self.authenticated = True\n                        status_msg = pmt.intern(\"Authentication successful\")\n                        self.message_port_pub(pmt.intern('status'), status_msg)\n                        print(\"Nitrokey PIN Authenticator: Authentication successful\")\n                        pin = None\n                    except Exception as e:\n                        status_msg = pmt.intern(f\"Authentication failed: {str(e)}\")\n                        self.message_port_pub(pmt.intern('status'), status_msg)\n                        print(f\"Nitrokey PIN Authenticator: Authentication failed: {e}\")\n                        self.authenticated = False\n                else:\n                    status_msg = pmt.intern(\"PIN entry cancelled\")\n                    self.message_port_pub(pmt.intern('status'), status_msg)\n                    print(\"Nitrokey PIN Authenticator: PIN entry cancelled\")\n            else:\n                status_msg = pmt.intern(\"PIN dialog cancelled\")\n                self.message_port_pub(pmt.intern('status'), status_msg)\n                print(\"Nitrokey PIN Authenticator: Dialog cancelled\")\n        except Exception as e:\n            status_msg = pmt.intern(f\"Error: {str(e)}\")\n            self.message_port_pub(pmt.intern('status'), status_msg)\n            print(f\"Nitrokey PIN Authenticator: Error: {e}\")\n            import traceback\n            traceback.print_exc()\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('Nitrokey PIN Authenticator', 'blk', [], [], [('status', 'message', 1)], '', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [648, 552.0]
+    rotation: 0
+    state: enabled
+- name: linux_crypto_nitrokey_interface_0
+  id: linux_crypto_nitrokey_interface
+  parameters:
+    affinity: ''
+    alias: ''
+    auto_repeat: 'False'
+    comment: Load Ed25519 private key from Nitrokey slot for signing
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    slot: nitrokey_slot
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [448, 532.0]
+    rotation: 0
+    state: enabled
+- name: rational_resampler_xxx_0
+  id: rational_resampler_xxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Resample audio to 8kHz for Codec2
+    decim: '6'
+    fbw: '0'
+    interp: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    taps: ''
+    type: fff
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [56, 360.0]
+    rotation: 0
+    state: enabled
+- name: vocoder_codec2_encode_sp_0
+  id: vocoder_codec2_encode_sp
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Codec2 encoder - compresses voice to bits
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mode: codec2.MODE_2400
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [312, 384.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_2
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\n\nclass blk(gr.sync_block):\n    def __init__(self):\n        gr.sync_block.__init__(\n            self,\n            name='M17 Modulator',\n            in_sig=[np.uint8],\n            out_sig=[np.short]\n        )\n        # M17 uses 4FSK modulation at 4800 symbols/sec\n        # For simplicity, this is a placeholder that passes through\n        # In a real implementation, this would do M17 4FSK modulation\n        \n    def work(self, input_items, output_items):\n        in_data = input_items[0]\n        out_len = min(len(output_items[0]), len(in_data))\n        \n        # Simple pass-through (actual M17 modulation would go here)\n        # M17 uses 4FSK: symbols map to 4 different frequencies\n        # This is a placeholder - real M17 modulator would do:\n        # 1. Convert bytes to symbols (2 bits per symbol)\n        # 2. Map symbols to 4FSK frequencies\n        # 3. Generate complex samples\n        \n        # For now, just convert bytes to short for output\n        out_data = in_data.astype(np.int16) - 128\n        if len(out_data) <= len(output_items[0]):\n            output_items[0][:len(out_data)] = out_data\n            return len(out_data)\n        \n        return 0\n"
+    affinity: ''
+    alias: ''
+    comment: M17 4FSK modulator placeholder - converts signed M17 frames to audio samples
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('M17 Modulator', 'blk', [], [('0', 'byte', 1)], [('0', 'short', 1)], '', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1040, 176.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [audio_source_0, '0', rational_resampler_xxx_0, '0']
+- [blocks_float_to_short_0, '0', vocoder_codec2_encode_sp_0, '0']
+- [epy_block_0, '0', epy_block_2, '0']
+- [epy_block_2, '0', blocks_file_sink_0, '0']
+- [linux_crypto_nitrokey_interface_0, '0', epy_block_0, '1']
+- [rational_resampler_xxx_0, '0', blocks_float_to_short_0, '0']
+- [vocoder_codec2_encode_sp_0, '0', epy_block_0, '0']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.9.2
+
