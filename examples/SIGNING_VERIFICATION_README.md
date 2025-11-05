@@ -8,21 +8,6 @@ The `signing_verification/` folder contains GNU Radio Companion (GRC) flowgraphs
 
 ### Available Examples
 
-#### APRS (Automatic Packet Reporting System)
-- **`aprs_nitrokey_signing.grc`**: Signs APRS messages using Ed25519 private key from Nitrokey slot
-  - [PDF Documentation](signing_verification/aprs_nitrokey_signing.pdf)
-- **`aprs_nitrokey_verification.grc`**: Verifies APRS message signatures using Ed25519 public key from Nitrokey slot
-- **`aprs_kernel_keyring_signing.grc`**: Signs APRS messages using Ed25519 private key from Linux kernel keyring
-  - [PDF Documentation](signing_verification/aprs_kernel_keyring_signing.pdf)
-- **`aprs_kernel_keyring_verification.grc`**: Verifies APRS message signatures using Ed25519 public key from Linux kernel keyring
-  - [PDF Documentation](signing_verification/aprs_kernel_keyring_verification.pdf)
-
-#### MFSK (Multi-Frequency Shift Keying)
-- **`MFSK_nitrokey_nacl_signing.grc`**: Signs MFSK messages using Ed25519 private key from Nitrokey slot
-  - [PDF Documentation](signing_verification/MFSK_nitrokey_nacl_signing.pdf)
-- **`mfsk_nitrokey_verification.grc`**: Verifies MFSK message signatures using Ed25519 public key from Nitrokey slot
-- **`mfsk_kernel_keyring_verification.grc`**: Verifies MFSK message signatures using Ed25519 public key from Linux kernel keyring
-
 #### FreeDV (Digital Voice)
 - **`freedv_nitrokey_signing.grc`**: Signs FreeDV voice data using Ed25519 private key from Nitrokey slot
   - [PDF Documentation](signing_verification/freedv_nitrokey_signing.pdf)
@@ -31,7 +16,9 @@ The `signing_verification/` folder contains GNU Radio Companion (GRC) flowgraphs
 
 #### M17 (Digital Voice Protocol)
 - **`m17_nitrokey_signing.grc`**: Signs M17 voice data using Ed25519 private key from Nitrokey slot
+  - [PDF Documentation](signing_verification/m17_nitrokey_signing.pdf)
 - **`m17_nitrokey_verification.grc`**: Verifies M17 voice data signatures using Ed25519 public key from Nitrokey slot
+  - [PDF Documentation](signing_verification/m17_nitrokey_verification.pdf)
 
 ## How Digital Signing Works
 
@@ -334,7 +321,7 @@ Audio Sink (speaker)
 
 ## FreeDV Signing Examples
 
-FreeDV signing and verification flowgraphs can be created following the same pattern as the APRS and MFSK examples. The structure is:
+FreeDV signing and verification flowgraphs demonstrate signing of digital voice data. The structure is:
 
 ### FreeDV Signing Flow
 
@@ -418,15 +405,6 @@ keyctl add user ed25519_pubkey <public_key_data> @u
 - Connect radio source → demodulator → verification block
 
 ### Adding Demodulators
-
-**For MFSK:**
-- Add MFSK demodulator block (from `gr-digital` or appropriate module)
-- Configure symbol rate and bits per symbol to match TX side
-
-**For APRS:**
-- Add AFSK (Bell 202) demodulator
-- Configure baud rate (typically 1200 baud)
-- Add AX.25 frame parser if needed
 
 **For FreeDV:**
 - FreeDV demodulator is already included in verification flowgraphs
