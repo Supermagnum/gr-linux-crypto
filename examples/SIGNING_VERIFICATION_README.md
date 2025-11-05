@@ -8,11 +8,7 @@ The `signing_verification/` folder contains GNU Radio Companion (GRC) flowgraphs
 
 ### Available Examples
 
-#### FreeDV (Digital Voice)
-- **`freedv_nitrokey_signing.grc`**: Signs FreeDV voice data using Ed25519 private key from Nitrokey slot
-  - [PDF Documentation](signing_verification/freedv_nitrokey_signing.pdf)
-- **`freedv_nitrokey_verification.grc`**: Verifies FreeDV voice data signatures using Ed25519 public key from Nitrokey slot
-  - [PDF Documentation](signing_verification/freedv_nitrokey_verification.pdf)
+
 
 #### M17 (Digital Voice Protocol)
 - **`m17_nitrokey_signing.grc`**: Signs M17 voice data using Ed25519 private key from Nitrokey slot
@@ -465,9 +461,7 @@ The `encrypt_decrypt/` folder contains GNU Radio Companion (GRC) flowgraphs that
 
 #### FreeDV (Digital Voice Encryption)
 - **`freedv_nitrokey_encryption.grc`**: Encrypts FreeDV voice data using ChaCha20-Poly1305 with key from Nitrokey slot
-  - [PDF Documentation](encrypt_decrypt/freedv_nitrokey_encryption.pdf)
 - **`freedv_nitrokey_decryption.grc`**: Decrypts FreeDV voice data using ChaCha20-Poly1305 with key from Nitrokey slot
-  - [PDF Documentation](encrypt_decrypt/freedv_nitrokey_decryption.pdf)
 
 ### How Encryption/Decryption Works
 
