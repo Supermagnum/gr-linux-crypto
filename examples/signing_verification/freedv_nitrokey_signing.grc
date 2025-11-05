@@ -34,6 +34,39 @@ options:
     state: enabled
 
 blocks:
+- name: authenticate_button
+  id: variable_qtgui_push_button
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: Authenticate Nitrokey
+    pressed: '1'
+    released: '0'
+    type: int
+    value: 'False'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [648, 16.0]
+    rotation: 0
+    state: enabled
+- name: freedv_mode
+  id: variable_qtgui_entry
+  parameters:
+    comment: FreeDV mode (700, 1600, 2020, etc.)
+    entry_signal: editingFinished
+    gui_hint: 3,0,1,1
+    label: FreeDV Mode
+    type: string
+    value: MODE_1600
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [232, 24.0]
+    rotation: 0
+    state: enabled
 - name: nitrokey_slot
   id: variable_qtgui_entry
   parameters:
@@ -78,7 +111,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [8, 200.0]
+    coordinate: [8, 224.0]
     rotation: 0
     state: enabled
 - name: blocks_char_to_short_0
@@ -94,7 +127,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [808, 224.0]
+    coordinate: [800, 216.0]
     rotation: 0
     state: enabled
 - name: blocks_file_sink_0
@@ -103,8 +136,8 @@ blocks:
     affinity: ''
     alias: ''
     append: 'False'
-    comment: Save signed FreeDV signal to file (replace with radio hardware for TX)
-    file: /tmp/freedv_signed_transmission.bin
+    comment: Save signed FreeDV signal to file
+    file: /tmp/freedv_signed.bin
     type: short
     unbuffered: 'False'
     vlen: '1'
@@ -112,7 +145,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1384, 200.0]
+    coordinate: [1488, 192.0]
     rotation: 0
     state: enabled
 - name: blocks_float_to_short_0
@@ -129,28 +162,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [304, 200.0]
-    rotation: 0
-    state: enabled
-- name: blocks_throttle2_0
-  id: blocks_throttle2
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    ignoretag: 'True'
-    limit: auto
-    maximum: '0.1'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    samples_per_second: samp_rate
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1184, 208.0]
+    coordinate: [272, 224.0]
     rotation: 0
     state: enabled
 - name: epy_block_0
@@ -160,8 +172,8 @@ blocks:
       \ import nacl\n    NACL_AVAILABLE = True\nexcept ImportError:\n    NACL_AVAILABLE\
       \ = False\n    print(\"Warning: gr-nacl not available. Signing will not work.\"\
       )\n\nclass blk(gr.sync_block):\n    def __init__(self):\n        gr.sync_block.__init__(\n\
-      \            self,\n            name='FreeDV Voice Signer',\n            in_sig=[np.uint8,\
-      \ np.uint8],\n            out_sig=[np.uint8]\n        )\n        self._codec2_buffer\
+      \            self,\n            name='FreeDV Voice Signer',\n            in_sig=[(np.uint8,\
+      \ 48), np.uint8],\n            out_sig=[np.uint8]\n        )\n        self._codec2_buffer\
       \ = bytearray()\n        self._key_buffer = bytearray()\n        self._signature_length\
       \ = 64  # Ed25519 signature is 64 bytes\n        \n    def work(self, input_items,\
       \ output_items):\n        codec2_in = input_items[0]\n        key_in = input_items[1]\n\
@@ -169,8 +181,8 @@ blocks:
       \ > 0:\n            self._codec2_buffer.extend(codec2_in.tolist())\n       \
       \ \n        # Collect key data from Nitrokey (need 32 bytes for Ed25519)\n \
       \       if len(key_in) > 0:\n            self._key_buffer.extend(key_in.tolist())\n\
-      \        \n        out_len = min(len(output_items[0]), len(codec2_in))\n   \
-      \     \n        # Sign Codec2 frames (typically 8 bytes for 3200 bps mode)\n\
+      \        \n        out_len = min(len(output_items[0]), len(codec2_in) * 10)\n\
+      \        \n        # Sign Codec2 frames (typically 8 bytes for 3200 bps mode)\n\
       \        if len(self._codec2_buffer) >= 8 and len(self._key_buffer) >= 32:\n\
       \            try:\n                # Get Codec2 frame (8 bytes)\n          \
       \      codec2_frame = bytes(self._codec2_buffer[:8])\n                self._codec2_buffer\
@@ -188,14 +200,14 @@ blocks:
       \ bytes total)\n                    out_data = np.frombuffer(signed_frame[:out_len],\
       \ dtype=np.uint8)\n                    if len(out_data) <= len(output_items[0]):\n\
       \                        output_items[0][:len(out_data)] = out_data\n      \
-      \                   return len(out_data)\n                else:\n          \
-      \          # No signing available, just pass Codec2 frame\n                \
-      \    out_data = np.frombuffer(codec2_frame[:out_len], dtype=np.uint8)\n    \
-      \                if len(out_data) <= len(output_items[0]):\n               \
-      \         output_items[0][:len(out_data)] = out_data\n                     \
-      \    return len(out_data)\n            except Exception as e:\n            \
-      \    print(f\"Signing error: {e}\")\n                import traceback\n    \
-      \            traceback.print_exc()\n        \n        # No data to output yet\n\
+      \                  return len(out_data)\n                else:\n           \
+      \         # No signing available, just pass Codec2 frame\n                 \
+      \   out_data = np.frombuffer(codec2_frame[:out_len], dtype=np.uint8)\n     \
+      \               if len(out_data) <= len(output_items[0]):\n                \
+      \        output_items[0][:len(out_data)] = out_data\n                      \
+      \  return len(out_data)\n            except Exception as e:\n              \
+      \  print(f\"Signing error: {e}\")\n                import traceback\n      \
+      \          traceback.print_exc()\n        \n        # No data to output yet\n\
       \        return 0\n"
     affinity: ''
     alias: ''
@@ -203,12 +215,111 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
-    _io_cache: ('FreeDV Voice Signer', 'blk', [], [('0', 'byte', 1), ('1', 'byte',
+    _io_cache: ('FreeDV Voice Signer', 'blk', [], [('0', 'byte', 48), ('1', 'byte',
       1)], [('0', 'byte', 1)], '', [])
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [632, 208.0]
+    coordinate: [648, 432.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_1
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\nimport pmt\nfrom PyQt5.QtWidgets\
+      \ import (QDialog, QVBoxLayout, QLineEdit, QPushButton, QLabel, QMessageBox)\n\
+      from PyQt5.QtCore import Qt\nimport sys\n\ntry:\n    from libnitrokey import\
+      \ NitrokeyManager\n    NITROKEY_AVAILABLE = True\nexcept ImportError:\n    NITROKEY_AVAILABLE\
+      \ = False\n    print(\"Warning: libnitrokey Python bindings not available. PIN\
+      \ authentication will not work.\")\n\nclass PinEntryDialog(QDialog):\n    def\
+      \ __init__(self, parent=None, prompt=\"Enter Nitrokey PIN\"):\n        super().__init__(parent)\n\
+      \        self.setWindowTitle(\"Nitrokey PIN Entry\")\n        self.setModal(True)\n\
+      \        self.pin = None\n        self.cancelled = False\n        layout = QVBoxLayout()\n\
+      \        label = QLabel(prompt)\n        layout.addWidget(label)\n        self.pin_input\
+      \ = QLineEdit(self)\n        self.pin_input.setEchoMode(QLineEdit.Password)\n\
+      \        self.pin_input.returnPressed.connect(self.submit_pin)\n        layout.addWidget(self.pin_input)\n\
+      \        button_layout = QVBoxLayout()\n        submit_button = QPushButton(\"\
+      Submit\")\n        submit_button.clicked.connect(self.submit_pin)\n        button_layout.addWidget(submit_button)\n\
+      \        cancel_button = QPushButton(\"Cancel\")\n        cancel_button.clicked.connect(self.cancel)\n\
+      \        button_layout.addWidget(cancel_button)\n        layout.addLayout(button_layout)\n\
+      \        self.setLayout(layout)\n        self.pin_input.setFocus()\n    def\
+      \ submit_pin(self):\n        self.pin = self.pin_input.text()\n        if self.pin:\n\
+      \            self.accept()\n        else:\n            QMessageBox.warning(self,\
+      \ \"Error\", \"PIN cannot be empty\")\n    def cancel(self):\n        self.cancelled\
+      \ = True\n        self.reject()\n    def get_pin(self):\n        return self.pin\
+      \ if not self.cancelled else None\n\nclass blk(gr.sync_block):\n    def __init__(self):\n\
+      \        gr.sync_block.__init__(self, name='Nitrokey PIN Authenticator', in_sig=None,\
+      \ out_sig=None)\n        self.message_port_register_out(pmt.intern('status'))\n\
+      \        self.authenticated = False\n        self.nitrokey_manager = None\n\
+      \        self.last_button_state = False\n        self.check_counter = 0\n  \
+      \      self.button_var = None\n        if NITROKEY_AVAILABLE:\n            try:\n\
+      \                self.nitrokey_manager = NitrokeyManager.instance()\n      \
+      \          if self.nitrokey_manager and self.nitrokey_manager.is_connected():\n\
+      \                    print(\"Nitrokey PIN Authenticator: Device connected\"\
+      )\n                else:\n                    print(\"Nitrokey PIN Authenticator:\
+      \ No device connected\")\n            except Exception as e:\n             \
+      \   print(f\"Nitrokey PIN Authenticator: Error connecting to device: {e}\")\n\
+      \    def work(self, input_items, output_items):\n        self.check_counter\
+      \ += 1\n        if self.check_counter >= 100:\n            self.check_counter\
+      \ = 0\n            try:\n                if self.button_var is None:\n     \
+      \               import __main__\n                    if hasattr(__main__, 'authenticate_button'):\n\
+      \                        self.button_var = getattr(__main__, 'authenticate_button')\n\
+      \                if self.button_var:\n                    button_value = self.button_var.value()\n\
+      \                    if button_value and not self.last_button_state and not\
+      \ self.authenticated:\n                        self.authenticate_with_pin()\n\
+      \                    elif not button_value:\n                        self.authenticated\
+      \ = False\n                    self.last_button_state = button_value\n     \
+      \       except Exception as e:\n                pass\n        return 0\n   \
+      \ def authenticate_with_pin(self):\n        if not NITROKEY_AVAILABLE or not\
+      \ self.nitrokey_manager:\n            status_msg = pmt.intern(\"Nitrokey library\
+      \ not available\")\n            self.message_port_pub(pmt.intern('status'),\
+      \ status_msg)\n            print(\"Nitrokey PIN Authenticator: Library not available\"\
+      )\n            return\n        try:\n            if not self.nitrokey_manager.is_connected():\n\
+      \                devices = self.nitrokey_manager.list_devices()\n          \
+      \      if not devices:\n                    status_msg = pmt.intern(\"No Nitrokey\
+      \ device found\")\n                    self.message_port_pub(pmt.intern('status'),\
+      \ status_msg)\n                    print(\"Nitrokey PIN Authenticator: No device\
+      \ found\")\n                    return\n                if not self.nitrokey_manager.connect():\n\
+      \                    status_msg = pmt.intern(\"Failed to connect to Nitrokey\"\
+      )\n                    self.message_port_pub(pmt.intern('status'), status_msg)\n\
+      \                    print(\"Nitrokey PIN Authenticator: Connection failed\"\
+      )\n                    return\n            from PyQt5.QtWidgets import QApplication\n\
+      \            app = QApplication.instance()\n            parent = app.activeWindow()\
+      \ if app else None\n            dialog = PinEntryDialog(parent, \"Enter Nitrokey\
+      \ PIN for authentication\")\n            if dialog.exec_() == QDialog.Accepted:\n\
+      \                pin = dialog.get_pin()\n                if pin:\n         \
+      \           try:\n                        slot_status = self.nitrokey_manager.get_password_safe_slot_status()\n\
+      \                        self.authenticated = True\n                       \
+      \ status_msg = pmt.intern(\"Authentication successful\")\n                 \
+      \       self.message_port_pub(pmt.intern('status'), status_msg)\n          \
+      \              print(\"Nitrokey PIN Authenticator: Authentication successful\"\
+      )\n                        pin = None\n                    except Exception\
+      \ as e:\n                        status_msg = pmt.intern(f\"Authentication failed:\
+      \ {str(e)}\")\n                        self.message_port_pub(pmt.intern('status'),\
+      \ status_msg)\n                        print(f\"Nitrokey PIN Authenticator:\
+      \ Authentication failed: {e}\")\n                        self.authenticated\
+      \ = False\n                else:\n                    status_msg = pmt.intern(\"\
+      PIN entry cancelled\")\n                    self.message_port_pub(pmt.intern('status'),\
+      \ status_msg)\n                    print(\"Nitrokey PIN Authenticator: PIN entry\
+      \ cancelled\")\n            else:\n                status_msg = pmt.intern(\"\
+      PIN dialog cancelled\")\n                self.message_port_pub(pmt.intern('status'),\
+      \ status_msg)\n                print(\"Nitrokey PIN Authenticator: Dialog cancelled\"\
+      )\n        except Exception as e:\n            status_msg = pmt.intern(f\"Error:\
+      \ {str(e)}\")\n            self.message_port_pub(pmt.intern('status'), status_msg)\n\
+      \            print(f\"Nitrokey PIN Authenticator: Error: {e}\")\n          \
+      \  import traceback\n            traceback.print_exc()\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('Nitrokey PIN Authenticator', 'blk', [], [], [('status', 'message',
+      1)], '', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [648, 552.0]
     rotation: 0
     state: enabled
 - name: linux_crypto_nitrokey_interface_0
@@ -225,88 +336,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [376, 368.0]
-    rotation: 0
-    state: enabled
-- name: qtgui_freq_sink_x_0
-  id: qtgui_freq_sink_x
-  parameters:
-    affinity: ''
-    alias: ''
-    alpha1: '1.0'
-    alpha10: '1.0'
-    alpha2: '1.0'
-    alpha3: '1.0'
-    alpha4: '1.0'
-    alpha5: '1.0'
-    alpha6: '1.0'
-    alpha7: '1.0'
-    alpha8: '1.0'
-    alpha9: '1.0'
-    autoscale: 'True'
-    average: '1.0'
-    axislabels: 'True'
-    bw: samp_rate
-    color1: '"blue"'
-    color10: '"dark blue"'
-    color2: '"red"'
-    color3: '"green"'
-    color4: '"black"'
-    color5: '"cyan"'
-    color6: '"magenta"'
-    color7: '"yellow"'
-    color8: '"dark red"'
-    color9: '"dark green"'
-    comment: Visualize FreeDV signal spectrum
-    ctrlpanel: 'False'
-    fc: '0'
-    fftsize: '1024'
-    freqhalf: 'True'
-    grid: 'False'
-    gui_hint: ''
-    label: Relative Gain
-    label1: FreeDV Signal
-    label10: ''''''
-    label2: ''
-    label3: ''''''
-    label4: ''''''
-    label5: ''''''
-    label6: ''''''
-    label7: ''''''
-    label8: ''''''
-    label9: ''''''
-    legend: 'True'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    name: '"FreeDV Spectrum"'
-    nconnections: '1'
-    norm_window: 'False'
-    showports: 'False'
-    tr_chan: '0'
-    tr_level: '0.0'
-    tr_mode: qtgui.TRIG_MODE_FREE
-    tr_tag: '""'
-    type: complex
-    units: dB
-    update_time: '0.10'
-    width1: '1'
-    width10: '1'
-    width2: '1'
-    width3: '1'
-    width4: '1'
-    width5: '1'
-    width6: '1'
-    width7: '1'
-    width8: '1'
-    width9: '1'
-    wintype: window.WIN_BLACKMAN_hARRIS
-    ymax: '10'
-    ymin: '-140'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1400, 352.0]
+    coordinate: [448, 532.0]
     rotation: 0
     state: enabled
 - name: rational_resampler_xxx_0
@@ -326,7 +356,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [160, 200.0]
+    coordinate: [56, 360.0]
     rotation: 0
     state: enabled
 - name: vocoder_codec2_encode_sp_0
@@ -342,7 +372,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [432, 200.0]
+    coordinate: [312, 384.0]
     rotation: 0
     state: enabled
 - name: vocoder_freedv_tx_ss_0
@@ -362,7 +392,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [960, 184.0]
+    coordinate: [1040, 176.0]
     rotation: 0
     state: enabled
 
@@ -370,15 +400,12 @@ connections:
 - [audio_source_0, '0', rational_resampler_xxx_0, '0']
 - [blocks_char_to_short_0, '0', vocoder_freedv_tx_ss_0, '0']
 - [blocks_float_to_short_0, '0', vocoder_codec2_encode_sp_0, '0']
-- [blocks_throttle2_0, '0', blocks_file_sink_0, '0']
-- [blocks_throttle2_0, '0', qtgui_freq_sink_x_0, '0']
 - [epy_block_0, '0', blocks_char_to_short_0, '0']
 - [linux_crypto_nitrokey_interface_0, '0', epy_block_0, '1']
 - [rational_resampler_xxx_0, '0', blocks_float_to_short_0, '0']
 - [vocoder_codec2_encode_sp_0, '0', epy_block_0, '0']
-- [vocoder_freedv_tx_ss_0, '0', blocks_throttle2_0, '0']
+- [vocoder_freedv_tx_ss_0, '0', blocks_file_sink_0, '0']
 
 metadata:
   file_format: 1
   grc_version: 3.10.9.2
-
