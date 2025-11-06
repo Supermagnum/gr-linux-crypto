@@ -744,6 +744,7 @@ The security relies on keeping your private key secret while distributing your p
 - No access to the operating system or any data without the proper key and PIN
 - This provides maximum security: Even physical access to the computer is useless without the key
 - Make sure you have backup keys or recovery methods to avoid permanent data loss
+- Please consult https://docs.nitrokey.com/nitrokeys/features/openpgp-card/hard-disk-encryption/luks
 
 **11. Linux Package and Update Verification**
 - Linux and its variants use cryptographic signatures to verify system files and software updates
