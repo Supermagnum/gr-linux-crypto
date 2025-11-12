@@ -1254,7 +1254,7 @@ See `examples/brainpool_example.py` for a complete demonstration.
 ## Dependencies
 
 ### Required
-- **GNU Radio 3.8+** (runtime and development packages)
+- **GNU Radio 3.10.12.0 or later** (runtime and development packages, tested with 3.10.12.0)
 - **Linux kernel with keyring support** (kernel modules)
 - **keyutils library** (libkeyutils1)
 - **libkeyutils-dev** (development package for keyutils)
@@ -1265,7 +1265,7 @@ See `examples/brainpool_example.py` for a complete demonstration.
 ### Python Dependencies
 - **cryptography>=3.4.8** (for Python crypto helpers)
 - **numpy>=1.20.0** (for numerical operations)
-- **gnuradio>=3.8.0** (Python bindings)
+- **gnuradio>=3.10.12.0** (Python bindings, tested with 3.10.12.0)
 
 ### Optional
 - **gr-openssl** (for OpenSSL integration)
