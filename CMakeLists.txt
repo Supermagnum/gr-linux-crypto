@@ -37,12 +37,17 @@ pkg_check_modules(GNURADIO_RUNTIME REQUIRED gnuradio-runtime)
 if(GNURADIO_RUNTIME_FOUND)
     set(ENABLE_GNURADIO_RUNTIME ON)
     # Check for minimum GNU Radio version (3.10.12.0 or later)
+    # This check ensures compatibility while allowing future versions
+    set(GNURADIO_MIN_VERSION "3.10.12.0")
     if(DEFINED GNURADIO_RUNTIME_VERSION)
-        if(GNURADIO_RUNTIME_VERSION VERSION_LESS "3.10.12.0")
-            message(FATAL_ERROR "GNU Radio version 3.10.12.0 or later is required. Found: ${GNURADIO_RUNTIME_VERSION}")
+        if(GNURADIO_RUNTIME_VERSION VERSION_LESS GNURADIO_MIN_VERSION)
+            message(FATAL_ERROR "GNU Radio version ${GNURADIO_MIN_VERSION} or later is required. Found: ${GNURADIO_RUNTIME_VERSION}")
+        else()
+            # Log version for compatibility tracking
+            message(STATUS "GNU Radio version: ${GNURADIO_RUNTIME_VERSION} (minimum required: ${GNURADIO_MIN_VERSION})")
         endif()
     else()
-        message(WARNING "GNU Radio version could not be determined. Please ensure GNU Radio 3.10.12.0 or later is installed.")
+        message(WARNING "GNU Radio version could not be determined. Please ensure GNU Radio ${GNURADIO_MIN_VERSION} or later is installed.")
     endif()
 endif()
 
@@ -248,11 +253,31 @@ if(ENABLE_FUZZING)
 endif()
 
 ########################################################################
+# Uninstall target
+########################################################################
+# Configure uninstall script
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+    IMMEDIATE @ONLY
+)
+
+# Add uninstall target
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    COMMENT "Uninstalling gr-linux-crypto"
+)
+
+########################################################################
 # Configuration summary
 ########################################################################
 message(STATUS "gr-linux-crypto configuration:")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "  GNU Radio version: ${GNURADIO_VERSION}")
+if(DEFINED GNURADIO_RUNTIME_VERSION)
+    message(STATUS "  GNU Radio version: ${GNURADIO_RUNTIME_VERSION} (minimum: ${GNURADIO_MIN_VERSION})")
+else()
+    message(STATUS "  GNU Radio version: ${GNURADIO_VERSION} (version check unavailable)")
+endif()
 message(STATUS "  OpenSSL support: ${OPENSSL_FOUND}")
 message(STATUS "  Sodium support: ${SODIUM_FOUND}")
 message(STATUS "  Nitrokey support: ${NITROKEY_FOUND}")
@@ -262,5 +287,8 @@ message(STATUS "  Examples: ${ENABLE_EXAMPLES}")
 message(STATUS "  Documentation: ${ENABLE_DOXYGEN}")
 message(STATUS "  Testing: ${ENABLE_TESTING}")
 message(STATUS "  Fuzzing: ${ENABLE_FUZZING}")
+message(STATUS "")
+message(STATUS "  Forward compatibility: Designed for future GNU Radio versions")
+message(STATUS "  See COMPATIBILITY.md for version compatibility details")
 
 endif(ENABLE_GR_LINUX_CRYPTO)

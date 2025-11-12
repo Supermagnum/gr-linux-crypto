@@ -26,9 +26,9 @@
 #include <gnuradio/attributes.h>
 
 #ifdef gnuradio_linux_crypto_EXPORTS
-#  define LINUX_CRYPTO_API __GR_ATTR_IMPORT
-#else
 #  define LINUX_CRYPTO_API __GR_ATTR_EXPORT
+#else
+#  define LINUX_CRYPTO_API __GR_ATTR_IMPORT
 #endif
 
 #endif /* INCLUDED_GR_LINUX_CRYPTO_API_H */

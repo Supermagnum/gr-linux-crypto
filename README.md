@@ -1255,6 +1255,8 @@ See `examples/brainpool_example.py` for a complete demonstration.
 
 ### Required
 - **GNU Radio 3.10.12.0 or later** (runtime and development packages, tested with 3.10.12.0)
+  - The codebase is designed for forward compatibility with future GNU Radio versions
+  - See [COMPATIBILITY.md](COMPATIBILITY.md) for details on version compatibility
 - **Linux kernel with keyring support** (kernel modules)
 - **keyutils library** (libkeyutils1)
 - **libkeyutils-dev** (development package for keyutils)
@@ -1349,6 +1351,29 @@ sudo make install
 # Update library cache (required after installation)
 sudo ldconfig
 ```
+
+### Step 3a: Uninstall the Module (Optional)
+
+To remove the installed module:
+
+```bash
+# Make sure you're in the build directory
+cd build
+
+# Uninstall (requires sudo)
+sudo make uninstall
+
+# Update library cache after uninstallation
+sudo ldconfig
+```
+
+**Note:** The uninstall target removes all files that were installed by `make install`, including:
+- Library files (`libgnuradio-linux-crypto.so*`)
+- Header files (`include/gnuradio/linux_crypto/*.h`)
+- Python bindings (`linux_crypto_python*.so`)
+- GRC block definitions (`share/gnuradio/grc/blocks/*.yml`)
+- Example scripts (`share/gr-linux-crypto/examples/*.py`)
+- Documentation (if installed)
 
 ### Step 4: Verify Installation
 
