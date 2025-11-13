@@ -1,0 +1,6 @@
+[
+  {
+    "comment": "RFC 6954 test vectors - extract from RFC 6954 Appendix A",
+    "note": "Place test vectors here in JSON format. See test_rfc_vectors.py for structure."
+  }
+]

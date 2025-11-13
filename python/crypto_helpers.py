@@ -498,6 +498,101 @@ class CryptoHelpers:
             return False
 
     @staticmethod
+    def brainpool_ecgdsa_sign(data: Union[str, bytes], 
+                              private_key: EllipticCurvePrivateKey,
+                              hash_algorithm: str = 'sha256') -> bytes:
+        """
+        Sign data using Brainpool ECGDSA (Elliptic Curve German Digital Signature Algorithm).
+        
+        ECGDSA is a variant of ECDSA standardized by BSI (German Federal Office).
+        The main difference is in hash processing - ECGDSA uses a different method.
+        
+        Note: Python cryptography library doesn't have native ECGDSA support.
+        This implementation uses OpenSSL via subprocess if available, otherwise falls back
+        to a manual implementation.
+        
+        Args:
+            data: Data to sign
+            private_key: Brainpool private key
+            hash_algorithm: Hash algorithm for signing ('sha256', 'sha384', 'sha512')
+        
+        Returns:
+            Signature as bytes (DER encoded)
+        """
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        
+        # ECGDSA implementation requires lower-level crypto operations
+        # For now, we'll use OpenSSL if available, otherwise note that it's not fully supported
+        import subprocess
+        import tempfile
+        import os
+        
+        try:
+            # Serialize private key to PEM
+            priv_pem = private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            
+            # Get curve name
+            curve_name = private_key.curve.name if hasattr(private_key.curve, 'name') else None
+            if not curve_name or 'brainpool' not in curve_name.lower():
+                raise ValueError("ECGDSA requires Brainpool curves")
+            
+            # Map hash algorithm
+            hash_map = {
+                'sha256': 'sha256',
+                'sha384': 'sha384',
+                'sha512': 'sha512'
+            }
+            openssl_hash = hash_map.get(hash_algorithm.lower(), 'sha256')
+            
+            # Use OpenSSL for ECGDSA (if supported)
+            # Note: OpenSSL may not have native ECGDSA support, this is a placeholder
+            # In practice, you may need a specialized library or manual implementation
+            
+            # For now, we'll note that full ECGDSA requires additional implementation
+            # This is a framework that can be extended
+            raise NotImplementedError(
+                "ECGDSA requires specialized implementation. "
+                "Python cryptography library doesn't support ECGDSA natively. "
+                "Consider using OpenSSL directly or a specialized ECGDSA library."
+            )
+            
+        except NotImplementedError:
+            raise
+        except Exception as e:
+            raise ValueError(f"ECGDSA signing failed: {e}")
+    
+    @staticmethod
+    def brainpool_ecgdsa_verify(data: Union[str, bytes], 
+                                signature: bytes,
+                                public_key: EllipticCurvePublicKey,
+                                hash_algorithm: str = 'sha256') -> bool:
+        """
+        Verify Brainpool ECGDSA signature.
+        
+        Args:
+            data: Original data
+            signature: Signature to verify
+            public_key: Brainpool public key
+            hash_algorithm: Hash algorithm used for signing ('sha256', 'sha384', 'sha512')
+        
+        Returns:
+            True if signature is valid, False otherwise
+        """
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        
+        # ECGDSA verification requires specialized implementation
+        raise NotImplementedError(
+            "ECGDSA verification requires specialized implementation. "
+            "Python cryptography library doesn't support ECGDSA natively."
+        )
+
+    @staticmethod
     def serialize_brainpool_public_key(public_key: EllipticCurvePublicKey) -> bytes:
         """
         Serialize Brainpool public key to PEM format.

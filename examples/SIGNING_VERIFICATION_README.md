@@ -425,7 +425,7 @@ Note: M17 signing signs individual Codec2 frames (8 bytes each for 2400 bps mode
 
 ## Burst Tagging with PTT Support
 
-The burst tagger with PTT support allows you to control when transmissions start and end, either through hardware PTT (Push-To-Talk) signals or automatic voice activity detection. This is particularly useful for voice modes where you want to sign entire transmissions as a single unit rather than individual frames.
+The burst tagger with PTT support allows you to control when siignature frame transmissions start and end, either through hardware PTT (Push-To-Talk) signals or automatic voice activity detection. This is particularly useful for voice modes where you want to sign entire transmissions as a single unit rather than individual frames.
 
 ### How Burst Tagging Works
 

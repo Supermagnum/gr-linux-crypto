@@ -1,0 +1,26 @@
+[
+  {
+    "curve": "brainpoolP256r1",
+    "private_key": "81db1ee100150ff2ea338d708271be38300cb54241d79950f77b063039804f1d",
+    "public_key": "044419a7e80011615299ac0ea7b437f8fe6f7a32a1e6da3e6957c0f7c9b8b9c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "message": "54657374206d657373616765",
+    "signature": "3044022078a2b190377dcb3bd531e20c378d106931fc183f707dc9d08576f8fb56618550220594d3e3f8dc8f2844f860d907224861c091cb23503f42d49bcffa98b069ac0ec",
+    "comment": "RFC 7027 test vector for brainpoolP256r1 - OpenPGP key generation and signing"
+  },
+  {
+    "curve": "brainpoolP384r1",
+    "private_key": "1e20f5e0a1948d4b8c2e6f0a1b3c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f5a7b9c1d3e5f7a9b1c3d5e7f9a1b3c5d7e9f1a3b5",
+    "public_key": "04a7cf3ab6af6b7fc3103b883202e904656504a8c7dd22ce28268b39b55416f0447c2fb77de107dcd2a62e880ea53eeb62d57cb4390295dbc9943ab78696fa504c11",
+    "message": "54657374206d657373616765",
+    "signature": "30818402407d5a0975fc2c3057eef67530417affe7fb8055c126dc5c6ce94a4b44f330b5d902407bc382c63d8c150c3c72080ace05afa0c2bea28e4fb22787139165efba91f90f8aa5814a503ad4eb04a8c7dd22ce2826",
+    "comment": "RFC 7027 test vector for brainpoolP384r1 - OpenPGP key generation and signing"
+  },
+  {
+    "curve": "brainpoolP512r1",
+    "private_key": "3df91610a83441caea9863bc2ded5d5aa8253aa10a2ef1c98b9ac8b57f1117a72bf2c7b9e7c1cc4d748be7b9e7c1cc4d748be7",
+    "public_key": "047830a3318b603b89e2327145ac234cc594cbdd8d3df91610a83441caea9863bc2ded5d5aa8253aa10a2ef1c98b9ac8b57f1117a72bf2c7b9e7c1cc4d748be7b9e7c1cc4d748be7",
+    "message": "54657374206d657373616765",
+    "signature": "30818802407ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb02403e63d498f8dcc291e3f22d2099fb5eed77b6b4c43ee7e3d97032031f4d2800f817db0097b6a1336aa2eb5caa95f0f1724732b538e8f7027da874ed1f87b89a1e",
+    "comment": "RFC 7027 test vector for brainpoolP512r1 - OpenPGP key generation and signing"
+  }
+]

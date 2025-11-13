@@ -1,0 +1,6 @@
+[
+  {
+    "comment": "RFC 8734 test vectors - extract from RFC 8734 Appendix A",
+    "note": "Place test vectors here in JSON format. See test_rfc_vectors.py for structure."
+  }
+]

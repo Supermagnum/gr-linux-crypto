@@ -347,56 +347,77 @@ class TestOpenSSLCrossValidation:
 
     def _run_openssl_encrypt(self, algorithm: str, key: bytes, iv: bytes, data: bytes, 
                             auth: Optional[str] = None) -> Tuple[bytes, bytes]:
-        """Encrypt using OpenSSL CLI."""
+        """Encrypt using OpenSSL CLI.
+        
+        OpenSSL CLI with GCM mode outputs ciphertext + tag together.
+        The tag is 16 bytes appended to the ciphertext.
+        """
         if algorithm == 'aes-128' and auth == 'gcm':
             # AES-128-GCM
-            cmd = ['openssl', 'enc', '-aes-128-gcm', '-K', key.hex(), '-iv', iv.hex()]
+            cmd = ['openssl', 'enc', '-aes-128-gcm', '-K', key.hex(), '-iv', iv.hex(), '-nopad']
         elif algorithm == 'aes-256' and auth == 'gcm':
             # AES-256-GCM
-            cmd = ['openssl', 'enc', '-aes-256-gcm', '-K', key.hex(), '-iv', iv.hex()]
+            cmd = ['openssl', 'enc', '-aes-256-gcm', '-K', key.hex(), '-iv', iv.hex(), '-nopad']
         elif algorithm == 'chacha20' and auth == 'poly1305':
             # ChaCha20-Poly1305 (may not be available in all OpenSSL versions)
-            cmd = ['openssl', 'enc', '-chacha20-poly1305', '-K', key.hex(), '-iv', iv.hex()]
+            cmd = ['openssl', 'enc', '-chacha20-poly1305', '-K', key.hex(), '-iv', iv.hex(), '-nopad']
         else:
             pytest.skip(f"OpenSSL CLI test not implemented for {algorithm} with {auth}")
         
         try:
-            result = subprocess.run(cmd, input=data, capture_output=True, check=True)
-            # OpenSSL GCM output format: ciphertext (but tag handling is complex)
-            # For simplicity, we'll test decryption cross-validation instead
-            return result.stdout, b""  # Placeholder
+            result = subprocess.run(cmd, input=data, capture_output=True, check=True, timeout=10)
+            output = result.stdout
+            
+            # OpenSSL GCM output format: ciphertext + tag (16 bytes at the end)
+            if auth == 'gcm' and len(output) >= 16:
+                # Extract tag (last 16 bytes) and ciphertext (rest)
+                auth_tag = output[-16:]
+                ciphertext = output[:-16]
+                return ciphertext, auth_tag
+            else:
+                # No authentication or insufficient data
+                return output, b""
         except subprocess.CalledProcessError as e:
-            pytest.skip(f"OpenSSL command failed: {e.stderr.decode()}")
+            error_msg = e.stderr.decode() if e.stderr else str(e)
+            pytest.skip(f"OpenSSL command failed: {error_msg}")
+        except subprocess.TimeoutExpired:
+            pytest.skip("OpenSSL command timed out")
 
     def _run_openssl_decrypt(self, algorithm: str, key: bytes, iv: bytes, 
                             ciphertext: bytes, auth_tag: Optional[bytes] = None,
                             auth: Optional[str] = None) -> bytes:
-        """Decrypt using OpenSSL CLI."""
-        # Note: OpenSSL CLI handling of GCM tags is complex
-        # For cross-validation, we'll test with our encryption -> OpenSSL decryption
-        # and OpenSSL encryption -> our decryption
+        """Decrypt using OpenSSL CLI.
         
-        # This is a simplified approach - real implementation would handle
-        # OpenSSL's binary format and tag placement
+        OpenSSL CLI with GCM mode expects ciphertext + tag together.
+        The tag should be 16 bytes appended to the ciphertext.
+        """
         try:
             if algorithm == 'aes-128' and auth == 'gcm':
-                cmd = ['openssl', 'enc', '-d', '-aes-128-gcm', '-K', key.hex(), '-iv', iv.hex()]
+                cmd = ['openssl', 'enc', '-d', '-aes-128-gcm', '-K', key.hex(), '-iv', iv.hex(), '-nopad']
             elif algorithm == 'aes-256' and auth == 'gcm':
-                cmd = ['openssl', 'enc', '-d', '-aes-256-gcm', '-K', key.hex(), '-iv', iv.hex()]
+                cmd = ['openssl', 'enc', '-d', '-aes-256-gcm', '-K', key.hex(), '-iv', iv.hex(), '-nopad']
             else:
                 pytest.skip(f"OpenSSL CLI decrypt not implemented for {algorithm} with {auth}")
             
-            # Combine ciphertext and tag for GCM
-            if auth_tag:
+            # OpenSSL GCM expects ciphertext + tag together
+            if auth == 'gcm' and auth_tag:
+                if len(auth_tag) != 16:
+                    pytest.skip(f"GCM tag must be 16 bytes, got {len(auth_tag)}")
+                # Combine ciphertext and tag (tag appended)
                 input_data = ciphertext + auth_tag
+            elif auth == 'gcm' and not auth_tag:
+                pytest.skip("GCM mode requires auth_tag for OpenSSL CLI")
             else:
                 input_data = ciphertext
             
-            result = subprocess.run(cmd, input=input_data, capture_output=True, check=True)
+            result = subprocess.run(cmd, input=input_data, capture_output=True, check=True, timeout=10)
             return result.stdout
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr.decode() if e.stderr else str(e)
             # OpenSSL may fail for various reasons - skip on failure
-            pytest.skip("OpenSSL decryption failed (may be version/format issue)")
+            pytest.skip(f"OpenSSL decryption failed: {error_msg}")
+        except subprocess.TimeoutExpired:
+            pytest.skip("OpenSSL decryption timed out")
 
     @pytest.mark.parametrize("algorithm,auth", [
         ('aes-128', 'gcm'),

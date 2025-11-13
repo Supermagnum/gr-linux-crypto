@@ -339,27 +339,39 @@ class TestBrainpoolCrossImplementation:
         
         # Test OpenSSL recognition
         try:
-            # Try to extract curve name with OpenSSL
-            # pub_pem is bytes, need to decode for text mode or keep as bytes
+            import tempfile
+            import os
+            
+            # Convert PEM bytes to string for subprocess (PEM is ASCII-encoded)
             if isinstance(pub_pem, bytes):
                 pub_pem_str = pub_pem.decode('utf-8')
             else:
                 pub_pem_str = pub_pem
-            result = subprocess.run(
-                ['openssl', 'ec', '-pubin', '-in', '-', '-text', '-noout'],
-                input=pub_pem_str,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
             
-            # Check if OpenSSL recognized it
-            output = result.stdout + result.stderr
-            if 'brainpool' in output.lower() or result.returncode == 0:
-                print("OpenSSL recognized Brainpool key")
-                assert True
-            else:
-                pytest.skip("OpenSSL may not fully support Brainpool in this version")
+            # OpenSSL 3.0+ has issues with stdin input, so use a temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.pem', delete=False) as tmp_file:
+                tmp_file.write(pub_pem_str)
+                tmp_path = tmp_file.name
+            
+            try:
+                # Try to extract curve name with OpenSSL
+                result = subprocess.run(
+                    ['openssl', 'ec', '-pubin', '-in', tmp_path, '-text', '-noout'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                
+                # Check if OpenSSL recognized it
+                output = result.stdout + result.stderr
+                if 'brainpool' in output.lower() or result.returncode == 0:
+                    print("OpenSSL recognized Brainpool key")
+                    assert True
+                else:
+                    pytest.skip("OpenSSL may not fully support Brainpool in this version")
+            finally:
+                # Clean up temporary file
+                os.unlink(tmp_path)
                 
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pytest.skip("OpenSSL not available")
