@@ -34,7 +34,7 @@ This document explains the signing and verification examples in the `signing_ver
 - [M17 Signing Examples](#m17-signing-examples)
   - [M17 Signing Flow](#m17-signing-flow)
   - [M17 Verification Flow](#m17-verification-flow)
-- [Burst Tagging with PTT Support](#burst-tagging-with-ptt-support)
+- [Adding a signature frame to the end of a transmission](#adding-a-signature-frame-to-the-end-of-a-transmission)
   - [How Burst Tagging Works](#how-burst-tagging-works)
   - [Burst Tagger Python Block](#burst-tagger-python-block)
   - [GRC Integration with Mode Selection](#grc-integration-with-mode-selection)
@@ -423,7 +423,7 @@ M17 signing and verification flowgraphs follow the same pattern as FreeDV. M17 i
 
 Note: M17 signing signs individual Codec2 frames (8 bytes each for 2400 bps mode), similar to FreeDV. The signed frames are embedded in M17 protocol frames with sync words and frame counters. The M17 flowgraphs include placeholder modulator/demodulator blocks that can be replaced with actual M17 blocks when available.
 
-## Burst Tagging with PTT Support
+## Adding a signature frame to the end of a transmission
 
 The burst tagger with PTT support allows you to control when siignature frame transmissions start and end, either through hardware PTT (Push-To-Talk) signals or automatic voice activity detection. This is particularly useful for voice modes where you want to sign entire transmissions as a single unit rather than individual frames.
 
