@@ -14,11 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04]
-        python-version: ['3.10', '3.12']
-        exclude:
-          # Python 3.10 on Ubuntu 24.04 may not be available
-          - os: ubuntu-24.04
-            python-version: '3.10'
+        python-version: ['3.11', '3.12']
 
     steps:
     - name: Checkout code
@@ -56,27 +52,36 @@ jobs:
     - name: Install GNU Radio
       run: |
         # Add GNU Radio PPA for Ubuntu 22.04/24.04
-        if [ "${{ matrix.os }}" = "ubuntu-22.04" ] || [ "${{ matrix.os }}" = "ubuntu-24.04" ]; then
-          sudo add-apt-repository -y ppa:gnuradio/gnuradio-releases
-          sudo apt-get update
-        fi
+        sudo add-apt-repository -y ppa:gnuradio/gnuradio-releases
+        sudo apt-get update
         
-        # Install GNU Radio packages
+        # Install GNU Radio packages (system packages provide both C++ libs and Python bindings)
+        # gnuradio-dev pulls in development headers and libraries
+        # gnuradio provides runtime libraries
+        # python3-gnuradio provides Python bindings
         sudo apt-get install -y \
           gnuradio-dev \
           gnuradio \
-          python3-gnuradio || echo "WARNING: Some GNU Radio packages may not be available"
+          python3-gnuradio || echo "WARNING: GNU Radio packages installation failed"
         
         # Verify GNU Radio installation
         echo "Checking GNU Radio installation..."
-        pkg-config --modversion gnuradio-runtime && echo "GNU Radio version: $(pkg-config --modversion gnuradio-runtime)" || echo "WARNING: GNU Radio version check failed"
+        if pkg-config --exists gnuradio-runtime; then
+          GNURADIO_VERSION=$(pkg-config --modversion gnuradio-runtime)
+          echo "GNU Radio version (pkg-config): $GNURADIO_VERSION"
+          
+          # Verify minimum version requirement (3.10.12.0)
+          REQUIRED_VERSION="3.10.12.0"
+          if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$GNURADIO_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+            echo "WARNING: GNU Radio version $GNURADIO_VERSION is below required $REQUIRED_VERSION"
+          fi
+        else
+          echo "ERROR: GNU Radio runtime not found via pkg-config"
+          exit 1
+        fi
         
         # Check Python module
         python3 -c "import gnuradio; print(f'GNU Radio Python: {gnuradio.__version__}')" || echo "WARNING: GNU Radio Python module not found"
-        
-        # Verify minimum version requirement (3.10.12.0)
-        GNURADIO_VERSION=$(pkg-config --modversion gnuradio-runtime 2>/dev/null || echo "0.0.0")
-        echo "Installed GNU Radio version: $GNURADIO_VERSION"
 
     - name: Install optional dependencies
       run: |
@@ -91,8 +96,16 @@ jobs:
     - name: Install Python dependencies
       run: |
         python3 -m pip install --upgrade pip
+        
+        # Install dependencies from requirements.txt
+        # Note: gnuradio is commented out in requirements.txt (installed via apt above)
         pip install -r requirements.txt
+        
+        # Install additional test dependencies
         pip install pytest-cov pybind11
+        
+        # Verify GNU Radio Python module is available (from system package)
+        python3 -c "import gnuradio; print(f'GNU Radio available: {gnuradio.__version__}')" || (echo "ERROR: GNU Radio Python module not available" && exit 1)
 
     - name: Configure CMake
       run: |

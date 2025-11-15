@@ -1,7 +1,10 @@
 # Python dependencies for gr-linux-crypto
+# Note: gnuradio should be installed via system packages (apt) for full functionality
+# The PyPI package may not provide all required components and requires Python 3.11+
+# For CI/CD, gnuradio is installed via apt from the GNU Radio PPA
 cryptography>=3.4.8
 numpy>=1.20.0
-gnuradio>=3.10.12.0  # GNU Radio 3.10.12.0 or later (tested with 3.10.12.0)
+# gnuradio>=3.10.12.0  # Install via apt: sudo apt install gnuradio-dev python3-gnuradio
 pytest>=7.0.0
 psutil>=5.9.0
 
