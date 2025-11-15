@@ -51,16 +51,9 @@ jobs:
 
     - name: Install GNU Radio
       run: |
-        # Add GNU Radio PPA for Ubuntu 22.04/24.04
-        sudo add-apt-repository -y ppa:gnuradio/gnuradio-releases
         sudo apt-get update
-        
-        # Install GNU Radio packages (system packages provide both C++ libs and Python bindings)
-        # gnuradio-dev pulls in development headers and libraries
-        # gnuradio provides runtime libraries and Python bindings
-        sudo apt-get install -y \
-          gnuradio-dev \
-          gnuradio || echo "WARNING: GNU Radio packages installation failed"
+        sudo apt-get install -y gnuradio gnuradio-dev python3-gnuradio
+        echo "PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH" >> $GITHUB_ENV
         
         # Verify GNU Radio installation
         echo "Checking GNU Radio installation..."
@@ -78,7 +71,7 @@ jobs:
           exit 1
         fi
         
-        # Check Python module
+        # Check Python module (using PYTHONPATH from GITHUB_ENV)
         python3 -c "import gnuradio; print(f'GNU Radio Python: {gnuradio.__version__}')" || echo "WARNING: GNU Radio Python module not found"
 
     - name: Install optional dependencies
@@ -103,6 +96,7 @@ jobs:
         pip install pytest-cov pybind11
         
         # Verify GNU Radio Python module is available (from system package)
+        # PYTHONPATH is already set in GITHUB_ENV from the Install GNU Radio step
         python3 -c "import gnuradio; print(f'GNU Radio available: {gnuradio.__version__}')" || (echo "ERROR: GNU Radio Python module not available" && exit 1)
 
     - name: Configure CMake
@@ -133,6 +127,7 @@ jobs:
       run: |
         # Set library path for Python to find the built module
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:$(pwd)/build
+        # PYTHONPATH already includes /usr/lib/python3/dist-packages from GITHUB_ENV
         export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3/dist-packages:$(pwd)/build
         
         # Verify the module can be imported
