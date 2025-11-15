@@ -6,19 +6,24 @@ Python helper functions for cryptographic operations.
 Provides utilities for GNU Radio crypto operations.
 """
 
+import base64
 import hashlib
 import hmac
 import secrets
-import base64
-from typing import List, Optional, Union, Tuple
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding, ec
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey, EllipticCurvePublicKey
+from typing import List, Optional, Tuple, Union
+
 import numpy as np
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric.ec import (
+    EllipticCurvePrivateKey,
+    EllipticCurvePublicKey,
+)
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
 
 class CryptoHelpers:
     """Helper class for cryptographic operations."""
@@ -34,7 +39,7 @@ class CryptoHelpers:
         return secrets.token_bytes(iv_size)
 
     @staticmethod
-    def hash_data(data: Union[str, bytes], algorithm: str = 'sha256') -> bytes:
+    def hash_data(data: Union[str, bytes], algorithm: str = "sha256") -> bytes:
         """
         Hash data using specified algorithm.
 
@@ -46,19 +51,21 @@ class CryptoHelpers:
             Hash digest as bytes
         """
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
 
-        if algorithm == 'sha1':
+        if algorithm == "sha1":
             return hashlib.sha1(data).digest()
-        elif algorithm == 'sha256':
+        elif algorithm == "sha256":
             return hashlib.sha256(data).digest()
-        elif algorithm == 'sha512':
+        elif algorithm == "sha512":
             return hashlib.sha512(data).digest()
         else:
             raise ValueError(f"Unsupported hash algorithm: {algorithm}")
 
     @staticmethod
-    def hmac_sign(data: Union[str, bytes], key: bytes, algorithm: str = 'sha256') -> bytes:
+    def hmac_sign(
+        data: Union[str, bytes], key: bytes, algorithm: str = "sha256"
+    ) -> bytes:
         """
         Create HMAC signature.
 
@@ -71,19 +78,19 @@ class CryptoHelpers:
             HMAC signature as bytes
         """
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
 
-        if algorithm == 'sha1':
+        if algorithm == "sha1":
             return hmac.new(key, data, hashlib.sha1).digest()
-        elif algorithm == 'sha256':
+        elif algorithm == "sha256":
             return hmac.new(key, data, hashlib.sha256).digest()
-        elif algorithm == 'sha512':
+        elif algorithm == "sha512":
             return hmac.new(key, data, hashlib.sha512).digest()
         else:
             raise ValueError(f"Unsupported HMAC algorithm: {algorithm}")
 
     @staticmethod
-    def aes_encrypt(data: bytes, key: bytes, iv: bytes, mode: str = 'cbc') -> bytes:
+    def aes_encrypt(data: bytes, key: bytes, iv: bytes, mode: str = "cbc") -> bytes:
         """
         Encrypt data using AES.
 
@@ -96,14 +103,20 @@ class CryptoHelpers:
         Returns:
             Encrypted data as bytes
         """
-        if mode == 'cbc':
-            cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-        elif mode == 'ecb':
+        if mode == "cbc":
+            cipher = Cipher(
+                algorithms.AES(key), modes.CBC(iv), backend=default_backend()
+            )
+        elif mode == "ecb":
             cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=default_backend())
-        elif mode == 'cfb':
-            cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-        elif mode == 'ofb':
-            cipher = Cipher(algorithms.AES(key), modes.OFB(iv), backend=default_backend())
+        elif mode == "cfb":
+            cipher = Cipher(
+                algorithms.AES(key), modes.CFB(iv), backend=default_backend()
+            )
+        elif mode == "ofb":
+            cipher = Cipher(
+                algorithms.AES(key), modes.OFB(iv), backend=default_backend()
+            )
         else:
             raise ValueError(f"Unsupported AES mode: {mode}")
 
@@ -111,7 +124,7 @@ class CryptoHelpers:
         return encryptor.update(data) + encryptor.finalize()
 
     @staticmethod
-    def aes_decrypt(data: bytes, key: bytes, iv: bytes, mode: str = 'cbc') -> bytes:
+    def aes_decrypt(data: bytes, key: bytes, iv: bytes, mode: str = "cbc") -> bytes:
         """
         Decrypt data using AES.
 
@@ -124,14 +137,20 @@ class CryptoHelpers:
         Returns:
             Decrypted data as bytes
         """
-        if mode == 'cbc':
-            cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-        elif mode == 'ecb':
+        if mode == "cbc":
+            cipher = Cipher(
+                algorithms.AES(key), modes.CBC(iv), backend=default_backend()
+            )
+        elif mode == "ecb":
             cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=default_backend())
-        elif mode == 'cfb':
-            cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
-        elif mode == 'ofb':
-            cipher = Cipher(algorithms.AES(key), modes.OFB(iv), backend=default_backend())
+        elif mode == "cfb":
+            cipher = Cipher(
+                algorithms.AES(key), modes.CFB(iv), backend=default_backend()
+            )
+        elif mode == "ofb":
+            cipher = Cipher(
+                algorithms.AES(key), modes.OFB(iv), backend=default_backend()
+            )
         else:
             raise ValueError(f"Unsupported AES mode: {mode}")
 
@@ -139,8 +158,12 @@ class CryptoHelpers:
         return decryptor.update(data) + decryptor.finalize()
 
     @staticmethod
-    def derive_key_from_password(password: Union[str, bytes], salt: bytes,
-                                length: int = 32, iterations: int = 100000) -> bytes:
+    def derive_key_from_password(
+        password: Union[str, bytes],
+        salt: bytes,
+        length: int = 32,
+        iterations: int = 100000,
+    ) -> bytes:
         """
         Derive a key from a password using PBKDF2.
 
@@ -154,21 +177,25 @@ class CryptoHelpers:
             Derived key as bytes
         """
         if isinstance(password, str):
-            password = password.encode('utf-8')
+            password = password.encode("utf-8")
 
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=length,
             salt=salt,
             iterations=iterations,
-            backend=default_backend()
+            backend=default_backend(),
         )
         return kdf.derive(password)
 
     @staticmethod
-    def derive_key_hkdf(ikm: Union[str, bytes], salt: Optional[bytes] = None,
-                        info: Optional[bytes] = None, length: int = 32,
-                        algorithm: str = 'sha256') -> bytes:
+    def derive_key_hkdf(
+        ikm: Union[str, bytes],
+        salt: Optional[bytes] = None,
+        info: Optional[bytes] = None,
+        length: int = 32,
+        algorithm: str = "sha256",
+    ) -> bytes:
         """
         Derive a key using HKDF (HMAC-based Key Derivation Function).
 
@@ -191,41 +218,45 @@ class CryptoHelpers:
             ValueError: If algorithm is unsupported or length is invalid
         """
         if isinstance(ikm, str):
-            ikm = ikm.encode('utf-8')
+            ikm = ikm.encode("utf-8")
 
         hash_algo = None
-        if algorithm == 'sha256':
+        if algorithm == "sha256":
             hash_algo = hashes.SHA256()
             max_length = 32 * 255  # 255 * hash_length
-        elif algorithm == 'sha384':
+        elif algorithm == "sha384":
             hash_algo = hashes.SHA384()
             max_length = 48 * 255
-        elif algorithm == 'sha512':
+        elif algorithm == "sha512":
             hash_algo = hashes.SHA512()
             max_length = 64 * 255
         else:
             raise ValueError(f"Unsupported hash algorithm: {algorithm}")
 
         if length > max_length:
-            raise ValueError(f"Requested length {length} exceeds maximum {max_length} for {algorithm}")
+            raise ValueError(
+                f"Requested length {length} exceeds maximum {max_length} for {algorithm}"
+            )
 
         if salt is None:
-            salt = b''
+            salt = b""
 
         if info is None:
-            info = b''
+            info = b""
 
         kdf = HKDF(
             algorithm=hash_algo,
             length=length,
             salt=salt,
             info=info,
-            backend=default_backend()
+            backend=default_backend(),
         )
         return kdf.derive(ikm)
 
     @staticmethod
-    def generate_rsa_keypair(key_size: int = 2048) -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    def generate_rsa_keypair(
+        key_size: int = 2048,
+    ) -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
         """
         Generate RSA key pair.
 
@@ -236,9 +267,7 @@ class CryptoHelpers:
             Tuple of (private_key, public_key)
         """
         private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=key_size,
-            backend=default_backend()
+            public_exponent=65537, key_size=key_size, backend=default_backend()
         )
         public_key = private_key.public_key()
         return private_key, public_key
@@ -260,8 +289,8 @@ class CryptoHelpers:
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
-                label=None
-            )
+                label=None,
+            ),
         )
 
     @staticmethod
@@ -281,8 +310,8 @@ class CryptoHelpers:
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),
-                label=None
-            )
+                label=None,
+            ),
         )
 
     @staticmethod
@@ -300,10 +329,9 @@ class CryptoHelpers:
         return private_key.sign(
             data,
             padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
             ),
-            hashes.SHA256()
+            hashes.SHA256(),
         )
 
     @staticmethod
@@ -325,9 +353,9 @@ class CryptoHelpers:
                 data,
                 padding.PSS(
                     mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
+                    salt_length=padding.PSS.MAX_LENGTH,
                 ),
-                hashes.SHA256()
+                hashes.SHA256(),
             )
             return True
         except Exception:
@@ -338,11 +366,13 @@ class CryptoHelpers:
         """Serialize RSA public key to PEM format."""
         return public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
     @staticmethod
-    def serialize_private_key(private_key: rsa.RSAPrivateKey, password: Optional[bytes] = None) -> bytes:
+    def serialize_private_key(
+        private_key: rsa.RSAPrivateKey, password: Optional[bytes] = None
+    ) -> bytes:
         """Serialize RSA private key to PEM format."""
         if password:
             encryption = serialization.BestAvailableEncryption(password)
@@ -352,7 +382,7 @@ class CryptoHelpers:
         return private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=encryption
+            encryption_algorithm=encryption,
         )
 
     @staticmethod
@@ -361,7 +391,9 @@ class CryptoHelpers:
         return serialization.load_pem_public_key(pem_data, backend=default_backend())
 
     @staticmethod
-    def load_private_key(pem_data: bytes, password: Optional[bytes] = None) -> rsa.RSAPrivateKey:
+    def load_private_key(
+        pem_data: bytes, password: Optional[bytes] = None
+    ) -> rsa.RSAPrivateKey:
         """Load RSA private key from PEM format."""
         return serialization.load_pem_private_key(
             pem_data, password=password, backend=default_backend()
@@ -375,7 +407,7 @@ class CryptoHelpers:
         Returns:
             List of supported Brainpool curve names
         """
-        return ['brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1']
+        return ["brainpoolP256r1", "brainpoolP384r1", "brainpoolP512r1"]
 
     @staticmethod
     def _get_brainpool_curve(curve_name: str):
@@ -388,18 +420,22 @@ class CryptoHelpers:
         Returns:
             Curve object
         """
-        if curve_name == 'brainpoolP256r1':
+        if curve_name == "brainpoolP256r1":
             return ec.BrainpoolP256R1()
-        elif curve_name == 'brainpoolP384r1':
+        elif curve_name == "brainpoolP384r1":
             return ec.BrainpoolP384R1()
-        elif curve_name == 'brainpoolP512r1':
+        elif curve_name == "brainpoolP512r1":
             return ec.BrainpoolP512R1()
         else:
-            raise ValueError(f"Unsupported Brainpool curve: {curve_name}. "
-                           f"Supported curves: {CryptoHelpers.get_brainpool_curves()}")
+            raise ValueError(
+                f"Unsupported Brainpool curve: {curve_name}. "
+                f"Supported curves: {CryptoHelpers.get_brainpool_curves()}"
+            )
 
     @staticmethod
-    def generate_brainpool_keypair(curve_name: str = 'brainpoolP256r1') -> Tuple[EllipticCurvePrivateKey, EllipticCurvePublicKey]:
+    def generate_brainpool_keypair(
+        curve_name: str = "brainpoolP256r1",
+    ) -> Tuple[EllipticCurvePrivateKey, EllipticCurvePublicKey]:
         """
         Generate Brainpool elliptic curve key pair.
 
@@ -415,8 +451,9 @@ class CryptoHelpers:
         return private_key, public_key
 
     @staticmethod
-    def brainpool_ecdh(private_key: EllipticCurvePrivateKey, 
-                      peer_public_key: EllipticCurvePublicKey) -> bytes:
+    def brainpool_ecdh(
+        private_key: EllipticCurvePrivateKey, peer_public_key: EllipticCurvePublicKey
+    ) -> bytes:
         """
         Perform ECDH (Elliptic Curve Diffie-Hellman) key exchange using Brainpool curves.
 
@@ -431,9 +468,11 @@ class CryptoHelpers:
         return shared_secret
 
     @staticmethod
-    def brainpool_sign(data: Union[str, bytes], 
-                      private_key: EllipticCurvePrivateKey,
-                      hash_algorithm: str = 'sha256') -> bytes:
+    def brainpool_sign(
+        data: Union[str, bytes],
+        private_key: EllipticCurvePrivateKey,
+        hash_algorithm: str = "sha256",
+    ) -> bytes:
         """
         Sign data using Brainpool ECDSA.
 
@@ -446,14 +485,14 @@ class CryptoHelpers:
             Signature as bytes
         """
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
 
         hash_algo = None
-        if hash_algorithm == 'sha256':
+        if hash_algorithm == "sha256":
             hash_algo = hashes.SHA256()
-        elif hash_algorithm == 'sha384':
+        elif hash_algorithm == "sha384":
             hash_algo = hashes.SHA384()
-        elif hash_algorithm == 'sha512':
+        elif hash_algorithm == "sha512":
             hash_algo = hashes.SHA512()
         else:
             raise ValueError(f"Unsupported hash algorithm: {hash_algorithm}")
@@ -462,10 +501,12 @@ class CryptoHelpers:
         return signature
 
     @staticmethod
-    def brainpool_verify(data: Union[str, bytes], 
-                        signature: bytes,
-                        public_key: EllipticCurvePublicKey,
-                        hash_algorithm: str = 'sha256') -> bool:
+    def brainpool_verify(
+        data: Union[str, bytes],
+        signature: bytes,
+        public_key: EllipticCurvePublicKey,
+        hash_algorithm: str = "sha256",
+    ) -> bool:
         """
         Verify Brainpool ECDSA signature.
 
@@ -479,14 +520,14 @@ class CryptoHelpers:
             True if signature is valid, False otherwise
         """
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
 
         hash_algo = None
-        if hash_algorithm == 'sha256':
+        if hash_algorithm == "sha256":
             hash_algo = hashes.SHA256()
-        elif hash_algorithm == 'sha384':
+        elif hash_algorithm == "sha384":
             hash_algo = hashes.SHA384()
-        elif hash_algorithm == 'sha512':
+        elif hash_algorithm == "sha512":
             hash_algo = hashes.SHA512()
         else:
             raise ValueError(f"Unsupported hash algorithm: {hash_algorithm}")
@@ -498,61 +539,58 @@ class CryptoHelpers:
             return False
 
     @staticmethod
-    def brainpool_ecgdsa_sign(data: Union[str, bytes], 
-                              private_key: EllipticCurvePrivateKey,
-                              hash_algorithm: str = 'sha256') -> bytes:
+    def brainpool_ecgdsa_sign(
+        data: Union[str, bytes],
+        private_key: EllipticCurvePrivateKey,
+        hash_algorithm: str = "sha256",
+    ) -> bytes:
         """
         Sign data using Brainpool ECGDSA (Elliptic Curve German Digital Signature Algorithm).
-        
+
         ECGDSA is a variant of ECDSA standardized by BSI (German Federal Office).
         The main difference is in hash processing - ECGDSA uses a different method.
-        
+
         Note: Python cryptography library doesn't have native ECGDSA support.
         This implementation uses OpenSSL via subprocess if available, otherwise falls back
         to a manual implementation.
-        
+
         Args:
             data: Data to sign
             private_key: Brainpool private key
             hash_algorithm: Hash algorithm for signing ('sha256', 'sha384', 'sha512')
-        
+
         Returns:
             Signature as bytes (DER encoded)
         """
         if isinstance(data, str):
-            data = data.encode('utf-8')
-        
+            data = data.encode("utf-8")
+
         # ECGDSA implementation requires lower-level crypto operations
         # For now, we'll use OpenSSL if available, otherwise note that it's not fully supported
-        import subprocess
-        import tempfile
-        import os
-        
+
         try:
-            # Serialize private key to PEM
-            priv_pem = private_key.private_bytes(
+            # Serialize private key to PEM (not stored, just serialized)
+            private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
+                encryption_algorithm=serialization.NoEncryption(),
             )
-            
+
             # Get curve name
-            curve_name = private_key.curve.name if hasattr(private_key.curve, 'name') else None
-            if not curve_name or 'brainpool' not in curve_name.lower():
+            curve_name = (
+                private_key.curve.name if hasattr(private_key.curve, "name") else None
+            )
+            if not curve_name or "brainpool" not in curve_name.lower():
                 raise ValueError("ECGDSA requires Brainpool curves")
-            
+
             # Map hash algorithm
-            hash_map = {
-                'sha256': 'sha256',
-                'sha384': 'sha384',
-                'sha512': 'sha512'
-            }
-            openssl_hash = hash_map.get(hash_algorithm.lower(), 'sha256')
-            
+            hash_map = {"sha256": "sha256", "sha384": "sha384", "sha512": "sha512"}
+            hash_map.get(hash_algorithm.lower(), "sha256")
+
             # Use OpenSSL for ECGDSA (if supported)
             # Note: OpenSSL may not have native ECGDSA support, this is a placeholder
             # In practice, you may need a specialized library or manual implementation
-            
+
             # For now, we'll note that full ECGDSA requires additional implementation
             # This is a framework that can be extended
             raise NotImplementedError(
@@ -560,32 +598,34 @@ class CryptoHelpers:
                 "Python cryptography library doesn't support ECGDSA natively. "
                 "Consider using OpenSSL directly or a specialized ECGDSA library."
             )
-            
+
         except NotImplementedError:
             raise
         except Exception as e:
             raise ValueError(f"ECGDSA signing failed: {e}")
-    
+
     @staticmethod
-    def brainpool_ecgdsa_verify(data: Union[str, bytes], 
-                                signature: bytes,
-                                public_key: EllipticCurvePublicKey,
-                                hash_algorithm: str = 'sha256') -> bool:
+    def brainpool_ecgdsa_verify(
+        data: Union[str, bytes],
+        signature: bytes,
+        public_key: EllipticCurvePublicKey,
+        hash_algorithm: str = "sha256",
+    ) -> bool:
         """
         Verify Brainpool ECGDSA signature.
-        
+
         Args:
             data: Original data
             signature: Signature to verify
             public_key: Brainpool public key
             hash_algorithm: Hash algorithm used for signing ('sha256', 'sha384', 'sha512')
-        
+
         Returns:
             True if signature is valid, False otherwise
         """
         if isinstance(data, str):
-            data = data.encode('utf-8')
-        
+            data = data.encode("utf-8")
+
         # ECGDSA verification requires specialized implementation
         raise NotImplementedError(
             "ECGDSA verification requires specialized implementation. "
@@ -605,12 +645,13 @@ class CryptoHelpers:
         """
         return public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
     @staticmethod
-    def serialize_brainpool_private_key(private_key: EllipticCurvePrivateKey, 
-                                       password: Optional[bytes] = None) -> bytes:
+    def serialize_brainpool_private_key(
+        private_key: EllipticCurvePrivateKey, password: Optional[bytes] = None
+    ) -> bytes:
         """
         Serialize Brainpool private key to PEM format.
 
@@ -629,7 +670,7 @@ class CryptoHelpers:
         return private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=encryption
+            encryption_algorithm=encryption,
         )
 
     @staticmethod
@@ -652,8 +693,9 @@ class CryptoHelpers:
         return key
 
     @staticmethod
-    def load_brainpool_private_key(pem_data: bytes, 
-                                   password: Optional[bytes] = None) -> EllipticCurvePrivateKey:
+    def load_brainpool_private_key(
+        pem_data: bytes, password: Optional[bytes] = None
+    ) -> EllipticCurvePrivateKey:
         """
         Load Brainpool private key from PEM format.
 
@@ -687,7 +729,7 @@ class CryptoHelpers:
     @staticmethod
     def base64_encode(data: bytes) -> str:
         """Encode bytes to base64 string."""
-        return base64.b64encode(data).decode('utf-8')
+        return base64.b64encode(data).decode("utf-8")
 
     @staticmethod
     def base64_decode(b64_str: str) -> bytes:
@@ -712,6 +754,7 @@ class CryptoHelpers:
         padding_length = data[-1]
         return data[:-padding_length]
 
+
 # GNU Radio specific utilities
 class GNURadioCryptoUtils:
     """Utilities specifically for GNU Radio crypto operations."""
@@ -727,20 +770,23 @@ class GNURadioCryptoUtils:
         return np.frombuffer(data, dtype=dtype)
 
     @staticmethod
-    def encrypt_stream_data(data: np.ndarray, key: bytes, iv: bytes,
-                        mode: str = 'cbc') -> np.ndarray:
+    def encrypt_stream_data(
+        data: np.ndarray, key: bytes, iv: bytes, mode: str = "cbc"
+    ) -> np.ndarray:
         """Encrypt numpy array data."""
         data_bytes = data.tobytes()
         encrypted = CryptoHelpers.aes_encrypt(data_bytes, key, iv, mode)
         return np.frombuffer(encrypted, dtype=data.dtype)
 
     @staticmethod
-    def decrypt_stream_data(data: np.ndarray, key: bytes, iv: bytes,
-                           mode: str = 'cbc') -> np.ndarray:
+    def decrypt_stream_data(
+        data: np.ndarray, key: bytes, iv: bytes, mode: str = "cbc"
+    ) -> np.ndarray:
         """Decrypt numpy array data."""
         data_bytes = data.tobytes()
         decrypted = CryptoHelpers.aes_decrypt(data_bytes, key, iv, mode)
         return np.frombuffer(decrypted, dtype=data.dtype)
+
 
 if __name__ == "__main__":
     # Example usage

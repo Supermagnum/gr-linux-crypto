@@ -5,8 +5,9 @@ Demonstrates hardware-based crypto operations.
 """
 
 import sys
-import time
-from gnuradio import gr, blocks
+
+from gnuradio import blocks, gr
+
 
 def main():
     print("GNU Radio Linux Crypto - Nitrokey Example")
@@ -63,6 +64,6 @@ def main():
         print("4. Verify Nitrokey drivers are loaded")
         sys.exit(1)
 
+
 if __name__ == "__main__":
     main()
-

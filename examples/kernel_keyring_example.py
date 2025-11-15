@@ -5,9 +5,10 @@ Demonstrates reading keys from Linux kernel keyring.
 """
 
 import sys
-import time
-from gnuradio import gr, blocks
+
+from gnuradio import blocks, gr
 from gr_linux_crypto.keyring_helper import KeyringHelper
+
 
 def main():
     print("GNU Radio Linux Crypto - Kernel Keyring Example")
@@ -21,14 +22,16 @@ def main():
         # Add a test key to the keyring
         print("\nAdding test key to kernel keyring...")
         test_key_data = b"This is a secret key for GNU Radio crypto operations"
-        key_id = helper.add_key('user', 'gr_crypto_test_key', test_key_data)
+        key_id = helper.add_key("user", "gr_crypto_test_key", test_key_data)
         print(f"Added key with ID: {key_id}")
 
         # List all keys in the keyring
         print("\nListing keys in keyring...")
         keys = helper.list_keys()
         for key in keys:
-            print(f"  ID: {key['id']}, Type: {key['type']}, Description: {key['description']}")
+            print(
+                f"  ID: {key['id']}, Type: {key['type']}, Description: {key['description']}"
+            )
 
         # Read the key back
         print(f"\nReading key {key_id} from keyring...")
@@ -80,6 +83,6 @@ def main():
         print("3. Try running with sudo if permission issues persist")
         sys.exit(1)
 
+
 if __name__ == "__main__":
     main()
-

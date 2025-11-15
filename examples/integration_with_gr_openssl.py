@@ -11,15 +11,15 @@ functionality, we provide Linux-specific key sources for it.
 """
 
 import os
+import subprocess
 import sys
 import time
-import subprocess
 
 # Add the gr-linux-crypto module to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 
 try:
-    from gnuradio import gr, blocks, crypto, linux_crypto
+    from gnuradio import blocks, crypto, gr  # linux_crypto not used in this example
     from gnuradio.crypto import sym_ciph_desc
 except ImportError as e:
     print(f"Import error: {e}")
@@ -36,10 +36,12 @@ def setup_kernel_keyring():
 
     # Use keyctl to add the key
     try:
-        result = subprocess.run([
-            'keyctl', 'add', 'user', 'gr_crypto_test_key',
-            key_data.decode(), '@u'
-        ], capture_output=True, text=True, check=True)
+        result = subprocess.run(
+            ["keyctl", "add", "user", "gr_crypto_test_key", key_data.decode(), "@u"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
 
         key_id = int(result.stdout.strip())
         print(f"Added key to kernel keyring with ID: {key_id}")
@@ -60,7 +62,7 @@ def create_flowgraph(key_id):
     tb = gr.top_block()
 
     # Create kernel keyring source (gr-linux-crypto)
-    key_source = linux_crypto.kernel_keyring_source(key_id, auto_repeat=True)
+    # _key_source = linux_crypto.kernel_keyring_source(key_id, auto_repeat=True)
 
     # Create a simple data source for testing
     data_source = blocks.vector_source_b([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], True)
@@ -127,8 +129,9 @@ def demonstrate_integration():
     finally:
         # Clean up kernel keyring
         try:
-            subprocess.run(['keyctl', 'unlink', str(key_id), '@u'],
-                          capture_output=True, check=True)
+            subprocess.run(
+                ["keyctl", "unlink", str(key_id), "@u"], capture_output=True, check=True
+            )
             print(f"Cleaned up key {key_id} from kernel keyring")
         except subprocess.CalledProcessError:
             print("Failed to clean up kernel keyring key")
@@ -162,6 +165,6 @@ def show_architecture():
     print("existing crypto modules rather than duplicating them.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     show_architecture()
     demonstrate_integration()

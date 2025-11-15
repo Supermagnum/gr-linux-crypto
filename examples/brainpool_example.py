@@ -7,6 +7,7 @@ ECDH key exchange, and ECDSA signing/verification.
 
 from gr_linux_crypto.crypto_helpers import CryptoHelpers
 
+
 def main():
     print("GNU Radio Linux Crypto - Brainpool Example")
     print("=" * 60)
@@ -44,16 +45,18 @@ def main():
     print("Using brainpoolP256r1 curve")
 
     # Alice generates her key pair
-    alice_private, alice_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+    alice_private, alice_public = crypto.generate_brainpool_keypair("brainpoolP256r1")
     print("  Alice generated her key pair")
 
     # Bob generates his key pair
-    bob_private, bob_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+    bob_private, bob_public = crypto.generate_brainpool_keypair("brainpoolP256r1")
     print("  Bob generated his key pair")
 
     # Alice computes shared secret using Bob's public key
     alice_shared = crypto.brainpool_ecdh(alice_private, bob_public)
-    print(f"  Alice computed shared secret: {crypto.bytes_to_hex(alice_shared[:16])}...")
+    print(
+        f"  Alice computed shared secret: {crypto.bytes_to_hex(alice_shared[:16])}..."
+    )
 
     # Bob computes shared secret using Alice's public key
     bob_shared = crypto.brainpool_ecdh(bob_private, alice_public)
@@ -71,7 +74,7 @@ def main():
     print("=" * 60)
 
     # Generate key pair for signing
-    sign_private, sign_public = crypto.generate_brainpool_keypair('brainpoolP384r1')
+    sign_private, sign_public = crypto.generate_brainpool_keypair("brainpoolP384r1")
     print("  Generated key pair for signing (brainpoolP384r1)")
 
     # Message to sign
@@ -79,12 +82,14 @@ def main():
     print(f"  Message: {message}")
 
     # Sign the message
-    signature = crypto.brainpool_sign(message, sign_private, hash_algorithm='sha384')
+    signature = crypto.brainpool_sign(message, sign_private, hash_algorithm="sha384")
     print(f"  Signature (hex): {crypto.bytes_to_hex(signature)}")
     print(f"  Signature length: {len(signature)} bytes")
 
     # Verify the signature
-    is_valid = crypto.brainpool_verify(message, signature, sign_public, hash_algorithm='sha384')
+    is_valid = crypto.brainpool_verify(
+        message, signature, sign_public, hash_algorithm="sha384"
+    )
     if is_valid:
         print("  SUCCESS: Signature verification passed!")
     else:
@@ -92,7 +97,9 @@ def main():
 
     # Try to verify with wrong message
     wrong_message = "This is a different message"
-    is_valid_wrong = crypto.brainpool_verify(wrong_message, signature, sign_public, hash_algorithm='sha384')
+    is_valid_wrong = crypto.brainpool_verify(
+        wrong_message, signature, sign_public, hash_algorithm="sha384"
+    )
     if not is_valid_wrong:
         print("  SUCCESS: Correctly rejected signature for wrong message!")
     else:
@@ -104,7 +111,9 @@ def main():
     print("=" * 60)
 
     # Generate a key pair
-    original_private, original_public = crypto.generate_brainpool_keypair('brainpoolP512r1')
+    original_private, original_public = crypto.generate_brainpool_keypair(
+        "brainpoolP512r1"
+    )
     print("  Generated original key pair (brainpoolP512r1)")
 
     # Serialize keys
@@ -119,8 +128,12 @@ def main():
 
     # Test that loaded keys work
     test_message = "Test message for serialization verification"
-    test_signature = crypto.brainpool_sign(test_message, loaded_private, hash_algorithm='sha512')
-    test_verified = crypto.brainpool_verify(test_message, test_signature, loaded_public, hash_algorithm='sha512')
+    test_signature = crypto.brainpool_sign(
+        test_message, loaded_private, hash_algorithm="sha512"
+    )
+    test_verified = crypto.brainpool_verify(
+        test_message, test_signature, loaded_public, hash_algorithm="sha512"
+    )
 
     if test_verified:
         print("  SUCCESS: Serialized/deserialized keys work correctly!")
@@ -133,23 +146,27 @@ def main():
     print("=" * 60)
 
     password = b"my_secret_password"
-    private_key, _ = crypto.generate_brainpool_keypair('brainpoolP256r1')
+    private_key, _ = crypto.generate_brainpool_keypair("brainpoolP256r1")
     print("  Generated key pair")
 
     # Serialize with password
-    encrypted_pem = crypto.serialize_brainpool_private_key(private_key, password=password)
+    encrypted_pem = crypto.serialize_brainpool_private_key(
+        private_key, password=password
+    )
     print("  Serialized private key with password protection")
 
     # Deserialize with correct password
     try:
-        loaded_key = crypto.load_brainpool_private_key(encrypted_pem, password=password)
+        # Load key (result not stored, just verified)
+        crypto.load_brainpool_private_key(encrypted_pem, password=password)
         print("  SUCCESS: Successfully loaded password-protected key!")
     except Exception as e:
         print(f"  ERROR: Failed to load password-protected key: {e}")
 
     # Try with wrong password
     try:
-        wrong_key = crypto.load_brainpool_private_key(encrypted_pem, password=b"wrong_password")
+        # Try loading with wrong password (should fail)
+        crypto.load_brainpool_private_key(encrypted_pem, password=b"wrong_password")
         print("  ERROR: Should not have loaded key with wrong password!")
     except Exception:
         print("  SUCCESS: Correctly rejected wrong password!")
@@ -158,6 +175,6 @@ def main():
     print("All Brainpool examples completed successfully!")
     print("=" * 60)
 
+
 if __name__ == "__main__":
     main()
-

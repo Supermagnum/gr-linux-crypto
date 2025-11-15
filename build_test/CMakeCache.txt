@@ -14,19 +14,33 @@
 # EXTERNAL cache entries
 ########################
 
+Boost_DATE_TIME_LIBRARY_RELEASE:STRING=/usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.83.0
+
+//The directory containing a CMake configuration file for Boost.
+Boost_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0
+
+//Path to a file.
+Boost_INCLUDE_DIR:PATH=/usr/include
+
+Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE:STRING=/usr/lib/x86_64-linux-gnu/libboost_program_options.so.1.83.0
+
+Boost_REGEX_LIBRARY_RELEASE:STRING=/usr/lib/x86_64-linux-gnu/libboost_regex.so.1.83.0
+
+Boost_SYSTEM_LIBRARY_RELEASE:STRING=/usr/lib/x86_64-linux-gnu/libboost_system.so.1.83.0
+
+Boost_THREAD_LIBRARY_RELEASE:STRING=/usr/lib/x86_64-linux-gnu/libboost_thread.so.1.83.0
+
+Boost_UNIT_TEST_FRAMEWORK_LIBRARY_RELEASE:STRING=/usr/lib/x86_64-linux-gnu/libboost_unit_test_framework.so.1.83.0
+
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=/usr/bin/addr2line
 
 //Path to a program.
 CMAKE_AR:FILEPATH=/usr/bin/ar
 
-//For backwards compatibility, what version of CMake commands and
-// syntax should this version of CMake try to support.
-CMAKE_BACKWARDS_COMPATIBILITY:STRING=2.4
-
 //Choose the type of build, options are: None Debug Release RelWithDebInfo
 // MinSizeRel ...
-CMAKE_BUILD_TYPE:STRING=Debug
+CMAKE_BUILD_TYPE:STRING=Release
 
 //Enable/Disable color output during build.
 CMAKE_COLOR_MAKEFILE:BOOL=ON
@@ -56,6 +70,9 @@ CMAKE_CXX_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
 
 //Flags used by the CXX compiler during RELWITHDEBINFO builds.
 CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
+
+//No help, variable specified on the command line.
+CMAKE_CXX_STANDARD:UNINITIALIZED=17
 
 //C compiler
 CMAKE_C_COMPILER:FILEPATH=/usr/bin/cc
@@ -219,14 +236,29 @@ CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 // Studio IDE projects all commands are done without /nologo.
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
-//No help, variable specified on the command line.
-ENABLE_GR_LINUX_CRYPTO:UNINITIALIZED=ON
+//Enable known bad versions of Boost
+ENABLE_BAD_BOOST:BOOL=OFF
 
-//Single output directory for building all executables.
-EXECUTABLE_OUTPUT_PATH:PATH=
+//Build Doxygen documentation
+ENABLE_DOXYGEN:BOOL=OFF
 
-//Single output directory for building all libraries.
-LIBRARY_OUTPUT_PATH:PATH=
+//Install example scripts
+ENABLE_EXAMPLES:BOOL=ON
+
+//Enable fuzzing targets
+ENABLE_FUZZING:BOOL=OFF
+
+//Enable GRC block definitions
+ENABLE_GRC:BOOL=ON
+
+//enable gr-linux-crypto support
+ENABLE_GR_LINUX_CRYPTO:BOOL=ON
+
+//Enable Python bindings
+ENABLE_PYTHON:BOOL=ON
+
+//Enable testing
+ENABLE_TESTING:BOOL=OFF
 
 //Arguments to supply to pkg-config
 PKG_CONFIG_ARGN:STRING=
@@ -243,6 +275,36 @@ Project_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 Project_SOURCE_DIR:STATIC=/home/haaken/github-projects/gr-linux-crypto
 
+//The directory containing a CMake configuration file for boost_atomic.
+boost_atomic_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_atomic-1.83.0
+
+//The directory containing a CMake configuration file for boost_date_time.
+boost_date_time_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_date_time-1.83.0
+
+//The directory containing a CMake configuration file for boost_headers.
+boost_headers_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0
+
+//The directory containing a CMake configuration file for boost_program_options.
+boost_program_options_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_program_options-1.83.0
+
+//The directory containing a CMake configuration file for boost_regex.
+boost_regex_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_regex-1.83.0
+
+//The directory containing a CMake configuration file for boost_system.
+boost_system_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_system-1.83.0
+
+//The directory containing a CMake configuration file for boost_thread.
+boost_thread_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_thread-1.83.0
+
+//The directory containing a CMake configuration file for boost_unit_test_framework.
+boost_unit_test_framework_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_unit_test_framework-1.83.0
+
+//Path to a library.
+pkgcfg_lib_GNURADIO_RUNTIME_gnuradio-pmt:FILEPATH=/usr/lib/x86_64-linux-gnu/libgnuradio-pmt.so
+
+//Path to a library.
+pkgcfg_lib_GNURADIO_RUNTIME_gnuradio-runtime:FILEPATH=/usr/lib/x86_64-linux-gnu/libgnuradio-runtime.so
+
 //Path to a library.
 pkgcfg_lib_KEYUTILS_keyutils:FILEPATH=/usr/lib/x86_64-linux-gnu/libkeyutils.so
 
@@ -252,11 +314,19 @@ pkgcfg_lib_OPENSSL_crypto:FILEPATH=/usr/lib/x86_64-linux-gnu/libcrypto.so
 //Path to a library.
 pkgcfg_lib_OPENSSL_ssl:FILEPATH=/usr/lib/x86_64-linux-gnu/libssl.so
 
+//Path to a library.
+pkgcfg_lib_SODIUM_sodium:FILEPATH=/usr/lib/x86_64-linux-gnu/libsodium.so
+
+//The directory containing a CMake configuration file for pybind11.
+pybind11_DIR:PATH=/usr/lib/cmake/pybind11
+
 
 ########################
 # INTERNAL cache entries
 ########################
 
+//ADVANCED property for variable: Boost_DIR
+Boost_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_ADDR2LINE
 CMAKE_ADDR2LINE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_AR
@@ -335,6 +405,8 @@ CMAKE_GENERATOR_INSTANCE:INTERNAL=
 CMAKE_GENERATOR_PLATFORM:INTERNAL=
 //Name of generator toolset.
 CMAKE_GENERATOR_TOOLSET:INTERNAL=
+//Test CMAKE_HAVE_LIBC_PTHREAD
+CMAKE_HAVE_LIBC_PTHREAD:INTERNAL=1
 //Source directory with the top level CMakeLists.txt file for this
 // project
 CMAKE_HOME_DIRECTORY:INTERNAL=/home/haaken/github-projects/gr-linux-crypto
@@ -402,8 +474,50 @@ CMAKE_TAPI-ADVANCED:INTERNAL=1
 CMAKE_UNAME:INTERNAL=/usr/bin/uname
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
+ENABLE_GR_LINUX_CRYPTO_cached:INTERNAL=ON
+//Details about finding Boost
+FIND_PACKAGE_MESSAGE_DETAILS_Boost:INTERNAL=[/usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake][cfound components: date_time program_options system regex thread unit_test_framework ][v1.83.0()]
 //Details about finding PkgConfig
 FIND_PACKAGE_MESSAGE_DETAILS_PkgConfig:INTERNAL=[/usr/bin/pkg-config][v1.8.1()]
+//Details about finding Python3
+FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[/usr/bin/python3][/usr/include/python3.12][/usr/lib/x86_64-linux-gnu/libpython3.12.so][cfound components: Interpreter Development Development.Module Development.Embed ][v3.12.3()]
+GNURADIO_RUNTIME_CFLAGS:INTERNAL=-I/usr/include
+GNURADIO_RUNTIME_CFLAGS_I:INTERNAL=
+GNURADIO_RUNTIME_CFLAGS_OTHER:INTERNAL=
+GNURADIO_RUNTIME_FOUND:INTERNAL=1
+GNURADIO_RUNTIME_INCLUDEDIR:INTERNAL=/usr/include
+GNURADIO_RUNTIME_INCLUDE_DIRS:INTERNAL=/usr/include
+GNURADIO_RUNTIME_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-lgnuradio-runtime;-lgnuradio-pmt
+GNURADIO_RUNTIME_LDFLAGS_OTHER:INTERNAL=
+GNURADIO_RUNTIME_LIBDIR:INTERNAL=/usr/lib/x86_64-linux-gnu
+GNURADIO_RUNTIME_LIBRARIES:INTERNAL=gnuradio-runtime;gnuradio-pmt
+GNURADIO_RUNTIME_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu
+GNURADIO_RUNTIME_LIBS:INTERNAL=
+GNURADIO_RUNTIME_LIBS_L:INTERNAL=
+GNURADIO_RUNTIME_LIBS_OTHER:INTERNAL=
+GNURADIO_RUNTIME_LIBS_PATHS:INTERNAL=
+GNURADIO_RUNTIME_MODULE_NAME:INTERNAL=gnuradio-runtime
+GNURADIO_RUNTIME_PREFIX:INTERNAL=/usr
+GNURADIO_RUNTIME_STATIC_CFLAGS:INTERNAL=-I/usr/include
+GNURADIO_RUNTIME_STATIC_CFLAGS_I:INTERNAL=
+GNURADIO_RUNTIME_STATIC_CFLAGS_OTHER:INTERNAL=
+GNURADIO_RUNTIME_STATIC_INCLUDE_DIRS:INTERNAL=/usr/include
+GNURADIO_RUNTIME_STATIC_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-lgnuradio-runtime;-lgnuradio-pmt
+GNURADIO_RUNTIME_STATIC_LDFLAGS_OTHER:INTERNAL=
+GNURADIO_RUNTIME_STATIC_LIBDIR:INTERNAL=
+GNURADIO_RUNTIME_STATIC_LIBRARIES:INTERNAL=gnuradio-runtime;gnuradio-pmt
+GNURADIO_RUNTIME_STATIC_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu
+GNURADIO_RUNTIME_STATIC_LIBS:INTERNAL=
+GNURADIO_RUNTIME_STATIC_LIBS_L:INTERNAL=
+GNURADIO_RUNTIME_STATIC_LIBS_OTHER:INTERNAL=
+GNURADIO_RUNTIME_STATIC_LIBS_PATHS:INTERNAL=
+GNURADIO_RUNTIME_VERSION:INTERNAL=3.10.12
+GNURADIO_RUNTIME_gnuradio-runtime_INCLUDEDIR:INTERNAL=
+GNURADIO_RUNTIME_gnuradio-runtime_LIBDIR:INTERNAL=
+GNURADIO_RUNTIME_gnuradio-runtime_PREFIX:INTERNAL=
+GNURADIO_RUNTIME_gnuradio-runtime_VERSION:INTERNAL=
+//Test HAS_FLTO
+HAS_FLTO:INTERNAL=1
 KEYUTILS_CFLAGS:INTERNAL=-I/usr/include
 KEYUTILS_CFLAGS_I:INTERNAL=
 KEYUTILS_CFLAGS_OTHER:INTERNAL=
@@ -460,6 +574,10 @@ NITROKEY_STATIC_LIBS_L:INTERNAL=
 NITROKEY_STATIC_LIBS_OTHER:INTERNAL=
 NITROKEY_STATIC_LIBS_PATHS:INTERNAL=
 NITROKEY_VERSION:INTERNAL=
+NITROKEY_libnitrokey-1_INCLUDEDIR:INTERNAL=
+NITROKEY_libnitrokey-1_LIBDIR:INTERNAL=
+NITROKEY_libnitrokey-1_PREFIX:INTERNAL=
+NITROKEY_libnitrokey-1_VERSION:INTERNAL=
 NITROKEY_libnitrokey_INCLUDEDIR:INTERNAL=
 NITROKEY_libnitrokey_LIBDIR:INTERNAL=
 NITROKEY_libnitrokey_PREFIX:INTERNAL=
@@ -503,44 +621,106 @@ OPENSSL_openssl_VERSION:INTERNAL=
 PKG_CONFIG_ARGN-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: PKG_CONFIG_EXECUTABLE
 PKG_CONFIG_EXECUTABLE-ADVANCED:INTERNAL=1
-SODIUM_CFLAGS:INTERNAL=
+//Python executable during the last CMake run
+PYBIND11_PYTHON_EXECUTABLE_LAST:INTERNAL=/usr/bin/python3
+//Python debug status
+PYTHON_IS_DEBUG:INTERNAL=0
+PYTHON_MODULE_EXTENSION:INTERNAL=.cpython-312-x86_64-linux-gnu.so
+SODIUM_CFLAGS:INTERNAL=-I/usr/include
 SODIUM_CFLAGS_I:INTERNAL=
 SODIUM_CFLAGS_OTHER:INTERNAL=
-SODIUM_FOUND:INTERNAL=
-SODIUM_INCLUDEDIR:INTERNAL=
-SODIUM_LIBDIR:INTERNAL=
+SODIUM_FOUND:INTERNAL=1
+SODIUM_INCLUDEDIR:INTERNAL=/usr/include
+SODIUM_INCLUDE_DIRS:INTERNAL=/usr/include
+SODIUM_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-lsodium
+SODIUM_LDFLAGS_OTHER:INTERNAL=
+SODIUM_LIBDIR:INTERNAL=/usr/lib/x86_64-linux-gnu
+SODIUM_LIBRARIES:INTERNAL=sodium
+SODIUM_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu
 SODIUM_LIBS:INTERNAL=
 SODIUM_LIBS_L:INTERNAL=
 SODIUM_LIBS_OTHER:INTERNAL=
 SODIUM_LIBS_PATHS:INTERNAL=
-SODIUM_MODULE_NAME:INTERNAL=
-SODIUM_PREFIX:INTERNAL=
-SODIUM_STATIC_CFLAGS:INTERNAL=
+SODIUM_MODULE_NAME:INTERNAL=libsodium
+SODIUM_PREFIX:INTERNAL=/usr
+SODIUM_STATIC_CFLAGS:INTERNAL=-I/usr/include
 SODIUM_STATIC_CFLAGS_I:INTERNAL=
 SODIUM_STATIC_CFLAGS_OTHER:INTERNAL=
+SODIUM_STATIC_INCLUDE_DIRS:INTERNAL=/usr/include
+SODIUM_STATIC_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-lsodium;-pthread
+SODIUM_STATIC_LDFLAGS_OTHER:INTERNAL=-pthread
 SODIUM_STATIC_LIBDIR:INTERNAL=
+SODIUM_STATIC_LIBRARIES:INTERNAL=sodium
+SODIUM_STATIC_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu
 SODIUM_STATIC_LIBS:INTERNAL=
 SODIUM_STATIC_LIBS_L:INTERNAL=
 SODIUM_STATIC_LIBS_OTHER:INTERNAL=
 SODIUM_STATIC_LIBS_PATHS:INTERNAL=
-SODIUM_VERSION:INTERNAL=
+SODIUM_VERSION:INTERNAL=1.0.18
 SODIUM_libsodium_INCLUDEDIR:INTERNAL=
 SODIUM_libsodium_LIBDIR:INTERNAL=
 SODIUM_libsodium_PREFIX:INTERNAL=
 SODIUM_libsodium_VERSION:INTERNAL=
 //linker supports push/pop state
 _CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
+_Python:INTERNAL=Python3
+//Compiler reason failure
+_Python3_Compiler_REASON_FAILURE:INTERNAL=
+_Python3_DEVELOPMENT_EMBED_SIGNATURE:INTERNAL=ca5d01059675c54b1df9ae9ce33468c1
+_Python3_DEVELOPMENT_MODULE_SIGNATURE:INTERNAL=95a6b3a905b31a053078ff046e537c6d
+//Development reason failure
+_Python3_Development_REASON_FAILURE:INTERNAL=
+//Path to a program.
+_Python3_EXECUTABLE:INTERNAL=/usr/bin/python3
+//Path to a file.
+_Python3_INCLUDE_DIR:INTERNAL=/usr/include/python3.12
+//Python3 Properties
+_Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;12;3;64;;cpython-312-x86_64-linux-gnu;abi3;/usr/lib/python3.12;/usr/lib/python3.12;/usr/local/lib/python3.12/dist-packages;/usr/local/lib/python3.12/dist-packages
+_Python3_INTERPRETER_SIGNATURE:INTERNAL=4c8bfa8951e99fa32e4000a94f8c04a2
+//Path to a library.
+_Python3_LIBRARY_RELEASE:INTERNAL=/usr/lib/x86_64-linux-gnu/libpython3.12.so
+//NumPy reason failure
+_Python3_NumPy_REASON_FAILURE:INTERNAL=
+__pkg_config_arguments_GNURADIO_RUNTIME:INTERNAL=REQUIRED;gnuradio-runtime
 __pkg_config_arguments_KEYUTILS:INTERNAL=REQUIRED;libkeyutils
 __pkg_config_arguments_OPENSSL:INTERNAL=QUIET;openssl
+__pkg_config_arguments_SODIUM:INTERNAL=QUIET;libsodium
+__pkg_config_checked_GNURADIO_RUNTIME:INTERNAL=1
 __pkg_config_checked_KEYUTILS:INTERNAL=1
 __pkg_config_checked_NITROKEY:INTERNAL=1
 __pkg_config_checked_OPENSSL:INTERNAL=1
 __pkg_config_checked_SODIUM:INTERNAL=1
+_gr_disabled_components:INTERNAL=
+_gr_enabled_components:INTERNAL=gr-linux-crypto
+//ADVANCED property for variable: boost_atomic_DIR
+boost_atomic_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_date_time_DIR
+boost_date_time_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_headers_DIR
+boost_headers_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_program_options_DIR
+boost_program_options_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_regex_DIR
+boost_regex_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_system_DIR
+boost_system_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_thread_DIR
+boost_thread_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_unit_test_framework_DIR
+boost_unit_test_framework_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: pkgcfg_lib_GNURADIO_RUNTIME_gnuradio-pmt
+pkgcfg_lib_GNURADIO_RUNTIME_gnuradio-pmt-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: pkgcfg_lib_GNURADIO_RUNTIME_gnuradio-runtime
+pkgcfg_lib_GNURADIO_RUNTIME_gnuradio-runtime-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_KEYUTILS_keyutils
 pkgcfg_lib_KEYUTILS_keyutils-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_OPENSSL_crypto
 pkgcfg_lib_OPENSSL_crypto-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_OPENSSL_ssl
 pkgcfg_lib_OPENSSL_ssl-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: pkgcfg_lib_SODIUM_sodium
+pkgcfg_lib_SODIUM_sodium-ADVANCED:INTERNAL=1
 prefix_result:INTERNAL=/usr/lib/x86_64-linux-gnu
+//Directories where pybind11 and possibly Python headers are located
+pybind11_INCLUDE_DIRS:INTERNAL=/usr/include;/usr/include/python3.12
 

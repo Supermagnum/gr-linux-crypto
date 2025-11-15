@@ -1302,6 +1302,15 @@ sudo apt-get install -y \
     python3-dev \
     python3-pip
 
+# Check GNU Radio version (optional - only needed if build fails)
+pkg-config --modversion gnuradio-runtime
+
+# If your distribution's GNU Radio packages are too old (< 3.10.12.0),
+# upgrade using the GNU Radio PPA:
+# sudo add-apt-repository ppa:gnuradio/gnuradio-releases
+# sudo apt update
+# sudo apt upgrade gnuradio gnuradio-dev
+
 # Install Python dependencies
 pip3 install -r requirements.txt
 

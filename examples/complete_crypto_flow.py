@@ -5,8 +5,9 @@ Demonstrates a full encryption/decryption pipeline using GNU Radio.
 """
 
 import numpy as np
-from gnuradio import gr, blocks
+from gnuradio import blocks, gr
 from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
 
 def main():
     print("GNU Radio Linux Crypto - Complete Crypto Flow")
@@ -18,14 +19,14 @@ def main():
     # Generate cryptographic materials
     print("Generating cryptographic materials...")
     key = crypto.generate_random_key(32)  # 256-bit AES key
-    iv = crypto.generate_random_iv(16)    # 128-bit IV
+    iv = crypto.generate_random_iv(16)  # 128-bit IV
 
     print(f"AES Key: {crypto.bytes_to_hex(key)}")
     print(f"IV: {crypto.bytes_to_hex(iv)}")
 
     # Create test message
     message = "GNU Radio Linux Crypto - Secure Communication Test"
-    message_bytes = message.encode('utf-8')
+    message_bytes = message.encode("utf-8")
     print(f"\nOriginal message: {message}")
     print(f"Message length: {len(message_bytes)} bytes")
 
@@ -87,7 +88,7 @@ def main():
     # Remove padding and convert back to string
     try:
         unpadded_data = crypto.unpad_pkcs7(decrypted_data.tobytes())
-        decrypted_message = unpadded_data.decode('utf-8')
+        decrypted_message = unpadded_data.decode("utf-8")
         print(f"Decrypted message: {decrypted_message}")
 
         # Verify decryption
@@ -105,7 +106,7 @@ def main():
     print("=" * 60)
 
     # Hash the original message
-    message_hash = crypto.hash_data(message_bytes, 'sha256')
+    message_hash = crypto.hash_data(message_bytes, "sha256")
     print(f"SHA256 hash: {crypto.bytes_to_hex(message_hash)}")
 
     # Create HMAC
@@ -132,8 +133,8 @@ def main():
     print(f"Original message size: {len(message_bytes)} bytes")
     print(f"Encrypted data size: {len(encrypted_data)} bytes")
     print(f"Compression ratio: {len(encrypted_data) / len(message_bytes):.2f}")
-    print(f"Processing completed successfully!")
+    print("Processing completed successfully!")
+
 
 if __name__ == "__main__":
     main()
-

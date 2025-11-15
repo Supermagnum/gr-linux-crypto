@@ -12,16 +12,15 @@ that complement existing crypto modules rather than duplicating them.
 
 import os
 import sys
-import time
-import subprocess
 import tempfile
-from typing import Optional, Dict, Any
+import time
+from typing import Dict, Optional
 
 # Add the gr-linux-crypto module to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 
 try:
-    from gnuradio import gr, blocks, linux_crypto
+    from gnuradio import blocks, gr, linux_crypto
     from gnuradio.linux_crypto import linux_crypto_integration
 except ImportError as e:
     print(f"Import error: {e}")
@@ -31,6 +30,7 @@ except ImportError as e:
 # Optional imports for integration
 try:
     from gnuradio import crypto
+
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
@@ -38,6 +38,7 @@ except ImportError:
 
 try:
     from gnuradio import nacl
+
     NACL_AVAILABLE = True
 except ImportError:
     NACL_AVAILABLE = False
@@ -64,7 +65,7 @@ class CompleteIntegrationDemo:
         test_keys = {
             "aes_256_key": b"This is a 256-bit AES key for testing",
             "hmac_key": b"This is an HMAC key for testing",
-            "rsa_private": b"This is a simulated RSA private key"
+            "rsa_private": b"This is a simulated RSA private key",
         }
 
         key_ids = {}
@@ -94,12 +95,13 @@ class CompleteIntegrationDemo:
         try:
             # Create flowgraph using kernel keyring with gr-openssl
             cipher_params = {
-                'cipher': 'aes-256-cbc',
-                'iv': b'\x00' * 16  # Zero IV for demo
+                "cipher": "aes-256-cbc",
+                "iv": b"\x00" * 16,  # Zero IV for demo
             }
 
             tb = self.integration.create_keyring_to_openssl_flowgraph(
-                "aes_256_key", cipher_params)
+                "aes_256_key", cipher_params
+            )
 
             if tb:
                 print("[OK] Created kernel keyring to gr-openssl flowgraph")
@@ -107,15 +109,18 @@ class CompleteIntegrationDemo:
                 # Create a simple test flowgraph
                 test_tb = gr.top_block()
 
-                # Create kernel keyring source
-                key_source = linux_crypto.kernel_keyring_source(
-                    key_ids["aes_256_key"], auto_repeat=True)
+                # Create kernel keyring source (not stored, just created for demo)
+                _ = linux_crypto.kernel_keyring_source(
+                    key_ids["aes_256_key"], auto_repeat=True
+                )
 
                 # Create data source
-                data_source = blocks.vector_source_b([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], True)
+                data_source = blocks.vector_source_b(
+                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], True
+                )
 
                 # Create file sink
-                output_file = tempfile.NamedTemporaryFile(delete=False, suffix='.bin')
+                output_file = tempfile.NamedTemporaryFile(delete=False, suffix=".bin")
                 self.temp_files.append(output_file.name)
                 output_sink = blocks.file_sink(gr.sizeof_char, output_file.name)
 
@@ -129,7 +134,9 @@ class CompleteIntegrationDemo:
                 test_tb.stop()
                 test_tb.wait()
 
-                print(f"[OK] Integration test completed - output saved to {output_file.name}")
+                print(
+                    f"[OK] Integration test completed - output saved to {output_file.name}"
+                )
                 return True
             else:
                 print("[FAIL] Failed to create integration flowgraph")
@@ -154,7 +161,9 @@ class CompleteIntegrationDemo:
                 return False
 
             print("[OK] Connected to Nitrokey device")
-            print(f"  Device info: {self.integration.nitrokey_manager.get_device_info()}")
+            print(
+                f"  Device info: {self.integration.nitrokey_manager.get_device_info()}"
+            )
 
             # Get available slots
             available_slots = self.integration.nitrokey_manager.get_available_slots()
@@ -163,10 +172,14 @@ class CompleteIntegrationDemo:
             if available_slots:
                 # Load key from first available slot
                 test_slot = available_slots[0]
-                key_data = self.integration.nitrokey_manager.load_key_from_slot(test_slot)
+                key_data = self.integration.nitrokey_manager.load_key_from_slot(
+                    test_slot
+                )
 
                 if key_data:
-                    print(f"[OK] Loaded key from slot {test_slot}: {len(key_data)} bytes")
+                    print(
+                        f"[OK] Loaded key from slot {test_slot}: {len(key_data)} bytes"
+                    )
 
                     # Create flowgraph using Nitrokey with gr-nacl
                     tb = self.integration.create_nitrokey_to_nacl_flowgraph(test_slot)
@@ -177,14 +190,20 @@ class CompleteIntegrationDemo:
                         # Create a simple test flowgraph
                         test_tb = gr.top_block()
 
-                        # Create Nitrokey interface
-                        nitrokey_source = linux_crypto.nitrokey_interface(test_slot, auto_repeat=True)
+                        # Create Nitrokey interface (not stored, just created for demo)
+                        _ = linux_crypto.nitrokey_interface(
+                            test_slot, auto_repeat=True
+                        )
 
                         # Create data source
-                        data_source = blocks.vector_source_b([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], True)
+                        data_source = blocks.vector_source_b(
+                            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], True
+                        )
 
                         # Create file sink
-                        output_file = tempfile.NamedTemporaryFile(delete=False, suffix='.bin')
+                        output_file = tempfile.NamedTemporaryFile(
+                            delete=False, suffix=".bin"
+                        )
                         self.temp_files.append(output_file.name)
                         output_sink = blocks.file_sink(gr.sizeof_char, output_file.name)
 
@@ -198,7 +217,9 @@ class CompleteIntegrationDemo:
                         test_tb.stop()
                         test_tb.wait()
 
-                        print(f"[OK] Nitrokey integration test completed - output saved to {output_file.name}")
+                        print(
+                            f"[OK] Nitrokey integration test completed - output saved to {output_file.name}"
+                        )
                         return True
                     else:
                         print("[FAIL] Failed to create Nitrokey integration flowgraph")
@@ -221,7 +242,7 @@ class CompleteIntegrationDemo:
         try:
             # Create kernel crypto AES block
             key = bytes([i % 256 for i in range(32)])  # 256-bit key
-            iv = bytes([i % 256 for i in range(16)])    # 128-bit IV
+            iv = bytes([i % 256 for i in range(16)])  # 128-bit IV
 
             crypto_aes = linux_crypto.kernel_crypto_aes(key, iv, "cbc", True)
 
@@ -234,10 +255,12 @@ class CompleteIntegrationDemo:
                 test_tb = gr.top_block()
 
                 # Create data source
-                data_source = blocks.vector_source_b([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], True)
+                data_source = blocks.vector_source_b(
+                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], True
+                )
 
                 # Create file sink
-                output_file = tempfile.NamedTemporaryFile(delete=False, suffix='.bin')
+                output_file = tempfile.NamedTemporaryFile(delete=False, suffix=".bin")
                 self.temp_files.append(output_file.name)
                 output_sink = blocks.file_sink(gr.sizeof_char, output_file.name)
 
@@ -252,7 +275,9 @@ class CompleteIntegrationDemo:
                 test_tb.stop()
                 test_tb.wait()
 
-                print(f"[OK] Kernel crypto API test completed - output saved to {output_file.name}")
+                print(
+                    f"[OK] Kernel crypto API test completed - output saved to {output_file.name}"
+                )
                 return True
             else:
                 print("[FAIL] Kernel crypto API is not available")
@@ -289,7 +314,9 @@ class CompleteIntegrationDemo:
         print("Key Benefits:")
         print("1. No duplication - leverages existing crypto modules")
         print("2. Linux-specific features - kernel keyring, hardware security")
-        print("3. Integration focus - bridges existing modules with Linux infrastructure")
+        print(
+            "3. Integration focus - bridges existing modules with Linux infrastructure"
+        )
         print("4. Secure key management - keys protected by kernel/hardware")
 
     def cleanup(self):
@@ -344,7 +371,7 @@ class CompleteIntegrationDemo:
             success_count += 1
 
         # Show results
-        print(f"\n=== Demo Results ===")
+        print("\n=== Demo Results ===")
         print(f"Successful integrations: {success_count}/3")
 
         if success_count > 0:
@@ -366,5 +393,5 @@ def main():
     demo.run_complete_demo()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

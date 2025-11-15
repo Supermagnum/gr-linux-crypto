@@ -203,8 +203,8 @@ jobs:
     - name: Check import sorting with isort
       run: |
         echo "Checking import sorting with isort..."
-        isort --check-only --diff python/ tests/ examples/ || {
-          echo "ERROR: Imports are not sorted correctly. Run 'isort python/ tests/ examples/' to fix."
+        isort --check-only --profile black --diff python/ tests/ examples/ || {
+          echo "ERROR: Imports are not sorted correctly. Run 'isort --profile black python/ tests/ examples/' to fix."
           exit 1
         }
 

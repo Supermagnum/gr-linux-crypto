@@ -11,38 +11,35 @@
 # Description: FreeDV voice signature verification using gr-nacl Ed25519. Verifies signatures embedded in FreeDV Codec2 frames after demodulation.
 # GNU Radio version: 3.10.9.2
 
-from PyQt5 import Qt
-from gnuradio import qtgui
-from gnuradio import audio
-from gnuradio import blocks
-import pmt
-from gnuradio import eng_notation
-from gnuradio import filter
-from gnuradio.filter import firdes
-from gnuradio import gr
-from gnuradio.fft import window
-import sys
 import signal
-from PyQt5 import Qt
-from argparse import ArgumentParser
-from gnuradio.eng_arg import eng_float, intx
-from gnuradio import linux_crypto
-from gnuradio import vocoder
-from gnuradio.vocoder import codec2
-from gnuradio.vocoder import freedv_api
-import freedv_nitrokey_verification_epy_block_0 as epy_block_0  # embedded python block
+import sys
 
+import freedv_nitrokey_verification_epy_block_0 as epy_block_0  # embedded python block
+import pmt
+from gnuradio import (
+    audio,
+    blocks,
+    filter,
+    gr,
+    linux_crypto,
+    qtgui,
+    vocoder,
+)
+from gnuradio.vocoder import codec2, freedv_api
+from PyQt5 import Qt
 
 
 class freedv_nitrokey_verification(gr.top_block, Qt.QWidget):
 
     def __init__(self):
-        gr.top_block.__init__(self, "FreeDV Verification with Nitrokey", catch_exceptions=True)
+        gr.top_block.__init__(
+            self, "FreeDV Verification with Nitrokey", catch_exceptions=True
+        )
         Qt.QWidget.__init__(self)
         self.setWindowTitle("FreeDV Verification with Nitrokey")
         qtgui.util.check_set_qss()
         try:
-            self.setWindowIcon(Qt.QIcon.fromTheme('gnuradio-grc'))
+            self.setWindowIcon(Qt.QIcon.fromTheme("gnuradio-grc"))
         except BaseException as exc:
             print(f"Qt GUI: Could not set Icon: {str(exc)}", file=sys.stderr)
         self.top_scroll_layout = Qt.QVBoxLayout()
@@ -71,7 +68,7 @@ class freedv_nitrokey_verification(gr.top_block, Qt.QWidget):
         ##################################################
         self.samp_rate = samp_rate = 8000
         self.nitrokey_slot = nitrokey_slot = 1
-        self.authenticate_button = authenticate_button = False
+        # self.authenticate_button = _authenticate_button = False
 
         ##################################################
         # Blocks
@@ -82,52 +79,80 @@ class freedv_nitrokey_verification(gr.top_block, Qt.QWidget):
         self._nitrokey_slot_line_edit = Qt.QLineEdit(str(self.nitrokey_slot))
         self._nitrokey_slot_tool_bar.addWidget(self._nitrokey_slot_line_edit)
         self._nitrokey_slot_line_edit.editingFinished.connect(
-            lambda: self.set_nitrokey_slot(int(str(self._nitrokey_slot_line_edit.text()))))
+            lambda: self.set_nitrokey_slot(
+                int(str(self._nitrokey_slot_line_edit.text()))
+            )
+        )
         self.top_grid_layout.addWidget(self._nitrokey_slot_tool_bar, 1, 0, 1, 1)
         for r in range(1, 2):
             self.top_grid_layout.setRowStretch(r, 1)
         for c in range(0, 1):
             self.top_grid_layout.setColumnStretch(c, 1)
-        self.vocoder_freedv_rx_ss_0 = vocoder.freedv_rx_ss(freedv_api.MODE_1600,-100.0,1)
+        self.vocoder_freedv_rx_ss_0 = vocoder.freedv_rx_ss(
+            freedv_api.MODE_1600, -100.0, 1
+        )
         self.vocoder_codec2_decode_ps_0 = vocoder.codec2_decode_ps(codec2.MODE_2400)
         self.rational_resampler_xxx_0 = filter.rational_resampler_fff(
-                interpolation=6,
-                decimation=1,
-                taps=[],
-                fractional_bw=0)
-        self.linux_crypto_nitrokey_interface_0 = linux_crypto.nitrokey_interface(nitrokey_slot, False)
+            interpolation=6, decimation=1, taps=[], fractional_bw=0
+        )
+        self.linux_crypto_nitrokey_interface_0 = linux_crypto.nitrokey_interface(
+            nitrokey_slot, False
+        )
         self.epy_block_0 = epy_block_0.blk()
-        self.blocks_throttle2_0 = blocks.throttle( gr.sizeof_short*1, samp_rate, True, 0 if "auto" == "auto" else max( int(float(0.1) * samp_rate) if "auto" == "time" else int(0.1), 1) )
+        self.blocks_throttle2_0 = blocks.throttle(
+            gr.sizeof_short * 1,
+            samp_rate,
+            True,
+            (
+                0
+                if "auto" == "auto"
+                else max(
+                    int(float(0.1) * samp_rate) if "auto" == "time" else int(0.1), 1
+                )
+            ),
+        )
         self.blocks_short_to_float_0 = blocks.short_to_float(1, 32768)
         self.blocks_short_to_char_0 = blocks.short_to_char(1)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_short*1, '/tmp/freedv_signed_transmission.bin', False, 0, 0)
+        self.blocks_file_source_0 = blocks.file_source(
+            gr.sizeof_short * 1, "/tmp/freedv_signed_transmission.bin", False, 0, 0
+        )
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
-        _authenticate_button_push_button = Qt.QPushButton('Authenticate Nitrokey')
-        _authenticate_button_push_button = Qt.QPushButton('Authenticate Nitrokey')
-        self._authenticate_button_choices = {'Pressed': 1, 'Released': 0}
-        _authenticate_button_push_button.pressed.connect(lambda: self.set_authenticate_button(self._authenticate_button_choices['Pressed']))
-        _authenticate_button_push_button.released.connect(lambda: self.set_authenticate_button(self._authenticate_button_choices['Released']))
+        _authenticate_button_push_button = Qt.QPushButton("Authenticate Nitrokey")
+        _authenticate_button_push_button = Qt.QPushButton("Authenticate Nitrokey")
+        self._authenticate_button_choices = {"Pressed": 1, "Released": 0}
+        _authenticate_button_push_button.pressed.connect(
+            lambda: self.set_authenticate_button(
+                self._authenticate_button_choices["Pressed"]
+            )
+        )
+        _authenticate_button_push_button.released.connect(
+            lambda: self.set_authenticate_button(
+                self._authenticate_button_choices["Released"]
+            )
+        )
         self.top_grid_layout.addWidget(_authenticate_button_push_button, 0, 0, 1, 1)
         for r in range(0, 1):
             self.top_grid_layout.setRowStretch(r, 1)
         for c in range(0, 1):
             self.top_grid_layout.setColumnStretch(c, 1)
-        self.audio_sink_0 = audio.sink(48000, '', True)
-
+        self.audio_sink_0 = audio.sink(48000, "", True)
 
         ##################################################
         # Connections
         ##################################################
         self.connect((self.blocks_file_source_0, 0), (self.blocks_throttle2_0, 0))
         self.connect((self.blocks_short_to_char_0, 0), (self.epy_block_0, 0))
-        self.connect((self.blocks_short_to_float_0, 0), (self.rational_resampler_xxx_0, 0))
+        self.connect(
+            (self.blocks_short_to_float_0, 0), (self.rational_resampler_xxx_0, 0)
+        )
         self.connect((self.blocks_throttle2_0, 0), (self.vocoder_freedv_rx_ss_0, 0))
         self.connect((self.epy_block_0, 0), (self.vocoder_codec2_decode_ps_0, 0))
         self.connect((self.linux_crypto_nitrokey_interface_0, 0), (self.epy_block_0, 1))
         self.connect((self.rational_resampler_xxx_0, 0), (self.audio_sink_0, 0))
-        self.connect((self.vocoder_codec2_decode_ps_0, 0), (self.blocks_short_to_float_0, 0))
+        self.connect(
+            (self.vocoder_codec2_decode_ps_0, 0), (self.blocks_short_to_float_0, 0)
+        )
         self.connect((self.vocoder_freedv_rx_ss_0, 0), (self.blocks_short_to_char_0, 0))
-
 
     def closeEvent(self, event):
         self.settings = Qt.QSettings("GNU Radio", "freedv_nitrokey_verification")
@@ -149,7 +174,11 @@ class freedv_nitrokey_verification(gr.top_block, Qt.QWidget):
 
     def set_nitrokey_slot(self, nitrokey_slot):
         self.nitrokey_slot = nitrokey_slot
-        Qt.QMetaObject.invokeMethod(self._nitrokey_slot_line_edit, "setText", Qt.Q_ARG("QString", str(self.nitrokey_slot)))
+        Qt.QMetaObject.invokeMethod(
+            self._nitrokey_slot_line_edit,
+            "setText",
+            Qt.Q_ARG("QString", str(self.nitrokey_slot)),
+        )
         self.linux_crypto_nitrokey_interface_0.set_slot(self.nitrokey_slot)
 
     def get_authenticate_button(self):
@@ -157,8 +186,6 @@ class freedv_nitrokey_verification(gr.top_block, Qt.QWidget):
 
     def set_authenticate_button(self, authenticate_button):
         self.authenticate_button = authenticate_button
-
-
 
 
 def main(top_block_cls=freedv_nitrokey_verification, options=None):
@@ -186,5 +213,6 @@ def main(top_block_cls=freedv_nitrokey_verification, options=None):
 
     qapp.exec_()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

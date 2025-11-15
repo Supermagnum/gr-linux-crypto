@@ -11,17 +11,13 @@ security module integration that complements existing crypto modules
 rather than duplicating their functionality.
 """
 
-import os
-import sys
 import subprocess
-import tempfile
 import time
-from typing import List, Optional, Union, Dict, Any
+from typing import Any, Dict, List, Optional
 
 # GNU Radio imports
 try:
-    from gnuradio import gr, blocks
-    from gnuradio import linux_crypto
+    from gnuradio import blocks, gr, linux_crypto
 except ImportError:
     print("Warning: GNU Radio not available. Some functions may not work.")
     gr = None
@@ -31,6 +27,7 @@ except ImportError:
 # Optional imports for integration
 try:
     from gnuradio import crypto
+
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
@@ -38,6 +35,7 @@ except ImportError:
 
 try:
     from gnuradio import nacl
+
     NACL_AVAILABLE = True
 except ImportError:
     NACL_AVAILABLE = False
@@ -57,7 +55,9 @@ class KernelKeyringManager:
         self._keys = {}
         self._keyring_id = None
 
-    def add_key(self, key_name: str, key_data: bytes, key_type: str = "user") -> Optional[int]:
+    def add_key(
+        self, key_name: str, key_data: bytes, key_type: str = "user"
+    ) -> Optional[int]:
         """
         Add a key to the kernel keyring.
 
@@ -71,9 +71,12 @@ class KernelKeyringManager:
         """
         try:
             # Use keyctl to add the key
-            result = subprocess.run([
-                'keyctl', 'add', key_type, key_name, key_data.decode('latin-1'), '@u'
-            ], capture_output=True, text=True, check=True)
+            result = subprocess.run(
+                ["keyctl", "add", key_type, key_name, key_data.decode("latin-1"), "@u"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
             key_id = int(result.stdout.strip())
             self._keys[key_name] = key_id
@@ -101,9 +104,9 @@ class KernelKeyringManager:
 
         try:
             key_id = self._keys[key_name]
-            result = subprocess.run([
-                'keyctl', 'pipe', str(key_id)
-            ], capture_output=True, check=True)
+            result = subprocess.run(
+                ["keyctl", "pipe", str(key_id)], capture_output=True, check=True
+            )
 
             return result.stdout
 
@@ -125,9 +128,9 @@ class KernelKeyringManager:
 
         try:
             key_id = self._keys[key_name]
-            subprocess.run([
-                'keyctl', 'unlink', str(key_id), '@u'
-            ], capture_output=True, check=True)
+            subprocess.run(
+                ["keyctl", "unlink", str(key_id), "@u"], capture_output=True, check=True
+            )
 
             del self._keys[key_name]
             return True
@@ -152,7 +155,7 @@ class KernelKeyringManager:
             True if successful, False if failed
         """
         try:
-            subprocess.run(['keyctl', 'clear', '@u'], capture_output=True, check=True)
+            subprocess.run(["keyctl", "clear", "@u"], capture_output=True, check=True)
             self._keys.clear()
             return True
         except subprocess.CalledProcessError:
@@ -165,7 +168,7 @@ class NitrokeyManager:
 
     This class provides a high-level interface for Nitrokey devices,
     which can then be used with existing crypto modules.
-    
+
     Uses the real C++ nitrokey_interface block for device communication.
     """
 
@@ -189,17 +192,19 @@ class NitrokeyManager:
         try:
             # Create a nitrokey_interface block to check availability
             # Use slot 0 as a test - we'll check if device is available
-            self._nitrokey_block = linux_crypto.nitrokey_interface(slot=0, auto_repeat=False)
-            
+            self._nitrokey_block = linux_crypto.nitrokey_interface(
+                slot=0, auto_repeat=False
+            )
+
             # Check if Nitrokey is available
             self._available = self._nitrokey_block.is_nitrokey_available()
-            
+
             if self._available:
                 self._device = self._nitrokey_block.get_device_info()
             else:
                 self._device = "Nitrokey not available"
                 self._nitrokey_block = None
-            
+
             return self._available
 
         except Exception as e:
@@ -218,16 +223,16 @@ class NitrokeyManager:
         """
         if self._nitrokey_block is None:
             return False
-        
+
         # Re-check availability in case device was disconnected
         try:
             self._available = self._nitrokey_block.is_nitrokey_available()
             if not self._available:
                 self._nitrokey_block = None
-        except:
+        except Exception:
             self._available = False
             self._nitrokey_block = None
-        
+
         return self._available
 
     def get_device_info(self) -> str:
@@ -239,10 +244,10 @@ class NitrokeyManager:
         """
         if not self.is_available() or self._nitrokey_block is None:
             return "Nitrokey not available"
-        
+
         try:
             return self._nitrokey_block.get_device_info()
-        except:
+        except Exception:
             return "Nitrokey not available"
 
     def get_available_slots(self) -> List[int]:
@@ -283,40 +288,42 @@ class NitrokeyManager:
         try:
             # Create a nitrokey_interface block for the specific slot
             # Use auto_repeat=False to get the key data exactly once
-            nitrokey_block = linux_crypto.nitrokey_interface(slot=slot, auto_repeat=False)
-            
+            nitrokey_block = linux_crypto.nitrokey_interface(
+                slot=slot, auto_repeat=False
+            )
+
             # Check if key is loaded
             if not nitrokey_block.is_key_loaded():
                 return None
-            
+
             key_size = nitrokey_block.get_key_size()
             if key_size == 0:
                 return None
-            
+
             # Create a flowgraph to read the key data
             # Use a vector sink to collect the output
             tb = gr.top_block()
             sink = blocks.vector_sink_b()
-            
+
             tb.connect(nitrokey_block, sink)
-            
+
             # Run the flowgraph to read exactly key_size bytes
             # With auto_repeat=False, the block outputs key once then zeros
             # We need to read exactly key_size bytes
             tb.start()
-            
+
             # Keep running until we have at least key_size bytes
             max_wait = 1.0  # Maximum wait time in seconds
             start_time = time.time()
             while len(sink.data()) < key_size and (time.time() - start_time) < max_wait:
                 time.sleep(0.01)  # Small delay to allow data flow
-            
+
             tb.stop()
             tb.wait()  # Wait for cleanup
-            
+
             # Get the key data from the sink
             key_data = bytes(sink.data())
-            
+
             # Extract exactly key_size bytes (ignore any trailing zeros)
             if len(key_data) >= key_size:
                 key_data = key_data[:key_size]
@@ -324,7 +331,7 @@ class NitrokeyManager:
                 # No data received
                 return None
             # If we got less than key_size, return what we have (might be partial)
-            
+
             return key_data if key_data else None
 
         except Exception as e:
@@ -351,7 +358,9 @@ class NitrokeyManager:
         # The nitrokey_interface block is read-only
         # Writing requires libnitrokey API or Nitrokey App
         print("store_key_to_slot() is not supported via nitrokey_interface block.")
-        print("Use Nitrokey App or libnitrokey C++ API to write keys to password safe slots.")
+        print(
+            "Use Nitrokey App or libnitrokey C++ API to write keys to password safe slots."
+        )
         return False
 
 
@@ -367,8 +376,9 @@ class CryptoIntegration:
         self.keyring_manager = KernelKeyringManager()
         self.nitrokey_manager = NitrokeyManager()
 
-    def create_keyring_to_openssl_flowgraph(self, key_name: str,
-                                          cipher_desc_params: Dict[str, Any]) -> Optional[gr.top_block]:
+    def create_keyring_to_openssl_flowgraph(
+        self, key_name: str, cipher_desc_params: Dict[str, Any]
+    ) -> Optional[gr.top_block]:
         """
         Create a flowgraph that uses kernel keyring keys with gr-openssl.
 
@@ -398,13 +408,15 @@ class CryptoIntegration:
 
         # Create kernel keyring source
         key_source = linux_crypto.kernel_keyring_source(
-            self.keyring_manager._keys[key_name], auto_repeat=True)
+            self.keyring_manager._keys[key_name], auto_repeat=True
+        )
 
         # Create OpenSSL cipher descriptor
         cipher_desc = crypto.sym_ciph_desc(
-            cipher_desc_params.get('cipher', 'aes-256-cbc'),
+            cipher_desc_params.get("cipher", "aes-256-cbc"),
             key_data,
-            cipher_desc_params.get('iv', b''))
+            cipher_desc_params.get("iv", b""),
+        )
 
         # Create OpenSSL encryptor
         encryptor = crypto.sym_enc(cipher_desc)
@@ -473,12 +485,12 @@ class CryptoIntegration:
             Dictionary with integration status
         """
         return {
-            'gnuradio_available': gr is not None,
-            'gr_openssl_available': CRYPTO_AVAILABLE,
-            'gr_nacl_available': NACL_AVAILABLE,
-            'gr_linux_crypto_available': linux_crypto is not None,
-            'keyring_available': self.keyring_manager is not None,
-            'nitrokey_available': self.nitrokey_manager.is_available()
+            "gnuradio_available": gr is not None,
+            "gr_openssl_available": CRYPTO_AVAILABLE,
+            "gr_nacl_available": NACL_AVAILABLE,
+            "gr_linux_crypto_available": linux_crypto is not None,
+            "keyring_available": self.keyring_manager is not None,
+            "nitrokey_available": self.nitrokey_manager.is_available(),
         }
 
 
@@ -552,5 +564,5 @@ def demonstrate_integration():
     print("Integration demonstration completed!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     demonstrate_integration()

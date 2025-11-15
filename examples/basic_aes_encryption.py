@@ -4,9 +4,8 @@ Basic AES encryption example using gr-linux-crypto.
 Demonstrates cryptographic operations using crypto_helpers for AES encryption/decryption.
 """
 
-import numpy as np
-from gnuradio import gr, blocks
 from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
 
 def main():
     print("GNU Radio Linux Crypto - Basic AES Encryption Example")
@@ -18,7 +17,7 @@ def main():
     # Generate random key and IV
     print("Generating random key and IV...")
     key = crypto.generate_random_key(32)  # 256-bit key
-    iv = crypto.generate_random_iv(16)   # 128-bit IV
+    iv = crypto.generate_random_iv(16)  # 128-bit IV
 
     print(f"Key (hex): {crypto.bytes_to_hex(key)}")
     print(f"IV (hex): {crypto.bytes_to_hex(iv)}")
@@ -29,12 +28,12 @@ def main():
 
     # Encrypt data
     print("\nEncrypting data...")
-    encrypted = crypto.aes_encrypt(test_data, key, iv, 'cbc')
+    encrypted = crypto.aes_encrypt(test_data, key, iv, "cbc")
     print(f"Encrypted (hex): {crypto.bytes_to_hex(encrypted)}")
 
     # Decrypt data
     print("\nDecrypting data...")
-    decrypted = crypto.aes_decrypt(encrypted, key, iv, 'cbc')
+    decrypted = crypto.aes_decrypt(encrypted, key, iv, "cbc")
     print(f"Decrypted: {decrypted}")
 
     # Verify encryption/decryption worked
@@ -48,10 +47,10 @@ def main():
     print("Hash Operations")
     print("=" * 50)
 
-    hash_sha256 = crypto.hash_data(test_data, 'sha256')
+    hash_sha256 = crypto.hash_data(test_data, "sha256")
     print(f"SHA256 hash: {crypto.bytes_to_hex(hash_sha256)}")
 
-    hash_sha1 = crypto.hash_data(test_data, 'sha1')
+    hash_sha1 = crypto.hash_data(test_data, "sha1")
     print(f"SHA1 hash: {crypto.bytes_to_hex(hash_sha1)}")
 
     # Demonstrate HMAC
@@ -72,6 +71,6 @@ def main():
     derived_key = crypto.derive_key_from_password(password, salt)
     print(f"Derived key from password: {crypto.bytes_to_hex(derived_key)}")
 
+
 if __name__ == "__main__":
     main()
-
