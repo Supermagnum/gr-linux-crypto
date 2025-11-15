@@ -57,12 +57,10 @@ jobs:
         
         # Install GNU Radio packages (system packages provide both C++ libs and Python bindings)
         # gnuradio-dev pulls in development headers and libraries
-        # gnuradio provides runtime libraries
-        # python3-gnuradio provides Python bindings
+        # gnuradio provides runtime libraries and Python bindings
         sudo apt-get install -y \
           gnuradio-dev \
-          gnuradio \
-          python3-gnuradio || echo "WARNING: GNU Radio packages installation failed"
+          gnuradio || echo "WARNING: GNU Radio packages installation failed"
         
         # Verify GNU Radio installation
         echo "Checking GNU Radio installation..."
