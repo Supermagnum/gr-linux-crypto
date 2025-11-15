@@ -1,0 +1,4 @@
+[submodule "tests/dudect"]
+	path = tests/dudect
+	url = https://github.com/oreparaz/dudect.git
+
