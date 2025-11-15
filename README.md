@@ -1,7 +1,5 @@
 # GNU Radio Linux Crypto Module
 
-[![CI](https://github.com/Supermagnum/gr-linux-crypto/actions/workflows/ci.yml/badge.svg)](https://github.com/Supermagnum/gr-linux-crypto/actions/workflows/ci.yml)
-
 A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptographic infrastructure integration**, focusing on what's missing from existing crypto modules (gr-openssl, gr-nacl).
 
 ## Table of Contents

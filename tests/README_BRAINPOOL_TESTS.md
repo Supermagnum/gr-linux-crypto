@@ -183,22 +183,6 @@ If performance tests fail:
 3. Increase thresholds if running on slow hardware
 4. Check system load
 
-## Integration with CI/CD
-
-Add to your CI pipeline:
-
-```yaml
-# Example GitHub Actions
-- name: Download test vectors
-  run: |
-    cd tests
-    ./download_brainpool_vectors.sh
-
-- name: Run Brainpool tests
-  run: |
-    pytest tests/test_brainpool_comprehensive.py -v --tb=short
-```
-
 ## Test Vector Sources Summary
 
 | Source | Format | Test Cases | Best For |
