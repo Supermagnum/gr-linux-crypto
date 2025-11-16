@@ -1342,13 +1342,17 @@ make -j$(nproc)
 
 **Option B: Using the Build Script**
 
+The `build.sh` script automates the CMake configuration and build process:
+
 ```bash
 # Navigate to project directory
 cd /path/to/gr-linux-crypto
 
-# Run the build script
+# Run the build script (this runs cmake and make automatically)
 ./build.sh
 ```
+
+**Note:** The build script creates the `build` directory, configures CMake, and builds the module. After running `build.sh`, you still need to install from the `build` directory (see Step 3 below).
 
 ### Step 3: Install the Module
 
@@ -1359,11 +1363,19 @@ cd /path/to/gr-linux-crypto
 cd build
 
 # Install (requires sudo)
+# If you get "getcwd: Fila eller mappa finnes ikke" error, use:
+sudo make -C $(pwd) install
+# Or use the absolute path:
+sudo make -C /path/to/gr-linux-crypto/build install
+
+# Standard installation (if the above error doesn't occur):
 sudo make install
 
 # Update library cache (required after installation)
 sudo ldconfig
 ```
+
+**Note:** If `sudo make install` fails with a `getcwd()` error, this is a known issue with GNU Make when run under sudo. Use `sudo make -C $(pwd) install` instead, which explicitly sets the working directory before make runs.
 
 ### Step 3a: Uninstall the Module (Optional)
 

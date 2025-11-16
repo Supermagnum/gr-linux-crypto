@@ -114,6 +114,25 @@ set(gr_linux_crypto_headers
 ########################################################################
 add_library(gnuradio-linux-crypto SHARED ${gr_linux_crypto_sources})
 
+# Ensure GNU Radio libraries are linked
+# gr_register_component should set GNURADIO_LIBRARIES, but if not, use pkg-config
+if(NOT GNURADIO_LIBRARIES)
+    pkg_check_modules(GNURADIO_PMT gnuradio-pmt)
+    set(GNURADIO_LIBRARIES ${GNURADIO_RUNTIME_LIBRARIES})
+    if(GNURADIO_PMT_FOUND)
+        list(APPEND GNURADIO_LIBRARIES ${GNURADIO_PMT_LIBRARIES})
+    endif()
+endif()
+
+# If still empty, use direct library names
+if(NOT GNURADIO_LIBRARIES)
+    set(GNURADIO_LIBRARIES gnuradio-runtime)
+    pkg_check_modules(GNURADIO_PMT QUIET gnuradio-pmt)
+    if(GNURADIO_PMT_FOUND)
+        list(APPEND GNURADIO_LIBRARIES gnuradio-pmt)
+    endif()
+endif()
+
 target_link_libraries(gnuradio-linux-crypto
     ${GNURADIO_LIBRARIES}
     ${KEYUTILS_LIBRARIES}
