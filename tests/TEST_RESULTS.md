@@ -1,7 +1,7 @@
 # gr-linux-crypto Test Results
 
-**Test Date:** 2025-01-27  
-**Last Test Run:** 405 passed, 32 skipped, 0 failed  
+**Test Date:** 2025-11-16  
+**Last Test Run:** 397 passed, 31 skipped, 0 failed  
 **Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
 **Test Framework:** pytest 8.4.2
 
@@ -45,7 +45,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 405 passed / 425 total (32 skipped, 0 failures)
+- **Functional Tests:** 397 passed / 428 total (31 skipped, 0 failures)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -62,6 +62,7 @@
 **Key Test Results:**
 - Core encryption/decryption: All passed (248 tests)
 - Performance benchmarks: All passed (19 tests)
+- Scapy attack vector crafting: 4 tests passed (ARP spoofing, DHCP starvation, SYN flood, DNS amplification packet generation validated without transmitting traffic)
 - Brainpool ECC ECDH: All passed (6 tests including Wycheproof)
 - Brainpool ECC ECDSA: All passed (3 tests including Wycheproof - fixed)
 - Side-channel analysis: Framework ready (conceptual tests)
@@ -88,9 +89,9 @@
 ## Test Coverage Summary
 
 ### Functional Tests
-- **Total Tests:** 425 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, and ECGDSA tests)
-- **Passed:** 405 functional tests (95.3% of collected)
-- **Skipped:** 32 (optional features, external dependencies)
+- **Total Tests:** 428 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, and Scapy attack-vector tests)
+- **Passed:** 397 functional tests (92.7% of collected)
+- **Skipped:** 31 (optional features, external dependencies)
 - **Failed:** 0 (all tests passing or appropriately skipped)
 
 **Detailed Breakdown:**
@@ -98,6 +99,7 @@
   - Skipped: Parametrized test filtering (each algorithm has dedicated test function)
   - OpenSSL CLI cross-validation: 202 passed (all OpenSSL CLI integration tests working)
 - `test_performance.py`: 19 passed, 1 skipped (all performance benchmarks passed)
+- `test_scapy_attack_vectors.py`: 4 passed (Scapy attack-vector packet crafting helpers validate ARP spoofing, DHCP starvation, SYN flood, DNS amplification packets without sending traffic)
 - `test_brainpool_comprehensive.py`: 16 passed, 1 skipped (core Brainpool ECDH and ECDSA working, OpenSSL CLI interop fixed)
 - `test_side_channel.py`: 5 passed (side-channel framework complete, constant-time comparison test made robust for Python timing overhead)
 - `test_m17_integration.py`: 18 passed, 1 skipped (M17 framework complete, frame parsing fixed)
@@ -108,6 +110,12 @@
 - `test_rfc_compliance.py`: 12 passed, 3 skipped (RFC 7027/6954/8734 compliance tests)
 - `test_ecgdsa.py`: 12 passed (ECGDSA framework tests - implementation framework ready)
 - Other tests: Various framework and integration tests
+
+#### Scapy Attack Vector Tests
+- **Goal:** Ensure Scapy helpers correctly craft packets for common attack vectors without transmitting any traffic.
+- **Coverage:** ARP spoofing, DHCP starvation, SYN flood, DNS amplification.
+- **Implementation:** `tests/test_scapy_attack_vectors.py`
+- **Status:** 4 tests passed — validates packet layering, critical fields, and serialization to bytes.
 
 **Test Failures (Non-Critical):**
 None - All tests passing or skipped
