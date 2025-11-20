@@ -48,10 +48,278 @@ For smart cards and hardware tokens (e.g., Nitrokey, YubiKey):
 ```bash
 # Install smart card support
 sudo apt-get install scdaemon pcscd
-
-# Enable smart card support in GnuPG
-echo "reader-port Yubico" >> ~/.gnupg/scdaemon.conf
 ```
+
+#### Nitrokey 3A Setup and Brainpool Key Generation
+
+The Nitrokey 3A is a hardware security module that supports Brainpool elliptic curves, making it ideal for secure key generation and storage in amateur radio applications.
+
+**Step 1: System Setup**
+
+Ensure your system can detect the Nitrokey 3A:
+
+```bash
+# Update package lists
+sudo apt update
+
+# Install required packages
+sudo apt install pcscd pcsc-tools scdaemon gpg
+
+# Start the smartcard daemon
+sudo systemctl start pcscd
+sudo systemctl enable pcscd
+
+# Configure scdaemon to avoid conflicts
+mkdir -p ~/.gnupg
+echo "disable-ccid" >> ~/.gnupg/scdaemon.conf
+
+# Restart scdaemon
+gpg-connect-agent "SCD KILLSCD" /bye
+
+# Verify detection
+pcsc_scan -r
+```
+
+You should see your Nitrokey 3A device listed. If not, check USB connection and try unplugging/replugging the device.
+
+**Step 2: Generate Brainpool P256r1 Keys on Nitrokey 3A**
+
+Start the GPG card editor:
+
+```bash
+gpg --card-edit --expert
+```
+
+In the GPG prompt, enter admin mode and configure key attributes:
+
+```
+gpg/card> admin
+gpg/card> key-attr
+```
+
+**For Signature key:**
+1. Select key type: `2` (ECC)
+2. Select curve: `5` (Brainpool P-256)
+
+**For Encryption key:**
+1. Select key type: `2` (ECC)
+2. Select your choice of curve (e.g., `5` for Brainpool P-256, or `2` for NIST P-256)
+
+**For Authentication key:**
+1. Select key type: `2` (ECC)
+2. Select curve: `5` (Brainpool P-256)
+
+After configuring all three keys, generate them:
+
+```
+gpg/card> generate
+```
+
+When prompted about off-card backup:
+
+```
+Make off-card backup of encryption key? (Y/n) n
+```
+
+Enter your details:
+- **Real name:** Your callsign
+- **Email address:** your@email.com
+- **Comment:** Repeater Authentication
+
+Enter the default PINs when prompted:
+- **User PIN:** Default is `123456` (you will change this)
+- **Admin PIN:** Default is `12345678` (you will change this)
+
+**Step 3: Change PINs (Critical Security Step)**
+
+After generating your keys, you **must** change both PINs:
+
+```bash
+gpg --card-edit
+```
+
+In the GPG prompt:
+
+```
+gpg/card> admin
+gpg/card> passwd
+```
+
+You'll see a menu:
+- `1` - change PIN (Changes User PIN, currently 123456)
+- `2` - unblock PIN (Uses Reset Code to unblock)
+- `3` - change Admin PIN (Changes Admin PIN, currently 12345678)
+- `4` - set the Reset Code (Set a code to unlock if you enter wrong PIN 3x)
+- `Q` - quit
+
+**Important:**
+- Choose `1` to change User PIN
+- Choose `3` to change Admin PIN
+- Choose `4` to set the Reset Code (recommended)
+
+**PIN Usage:**
+- **User PIN:** Required for signing/decryption operations
+- **Admin PIN:** Required for key generation and card management
+- **Never share these PINs** or write them down insecurely
+- After 3 wrong attempts, the PIN is blocked (needs Reset Code or Admin PIN to unblock)
+
+For repeater authentication systems, you'll need to enter the User PIN each time you sign a command (though `gpg-agent` can cache it for a session).
+
+**Step 4: Verify Key Generation**
+
+Verify that your keys were generated correctly:
+
+```bash
+# Check card status
+gpg --card-status
+
+# List keys (should show keys from Nitrokey)
+gpg --list-secret-keys
+gpg --list-keys
+```
+
+You should see your keys with Brainpool P-256 curve identifiers.
+
+**Step 5: Extract Public Key from Nitrokey**
+
+After generating keys on your Nitrokey 3A, you'll need to extract the public key to share it with others or use it in the codebase. The private key remains securely stored on the Nitrokey device and cannot be extracted.
+
+**Method 1: Command Line (Recommended)**
+
+First, identify your key ID:
+
+```bash
+# List keys to find the key ID
+gpg --list-keys
+
+# Or show detailed information with fingerprints
+gpg --list-keys --keyid-format LONG
+```
+
+Example output showing key ID:
+```
+/home/user/.gnupg/pubring.kbx
+-------------------------------------
+pub   brainpoolP256r1 2024-01-15 [SC]
+      ABC123DEF4567890ABCDEF1234567890ABCDEF12  ← This is the key ID
+uid           [ultimate] Your Callsign <your@email.com>
+sub   brainpoolP256r1 2024-01-15 [E]
+```
+
+Extract the public key:
+
+```bash
+# Export public key in ASCII-armored format (.asc file)
+gpg --export --armor ABC123DEF4567890ABCDEF1234567890ABCDEF12 > my_public_key.asc
+
+# Or export using email address
+gpg --export --armor your@email.com > my_public_key.asc
+
+# Export in binary format (alternative, not ASCII-armored)
+gpg --export ABC123DEF4567890ABCDEF1234567890ABCDEF12 > my_public_key.gpg
+```
+
+**Important Notes:**
+- The `--armor` flag creates an ASCII-armored file (`.asc`) that is human-readable and safe to share via email, websites, or keyservers
+- Without `--armor`, you get a binary file (`.gpg`) which is smaller but not human-readable
+- The exported file contains only the **public key** - it's safe to share publicly
+- The **private key never leaves the Nitrokey device** - it cannot be extracted
+
+**Method 2: GUI Tools**
+
+**Kleopatra (KDE/GNOME):**
+1. Install: `sudo apt-get install kleopatra`
+2. Open Kleopatra
+3. Your Nitrokey keys should appear in the key list (if the device is connected)
+4. Right-click on the key you want to export
+5. Select **Export Certificates** or **Export**
+6. Choose **Export OpenPGP Certificate** or **Export Public Key**
+7. Save the file (it will be in ASCII-armored format by default)
+
+**GPA (GNU Privacy Assistant):**
+1. Install: `sudo apt-get install gpa`
+2. Open GPA
+3. Your Nitrokey keys should appear in the key list
+4. Select the key you want to export
+5. Go to **Keys** → **Export Keys**
+6. Choose where to save the file
+7. The exported file will be in ASCII-armored format
+
+**Seahorse (GNOME Keyring Manager):**
+1. Install: `sudo apt-get install seahorse`
+2. Open Seahorse (Passwords and Keys)
+3. Navigate to **GnuPG Keys** tab
+4. Your Nitrokey keys should be listed
+5. Right-click on the key → **Export Public Key**
+6. Save the file (ASCII-armored format)
+
+**Nitrokey App (Device Maintenance Only):**
+- The Nitrokey App does **not** generate, import, or export OpenPGP keys
+- It is used for firmware updates, PIN changes, password safe slot management, and factory resets
+- Use GnuPG (command line) or GUI tools (Kleopatra, GPA, Seahorse) for all key generation and export operations
+
+**Verify Exported Key:**
+
+After exporting, verify the key file:
+
+```bash
+# View the exported key (ASCII-armored format)
+cat my_public_key.asc
+
+# Import it back to verify (should show "already in keyring" or import successfully)
+gpg --import my_public_key.asc
+
+# Show key information from the file
+gpg --show-keys my_public_key.asc
+```
+
+**Sharing Your Public Key:**
+
+Once exported, you can share your public key:
+
+1. **Email**: Attach the `.asc` file to an email
+2. **Keyserver**: Upload to a keyserver:
+   ```bash
+   gpg --send-keys ABC123DEF4567890ABCDEF1234567890ABCDEF12
+   ```
+3. **Website**: Post the `.asc` file content on your website or profile
+4. **Key Exchange**: Share at key signing parties or hamfests
+
+**Using the Exported Public Key in the Codebase:**
+
+Once someone imports your public key, they can use it in the codebase:
+
+```python
+from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+
+# Encrypt for you using your public key (after they import it)
+encrypted = M17SessionKeyExchange.encrypt_key_for_recipient(
+    session_key,
+    recipient_key_id="0xABC123DEF4567890"  # Your key ID
+)
+```
+
+**Troubleshooting Key Export:**
+
+If export fails:
+1. **Ensure Nitrokey is connected**: The device must be plugged in and detected
+2. **Check key is in keyring**: Run `gpg --list-keys` to verify the key appears
+3. **Verify key ID**: Make sure you're using the correct key ID or email
+4. **Check permissions**: Ensure you have write permission in the target directory
+5. **Try without --armor**: If ASCII-armor fails, try binary export: `gpg --export KEY_ID > key.gpg`
+
+**Troubleshooting Nitrokey Detection**
+
+If `pcsc_scan` doesn't detect your Nitrokey 3A:
+
+1. Check USB connection and try a different USB port
+2. Verify device is powered (some models require external power)
+3. Check system logs: `dmesg | grep -i usb`
+4. Try restarting pcscd: `sudo systemctl restart pcscd`
+5. Verify scdaemon configuration: `cat ~/.gnupg/scdaemon.conf`
+6. Check for conflicting smart card readers: `pcsc_scan -r`
+
+**Note:** The `disable-ccid` setting in `scdaemon.conf` prevents conflicts between pcscd and scdaemon. This is important for Nitrokey 3A compatibility.
 
 ## GnuPG Setup
 
@@ -63,11 +331,119 @@ gpg --full-generate-key
 # Follow prompts to select key type, size, expiration
 ```
 
-**Import existing key:**
+**Import existing key from `.asc` file:**
+
+The codebase works with keys that are already in your GnuPG keyring. To use a key from an `.asc` file, you must first import it into GnuPG.
+
+**Method 1: Command Line (Recommended)**
+
 ```bash
+# Import a public key
 gpg --import public_key.asc
+
+# Import a private key (will prompt for passphrase if encrypted)
 gpg --import private_key.asc
+
+# Import from a keyserver (alternative to .asc files)
+gpg --search-keys email@example.com
+gpg --recv-keys KEY_ID
 ```
+
+**Method 2: GUI Tools**
+
+Several GUI applications can import `.asc` files into your GnuPG keyring:
+
+**Kleopatra (KDE/GNOME):**
+1. Install: `sudo apt-get install kleopatra`
+2. Open Kleopatra
+3. Go to **File** → **Import Certificates** (or press `Ctrl+I`)
+4. Select your `.asc` file
+5. The key will be imported into your GnuPG keyring automatically
+
+**GPA (GNU Privacy Assistant):**
+1. Install: `sudo apt-get install gpa`
+2. Open GPA
+3. Go to **Keys** → **Import**
+4. Select your `.asc` file
+5. Click **Import** to add the key to your keyring
+
+**Seahorse (GNOME Keyring Manager):**
+1. Install: `sudo apt-get install seahorse-nautilus`
+2. Open Files (Nautilus)
+3. Right-click on the `.asc` file
+4. Select **Open with "Import Key"** or **Import Key**
+5. The key will be imported automatically
+
+**Nitrokey App (Device Maintenance Only):**
+- Handles firmware upgrades, password safe data, PIN changes, and factory reset operations
+- Does **not** import, export, or generate OpenPGP keys—use GnuPG or the GUI tools above for key management
+- See [Nitrokey 3A Setup](#nitrokey-3a-setup-and-brainpool-key-generation) for hardware key generation instructions using GnuPG
+
+**Method 3: Drag and Drop (Some File Managers)**
+
+Some Linux file managers support drag-and-drop import:
+1. Open your file manager (Nautilus, Dolphin, etc.)
+2. Navigate to the `.asc` file
+3. Drag the file onto the Kleopatra or GPA window
+4. The import dialog will appear automatically
+
+**Verify Import:**
+
+After importing, verify the key is in your keyring:
+
+```bash
+# List all public keys
+gpg --list-keys
+
+# List all private/secret keys
+gpg --list-secret-keys
+
+# Show detailed information about a specific key
+gpg --list-keys --keyid-format LONG KEY_ID_OR_EMAIL
+
+# Show key fingerprint (useful for verification)
+gpg --fingerprint KEY_ID_OR_EMAIL
+```
+
+**Example Output:**
+```
+/home/user/.gnupg/pubring.kbx
+-------------------------------------
+pub   rsa3072 2024-01-15 [SC]
+      ABC123DEF4567890ABCDEF1234567890ABCDEF12
+uid           [ultimate] John Doe <john@example.com>
+sub   rsa3072 2024-01-15 [E]
+```
+
+**Using Imported Keys in the Codebase:**
+
+Once the key is imported, you can use it in the codebase by referencing its key ID or email:
+
+```python
+from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+
+# Use key ID (from gpg --list-keys output)
+encrypted = M17SessionKeyExchange.encrypt_key_for_recipient(
+    session_key,
+    recipient_key_id="0xABC123DEF4567890"  # Use key ID
+)
+
+# Or use email address
+encrypted = M17SessionKeyExchange.encrypt_key_for_recipient(
+    session_key,
+    recipient_key_id="john@example.com"  # Use email
+)
+```
+
+**Troubleshooting Import:**
+
+If import fails:
+1. **Check file format**: Ensure the `.asc` file is valid ASCII-armored OpenPGP format
+2. **Check permissions**: Ensure you have read access to the file
+3. **Verify GnuPG is working**: Run `gpg --version` to confirm GnuPG is installed
+4. **Check for duplicate keys**: If key already exists, GnuPG will show a message but won't error
+5. **Private key passphrase**: If importing a private key, you'll be prompted for the passphrase
+6. **View import details**: Use `gpg --import --verbose key.asc` for detailed output
 
 **List your keys:**
 ```bash
