@@ -45,7 +45,7 @@ cmake .. \
 
 # Build
 echo "Building..."
-make -j$(nproc)
+make -j"$(nproc)"
 
 echo "Build completed successfully!"
 echo ""

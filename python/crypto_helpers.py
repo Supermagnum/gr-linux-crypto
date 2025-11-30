@@ -46,6 +46,7 @@ class CryptoHelpers:
         Args:
             data: Data to hash
             algorithm: Hash algorithm ('sha1', 'sha256', 'sha512')
+                Note: SHA1 is deprecated and should only be used for legacy compatibility.
 
         Returns:
             Hash digest as bytes
@@ -54,7 +55,8 @@ class CryptoHelpers:
             data = data.encode("utf-8")
 
         if algorithm == "sha1":
-            return hashlib.sha1(data).digest()
+            # nosec B303 - SHA1 provided for legacy compatibility only
+            return hashlib.sha1(data).digest()  # noqa: B303
         elif algorithm == "sha256":
             return hashlib.sha256(data).digest()
         elif algorithm == "sha512":
@@ -81,7 +83,8 @@ class CryptoHelpers:
             data = data.encode("utf-8")
 
         if algorithm == "sha1":
-            return hmac.new(key, data, hashlib.sha1).digest()
+            # nosec B303 - SHA1 provided for legacy compatibility only
+            return hmac.new(key, data, hashlib.sha1).digest()  # noqa: B303
         elif algorithm == "sha256":
             return hmac.new(key, data, hashlib.sha256).digest()
         elif algorithm == "sha512":
@@ -99,6 +102,7 @@ class CryptoHelpers:
             key: AES key (16, 24, or 32 bytes)
             iv: Initialization vector
             mode: AES mode ('cbc', 'ecb', 'cfb', 'ofb')
+                Note: ECB mode is insecure and should only be used for legacy compatibility.
 
         Returns:
             Encrypted data as bytes
@@ -108,14 +112,15 @@ class CryptoHelpers:
                 algorithms.AES(key), modes.CBC(iv), backend=default_backend()
             )
         elif mode == "ecb":
-            cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=default_backend())
+            # nosec B305 - ECB mode provided for legacy compatibility only
+            cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=default_backend())  # type: ignore[arg-type]  # noqa: B305
         elif mode == "cfb":
             cipher = Cipher(
-                algorithms.AES(key), modes.CFB(iv), backend=default_backend()
+                algorithms.AES(key), modes.CFB(iv), backend=default_backend()  # type: ignore[arg-type]
             )
         elif mode == "ofb":
             cipher = Cipher(
-                algorithms.AES(key), modes.OFB(iv), backend=default_backend()
+                algorithms.AES(key), modes.OFB(iv), backend=default_backend()  # type: ignore[arg-type]
             )
         else:
             raise ValueError(f"Unsupported AES mode: {mode}")
@@ -133,6 +138,7 @@ class CryptoHelpers:
             key: AES key (16, 24, or 32 bytes)
             iv: Initialization vector
             mode: AES mode ('cbc', 'ecb', 'cfb', 'ofb')
+                Note: ECB mode is insecure and should only be used for legacy compatibility.
 
         Returns:
             Decrypted data as bytes
@@ -142,14 +148,15 @@ class CryptoHelpers:
                 algorithms.AES(key), modes.CBC(iv), backend=default_backend()
             )
         elif mode == "ecb":
-            cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=default_backend())
+            # nosec B305 - ECB mode provided for legacy compatibility only
+            cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=default_backend())  # type: ignore[arg-type]  # noqa: B305
         elif mode == "cfb":
             cipher = Cipher(
-                algorithms.AES(key), modes.CFB(iv), backend=default_backend()
+                algorithms.AES(key), modes.CFB(iv), backend=default_backend()  # type: ignore[arg-type]
             )
         elif mode == "ofb":
             cipher = Cipher(
-                algorithms.AES(key), modes.OFB(iv), backend=default_backend()
+                algorithms.AES(key), modes.OFB(iv), backend=default_backend()  # type: ignore[arg-type]
             )
         else:
             raise ValueError(f"Unsupported AES mode: {mode}")
@@ -225,10 +232,10 @@ class CryptoHelpers:
             hash_algo = hashes.SHA256()
             max_length = 32 * 255  # 255 * hash_length
         elif algorithm == "sha384":
-            hash_algo = hashes.SHA384()
+            hash_algo = hashes.SHA384()  # type: ignore[assignment]
             max_length = 48 * 255
         elif algorithm == "sha512":
-            hash_algo = hashes.SHA512()
+            hash_algo = hashes.SHA512()  # type: ignore[assignment]
             max_length = 64 * 255
         else:
             raise ValueError(f"Unsupported hash algorithm: {algorithm}")
@@ -377,7 +384,7 @@ class CryptoHelpers:
         if password:
             encryption = serialization.BestAvailableEncryption(password)
         else:
-            encryption = serialization.NoEncryption()
+            encryption = serialization.NoEncryption()  # type: ignore[assignment]
 
         return private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -388,7 +395,7 @@ class CryptoHelpers:
     @staticmethod
     def load_public_key(pem_data: bytes) -> rsa.RSAPublicKey:
         """Load RSA public key from PEM format."""
-        return serialization.load_pem_public_key(pem_data, backend=default_backend())
+        return serialization.load_pem_public_key(pem_data, backend=default_backend())  # type: ignore[return-value]
 
     @staticmethod
     def load_private_key(
@@ -397,7 +404,7 @@ class CryptoHelpers:
         """Load RSA private key from PEM format."""
         return serialization.load_pem_private_key(
             pem_data, password=password, backend=default_backend()
-        )
+        )  # type: ignore[return-value]
 
     @staticmethod
     def get_brainpool_curves() -> List[str]:
@@ -491,9 +498,9 @@ class CryptoHelpers:
         if hash_algorithm == "sha256":
             hash_algo = hashes.SHA256()
         elif hash_algorithm == "sha384":
-            hash_algo = hashes.SHA384()
+            hash_algo = hashes.SHA384()  # type: ignore[assignment]
         elif hash_algorithm == "sha512":
-            hash_algo = hashes.SHA512()
+            hash_algo = hashes.SHA512()  # type: ignore[assignment]
         else:
             raise ValueError(f"Unsupported hash algorithm: {hash_algorithm}")
 
@@ -526,9 +533,9 @@ class CryptoHelpers:
         if hash_algorithm == "sha256":
             hash_algo = hashes.SHA256()
         elif hash_algorithm == "sha384":
-            hash_algo = hashes.SHA384()
+            hash_algo = hashes.SHA384()  # type: ignore[assignment]
         elif hash_algorithm == "sha512":
-            hash_algo = hashes.SHA512()
+            hash_algo = hashes.SHA512()  # type: ignore[assignment]
         else:
             raise ValueError(f"Unsupported hash algorithm: {hash_algorithm}")
 
@@ -665,7 +672,7 @@ class CryptoHelpers:
         if password:
             encryption = serialization.BestAvailableEncryption(password)
         else:
-            encryption = serialization.NoEncryption()
+            encryption = serialization.NoEncryption()  # type: ignore[assignment]
 
         return private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -765,7 +772,7 @@ class GNURadioCryptoUtils:
         return data.tobytes()
 
     @staticmethod
-    def bytes_to_numpy(data: bytes, dtype: np.dtype = np.uint8) -> np.ndarray:
+    def bytes_to_numpy(data: bytes, dtype: np.dtype = np.uint8) -> np.ndarray:  # type: ignore[assignment]
         """Convert bytes to numpy array."""
         return np.frombuffer(data, dtype=dtype)
 
@@ -803,7 +810,7 @@ if __name__ == "__main__":
 
     # Decrypt the data
     decrypted = crypto.aes_decrypt(encrypted, key, iv)
-    print(f"Decrypted: {decrypted}")
+    print(f"Decrypted: {decrypted!r}")
 
     # Hash the data
     hash_digest = crypto.hash_data(data)

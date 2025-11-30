@@ -384,9 +384,17 @@ def download_wycheproof_vectors(curve: str, test_type: str = "ecdh") -> Optional
     base_url = "https://raw.githubusercontent.com/google/wycheproof/master/testvectors"
     url = f"{base_url}/{filename}"
 
+    # Validate URL scheme
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        print(f"Invalid URL scheme (only http/https allowed): {url}")
+        return None
+
     try:
         print(f"Downloading {filename} from Wycheproof...")
-        urllib.request.urlretrieve(url, str(local_path))
+        # nosec B310 - URL scheme validated above
+        urllib.request.urlretrieve(url, str(local_path))  # noqa: B310
         print(f"Downloaded to {local_path}")
         return str(local_path)
     except Exception as e:

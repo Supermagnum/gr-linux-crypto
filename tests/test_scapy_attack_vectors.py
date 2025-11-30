@@ -10,7 +10,6 @@ when using GNU Radio in hostile environments.
 from __future__ import annotations
 
 import random
-from typing import Tuple
 
 from scapy.all import (
     ARP,
@@ -116,4 +115,3 @@ def test_dns_amplification_packet_query():
     assert field.i2repr(dns.qd, dns.qd.qtype) in {"ANY", "ALL"}
     assert dns.rd == 1
     assert bytes(pkt)
-

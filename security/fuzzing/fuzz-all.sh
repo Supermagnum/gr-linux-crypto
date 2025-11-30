@@ -52,28 +52,28 @@ cd ../../corpus_creation
 if [ -f "kernel_keyring_corpus.sh" ]; then
     echo "Generating kernel keyring corpus..."
     bash kernel_keyring_corpus.sh
-    cp -r kernel_keyring_corpus/* ../reports/$FUZZ_DIR/corpus/kernel_keyring/
+    cp -r kernel_keyring_corpus/* "../reports/${FUZZ_DIR}/corpus/kernel_keyring/"
 fi
 
 if [ -f "kernel_crypto_aes_corpus.sh" ]; then
     echo "Generating kernel crypto AES corpus..."
     bash kernel_crypto_aes_corpus.sh
-    cp -r kernel_crypto_aes_corpus/* ../reports/$FUZZ_DIR/corpus/kernel_crypto_aes/
+    cp -r kernel_crypto_aes_corpus/* "../reports/${FUZZ_DIR}/corpus/kernel_crypto_aes/"
 fi
 
 if [ -f "openssl_corpus.sh" ]; then
     echo "Generating OpenSSL corpus..."
     bash openssl_corpus.sh
-    cp -r openssl_corpus/* ../reports/$FUZZ_DIR/corpus/openssl/
+    cp -r openssl_corpus/* "../reports/${FUZZ_DIR}/corpus/openssl/"
 fi
 
 if [ -f "nitrokey_corpus.sh" ]; then
     echo "Generating Nitrokey corpus..."
     bash nitrokey_corpus.sh
-    cp -r nitrokey_corpus/* ../reports/$FUZZ_DIR/corpus/nitrokey/
+    cp -r nitrokey_corpus/* "../reports/${FUZZ_DIR}/corpus/nitrokey/"
 fi
 
-cd ../reports/$FUZZ_DIR
+cd "../reports/${FUZZ_DIR}"
 
 # Create test cases
 echo "Creating test cases..."

@@ -300,7 +300,7 @@ if __name__ == "__main__":
 
     # Read the key back
     key_data = helper.read_key(key_id)
-    print(f"Key data: {key_data}")
+    print(f"Key data: {key_data!r}")
 
     # List all keys
     keys = helper.list_keys()

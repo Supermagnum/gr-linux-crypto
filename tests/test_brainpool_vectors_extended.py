@@ -299,16 +299,24 @@ def download_linux_kernel_testmgr() -> Optional[str]:
     """Download Linux kernel testmgr.h."""
     import urllib.request
     from pathlib import Path
+    from urllib.parse import urlparse
 
     url = "https://raw.githubusercontent.com/torvalds/linux/master/crypto/testmgr.h"
     output_path = Path(__file__).parent / "test_vectors" / "testmgr.h"
+
+    # Validate URL scheme
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        print(f"Invalid URL scheme (only http/https allowed): {url}")
+        return None
 
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not output_path.exists():
             print("Downloading testmgr.h from Linux kernel...")
-            urllib.request.urlretrieve(url, str(output_path))
+            # nosec B310 - URL scheme validated above
+            urllib.request.urlretrieve(url, str(output_path))  # noqa: B310
             print(f"Downloaded to {output_path}")
 
         return str(output_path)

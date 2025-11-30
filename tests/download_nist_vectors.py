@@ -136,11 +136,23 @@ Tag = 2df7cd675b4f09163b41ebf980a7f638
     return aes_gcm_128, aes_gcm_256
 
 
+def _validate_url_scheme(url: str) -> bool:
+    """Validate that URL uses a permitted scheme (http/https only)."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    return parsed.scheme in ("http", "https")
+
+
 def download_file(url: str, dest_path: Path) -> bool:
     """Download a file from URL to dest_path."""
+    # Validate URL scheme to prevent security issues
+    if not _validate_url_scheme(url):
+        print(f"  Invalid URL scheme (only http/https allowed): {url}")
+        return False
     try:
         print(f"  Downloading from {url}...")
-        urllib.request.urlretrieve(url, dest_path)
+        # nosec B310 - URL scheme validated above
+        urllib.request.urlretrieve(url, dest_path)  # noqa: B310
         return True
     except urllib.error.URLError as e:
         print(f"  Failed to download from {url}: {e}")
