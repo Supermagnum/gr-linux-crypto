@@ -1738,6 +1738,133 @@ Overhead = 0.009 ms / 40 ms = 0.000225 = 0.0225%
 - ChaCha20-Poly1305: ~5 ms (for 4096 bytes at 200 MB/s)
 - **Conclusion:** Overhead increases with frame size but remains acceptable
 
+#### Digital Signature Overhead
+
+Digital signatures add bytes to your data but do not encrypt it. Understanding signature size is crucial for protocol design and bandwidth planning.
+
+**Signature Sizes by Algorithm:**
+
+| Algorithm | Curve/Type | Signature Size | Format |
+|-----------|------------|----------------|--------|
+| Ed25519 | Ed25519 | 64 bytes | Fixed size |
+| ECDSA | BrainpoolP256r1 | 70-72 bytes | DER encoded |
+| ECDSA | BrainpoolP384r1 | 104-106 bytes | DER encoded |
+| ECDSA | BrainpoolP512r1 | 136-138 bytes | DER encoded |
+
+**Note:** ECDSA signatures use DER encoding, which adds 6-8 bytes of overhead to the raw signature (r and s components). Actual size may vary slightly based on the values of r and s.
+
+**Example: M17 Voice Frame with Signature**
+
+**Scenario:** Signing M17 voice frames (16 bytes) with Ed25519
+
+**Without Signature:**
+- Frame size: 16 bytes
+- Total transmission: 16 bytes
+
+**With Ed25519 Signature:**
+- Frame size: 16 bytes
+- Signature size: 64 bytes
+- Total transmission: 80 bytes
+- **Overhead:** 64 bytes (400% increase in frame size)
+
+**Calculation:**
+```
+Overhead = Signature size / Original frame size
+Overhead = 64 bytes / 16 bytes = 4.0 = 400%
+```
+
+**Example: M17 Voice Frame with BrainpoolP256r1 ECDSA Signature**
+
+**Without Signature:**
+- Frame size: 16 bytes
+- Total transmission: 16 bytes
+
+**With BrainpoolP256r1 ECDSA Signature:**
+- Frame size: 16 bytes
+- Signature size: 72 bytes (typical DER encoded)
+- Total transmission: 88 bytes
+- **Overhead:** 72 bytes (450% increase in frame size)
+
+**Example: Larger Frame (256 bytes) with Ed25519 Signature**
+
+**Without Signature:**
+- Frame size: 256 bytes
+- Total transmission: 256 bytes
+
+**With Ed25519 Signature:**
+- Frame size: 256 bytes
+- Signature size: 64 bytes
+- Total transmission: 320 bytes
+- **Overhead:** 64 bytes (25% increase in frame size)
+
+**Calculation:**
+```
+Overhead percentage = (Signature size / Original frame size) × 100
+Overhead percentage = (64 / 256) × 100 = 25%
+```
+
+**Example: 1 Minute of M17 Voice with Signatures**
+
+**Given:**
+- Frame size: 16 bytes
+- Frame rate: 25 frames/second
+- Duration: 60 seconds
+- Signature algorithm: Ed25519 (64 bytes)
+
+**Without Signatures:**
+- Total frames: 60 × 25 = 1,500 frames
+- Total data: 1,500 × 16 = 24,000 bytes = 24 KB
+
+**With Signatures:**
+- Total frames: 1,500 frames
+- Data per frame: 16 bytes
+- Signature per frame: 64 bytes
+- Total data: 1,500 × (16 + 64) = 120,000 bytes = 120 KB
+- **Overhead:** 96 KB (400% increase)
+
+**Bandwidth Impact:**
+- Without signatures: 24 KB/minute = 400 bytes/second
+- With signatures: 120 KB/minute = 2,000 bytes/second
+- **Additional bandwidth:** 1,600 bytes/second
+
+**Example: Comparing Signature Algorithms for Protocol Design**
+
+**Scenario:** Choosing signature algorithm for a protocol with 32-byte frames
+
+| Algorithm | Signature Size | Total Frame Size | Overhead % |
+|-----------|----------------|------------------|------------|
+| Ed25519 | 64 bytes | 96 bytes | 200% |
+| BrainpoolP256r1 | 72 bytes | 104 bytes | 225% |
+| BrainpoolP384r1 | 106 bytes | 138 bytes | 331% |
+| BrainpoolP512r1 | 138 bytes | 170 bytes | 431% |
+
+**Recommendation:** For small frames, Ed25519 provides the smallest signature overhead. For larger frames (> 128 bytes), the difference becomes less significant.
+
+**Signature Overhead Summary:**
+
+| Original Frame Size | Ed25519 Overhead | BrainpoolP256r1 Overhead | Overhead % (Ed25519) | Overhead % (P256r1) |
+|---------------------|------------------|--------------------------|----------------------|---------------------|
+| 16 bytes | +64 bytes | +72 bytes | 400% | 450% |
+| 32 bytes | +64 bytes | +72 bytes | 200% | 225% |
+| 64 bytes | +64 bytes | +72 bytes | 100% | 112.5% |
+| 128 bytes | +64 bytes | +72 bytes | 50% | 56.25% |
+| 256 bytes | +64 bytes | +72 bytes | 25% | 28.125% |
+| 512 bytes | +64 bytes | +72 bytes | 12.5% | 14.06% |
+| 1024 bytes | +64 bytes | +72 bytes | 6.25% | 7.03% |
+
+**Key Takeaways:**
+- Signature overhead is **fixed size** (64-138 bytes depending on algorithm)
+- Overhead percentage **decreases** as frame size increases
+- For small frames (< 64 bytes), signature overhead is significant (100%+)
+- For larger frames (> 256 bytes), signature overhead becomes minimal (< 30%)
+- Ed25519 provides the smallest signature size (64 bytes) for most use cases
+
+**Best Practices:**
+- **Small frames (< 64 bytes):** Consider signing every N frames instead of every frame to reduce overhead
+- **Medium frames (64-256 bytes):** Signing every frame is acceptable (25-100% overhead)
+- **Large frames (> 256 bytes):** Signing every frame adds minimal overhead (< 30%)
+- **Protocol design:** Include signature size in frame format specifications
+
 ### Overhead Calculation Examples
 
 #### Example 1: Calculating Overhead for Custom Frame Size
@@ -1856,6 +1983,9 @@ Overhead percentage = (0.09 / 300) × 100 = 0.03%
 - Overhead increases with frame size but remains acceptable
 - Real-time voice applications experience < 0.1% overhead
 - Bulk data transfers add minimal latency (< 5 ms per MB)
+- **Digital signatures add fixed-size overhead (64-138 bytes)** - see [Digital Signature Overhead](#digital-signature-overhead) section for details
+
+**Note:** The overhead table above shows **encryption latency overhead**. For **signature size overhead** (bytes added to frame), see the [Digital Signature Overhead](#digital-signature-overhead) section above.
 
 For detailed performance test results, see [TEST_RESULTS.md](tests/TEST_RESULTS.md#performance-benchmarks).
 
