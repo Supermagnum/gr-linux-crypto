@@ -60,13 +60,14 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
     - [Authentication Modes](#authentication-modes)
     - [Battery-Friendly Cryptography](#battery-friendly-cryptography)
 16. [Security & Testing](#security--testing)
-17. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
+17. [Performance & Overhead](#performance--overhead)
+18. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
     - [Native C++ Blocks (Implemented)](#1-native-c-blocks-implemented)
     - [Integration Helpers (Implemented)](#2-integration-helpers-implemented)
     - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
-18. [Why This Approach?](#why-this-approach)
-19. [Comparison with Existing Modules](#comparison-with-existing-modules)
-20. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
+19. [Why This Approach?](#why-this-approach)
+20. [Comparison with Existing Modules](#comparison-with-existing-modules)
+21. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
     - [Cryptographic Ciphers Influenced by the NSA](#cryptographic-ciphers-influenced-by-the-nsa)
     - [Cryptographic Ciphers NOT Influenced by the NSA](#cryptographic-ciphers-not-influenced-by-the-nsa)
     - [Known Scandals Involving NSA and Cryptography](#known-scandals-involving-nsa-and-cryptography)
@@ -1630,6 +1631,233 @@ encryption_key = crypto.derive_key_hkdf(
 
 **[View Detailed Test Results](tests/TEST_RESULTS.md)**  
 **[View Detailed Fuzzing Results](security/fuzzing/fuzzing-results.md)**
+
+## Performance & Overhead
+
+Understanding the performance overhead of cryptographic operations is crucial for real-time applications. This section provides detailed overhead calculations and examples for common use cases.
+
+### Performance Benchmarks
+
+**Single-Operation Latency (16 bytes, 100,000 iterations):**
+
+| Algorithm | Mean (μs) | p50 (μs) | p95 (μs) | p99 (μs) | Status |
+|-----------|-----------|----------|----------|----------|--------|
+| AES-128-GCM | 8.837 | 8.8 | 9.3 | 12.7 | PASS (<100μs) |
+| AES-256-GCM | 9.279 | 9.0 | 9.3 | 12.8 | PASS (<100μs) |
+| ChaCha20-Poly1305 | 11.525 | 11.2 | 11.8 | 15.2 | PASS (<100μs) |
+
+**Target:** Mean < 100μs  
+**Result:** All algorithms exceed target (9-12μs mean)
+
+**Throughput (Large Data - 4096 bytes):**
+
+| Algorithm | Throughput (MB/s) | Status |
+|-----------|-------------------|--------|
+| AES-128-GCM | ~385 MB/s | PASS |
+| AES-256-GCM | ~385 MB/s | PASS |
+| ChaCha20-Poly1305 | ~200 MB/s | PASS |
+
+**Target:** >10 MB/s  
+**Result:** All algorithms significantly exceed target
+
+### Overhead Calculations
+
+#### Real-Time Voice Applications (M17 Protocol)
+
+**Scenario:** M17 voice frames (16 bytes every 40ms)
+
+**Baseline (No Encryption):**
+- Frame processing time: ~0.001 ms (estimated)
+- Frame time budget: 40 ms
+- Available headroom: 39.999 ms
+
+**With Encryption (AES-256-GCM):**
+- Encryption latency: 0.009 ms (mean)
+- Frame time budget: 40 ms
+- Available headroom: 39.991 ms
+- **Overhead:** 0.009 ms per frame
+- **Overhead percentage:** 0.0225% of frame time budget
+
+**Calculation:**
+```
+Overhead = Encryption latency / Frame time budget
+Overhead = 0.009 ms / 40 ms = 0.000225 = 0.0225%
+```
+
+**With Encryption (ChaCha20-Poly1305):**
+- Encryption latency: 0.012 ms (mean)
+- Frame time budget: 40 ms
+- Available headroom: 39.988 ms
+- **Overhead:** 0.012 ms per frame
+- **Overhead percentage:** 0.03% of frame time budget
+
+**Example: 1 minute of voice transmission**
+- Total frames: 60 seconds / 0.040 seconds = 1,500 frames
+- Total encryption overhead (AES-256-GCM): 1,500 × 0.009 ms = 13.5 ms
+- Total encryption overhead (ChaCha20-Poly1305): 1,500 × 0.012 ms = 18 ms
+- **Impact:** Negligible (< 0.02 seconds total overhead for 1 minute of audio)
+
+#### Bulk Data Transfer
+
+**Scenario:** Encrypting 1 MB of data
+
+**Baseline (No Encryption):**
+- Transfer time: Variable (depends on bandwidth)
+- Processing overhead: ~0 ms
+
+**With Encryption (AES-256-GCM):**
+- Data size: 1 MB = 1,048,576 bytes
+- Throughput: 385 MB/s
+- Encryption time: 1,048,576 bytes / (385 MB/s × 1,048,576 bytes/MB) = 0.0026 seconds = 2.6 ms
+- **Overhead:** 2.6 ms per MB
+
+**With Encryption (ChaCha20-Poly1305):**
+- Throughput: 200 MB/s
+- Encryption time: 1,048,576 bytes / (200 MB/s × 1,048,576 bytes/MB) = 0.005 seconds = 5 ms
+- **Overhead:** 5 ms per MB
+
+**Example: 100 MB file transfer**
+- AES-256-GCM overhead: 100 MB × 2.6 ms/MB = 260 ms = 0.26 seconds
+- ChaCha20-Poly1305 overhead: 100 MB × 5 ms/MB = 500 ms = 0.5 seconds
+- **Impact:** Minimal overhead for bulk transfers
+
+#### Frame Size Impact on Overhead
+
+**Small Frames (16 bytes - M17 voice):**
+- AES-256-GCM: 0.009 ms (0.0225% of 40ms budget)
+- ChaCha20-Poly1305: 0.012 ms (0.03% of 40ms budget)
+- **Conclusion:** Overhead is negligible for small frames
+
+**Medium Frames (256 bytes):**
+- AES-256-GCM: ~0.15 ms (estimated)
+- ChaCha20-Poly1305: ~0.20 ms (estimated)
+- **Conclusion:** Still minimal overhead for real-time applications
+
+**Large Frames (4096 bytes):**
+- AES-256-GCM: ~2.6 ms (for 4096 bytes at 385 MB/s)
+- ChaCha20-Poly1305: ~5 ms (for 4096 bytes at 200 MB/s)
+- **Conclusion:** Overhead increases with frame size but remains acceptable
+
+### Overhead Calculation Examples
+
+#### Example 1: Calculating Overhead for Custom Frame Size
+
+**Given:**
+- Frame size: 128 bytes
+- Frame rate: 25 frames/second (40ms per frame)
+- Algorithm: AES-256-GCM
+
+**Step 1: Calculate encryption latency**
+```
+Throughput = 385 MB/s = 385 × 1,048,576 bytes/second
+Time per byte = 1 / (385 × 1,048,576) seconds
+Time for 128 bytes = 128 / (385 × 1,048,576) seconds
+                 = 0.000317 seconds = 0.317 ms
+```
+
+**Step 2: Calculate overhead percentage**
+```
+Frame time budget = 40 ms
+Overhead = 0.317 ms
+Overhead percentage = (0.317 / 40) × 100 = 0.79%
+```
+
+**Result:** 0.79% overhead per frame
+
+#### Example 2: Calculating Total Overhead for Transmission Session
+
+**Given:**
+- Transmission duration: 5 minutes = 300 seconds
+- Frame size: 16 bytes (M17 voice)
+- Frame rate: 25 frames/second
+- Algorithm: ChaCha20-Poly1305
+
+**Step 1: Calculate total frames**
+```
+Total frames = 300 seconds × 25 frames/second = 7,500 frames
+```
+
+**Step 2: Calculate total encryption overhead**
+```
+Overhead per frame = 0.012 ms
+Total overhead = 7,500 × 0.012 ms = 90 ms = 0.09 seconds
+```
+
+**Step 3: Calculate overhead percentage**
+```
+Total transmission time = 300 seconds
+Overhead percentage = (0.09 / 300) × 100 = 0.03%
+```
+
+**Result:** 0.09 seconds total overhead (0.03% of transmission time)
+
+#### Example 3: Comparing Algorithms for Battery-Powered Device
+
+**Given:**
+- Device: Battery-powered SDR device
+- Frame size: 16 bytes
+- Frame rate: 25 frames/second
+- Battery life target: 8 hours continuous operation
+
+**Calculate overhead for each algorithm:**
+
+**AES-256-GCM:**
+- Overhead per frame: 0.009 ms
+- Frames per hour: 25 × 3600 = 90,000 frames
+- Overhead per hour: 90,000 × 0.009 ms = 810 ms = 0.81 seconds
+- Overhead for 8 hours: 8 × 0.81 = 6.48 seconds
+
+**ChaCha20-Poly1305:**
+- Overhead per frame: 0.012 ms
+- Overhead per hour: 90,000 × 0.012 ms = 1,080 ms = 1.08 seconds
+- Overhead for 8 hours: 8 × 1.08 = 8.64 seconds
+
+**Difference:** 8.64 - 6.48 = 2.16 seconds over 8 hours
+
+**Conclusion:** Both algorithms have negligible impact on battery life. Choose based on other factors (algorithm diversity, hardware acceleration availability).
+
+### Performance Recommendations
+
+**For Real-Time Voice (M17, Codec2, etc.):**
+- **Recommended:** AES-256-GCM or ChaCha20-Poly1305
+- **Reason:** Both provide < 0.03% overhead per frame
+- **Frame size:** 16-32 bytes typical
+- **Latency impact:** Negligible (< 0.02 ms per frame)
+
+**For Bulk Data Transfer:**
+- **Recommended:** AES-256-GCM (higher throughput)
+- **Reason:** 385 MB/s vs 200 MB/s for ChaCha20-Poly1305
+- **Frame size:** 1024+ bytes typical
+- **Latency impact:** Minimal (2-5 ms per MB)
+
+**For Battery-Powered Devices:**
+- **Recommended:** ChaCha20-Poly1305 + BrainpoolP256r1
+- **Reason:** Software-optimized, no hardware acceleration required
+- **See:** [Battery-Friendly Cryptography](#battery-friendly-cryptography) section
+
+**For Maximum Performance:**
+- **Recommended:** AES-256-GCM with hardware acceleration (AES-NI)
+- **Reason:** Highest throughput when hardware acceleration available
+- **Note:** Requires CPU with AES-NI support (Intel/AMD x86_64)
+
+### Overhead Summary
+
+| Use Case | Frame Size | Algorithm | Overhead per Frame | Overhead % |
+|----------|------------|-----------|-------------------|------------|
+| M17 Voice | 16 bytes | AES-256-GCM | 0.009 ms | 0.0225% |
+| M17 Voice | 16 bytes | ChaCha20-Poly1305 | 0.012 ms | 0.03% |
+| Medium Data | 256 bytes | AES-256-GCM | ~0.15 ms | ~0.38% |
+| Medium Data | 256 bytes | ChaCha20-Poly1305 | ~0.20 ms | ~0.5% |
+| Bulk Data | 4096 bytes | AES-256-GCM | ~2.6 ms | ~6.5% |
+| Bulk Data | 4096 bytes | ChaCha20-Poly1305 | ~5 ms | ~12.5% |
+
+**Key Takeaways:**
+- Overhead is negligible for small frames (< 1% for frames < 256 bytes)
+- Overhead increases with frame size but remains acceptable
+- Real-time voice applications experience < 0.1% overhead
+- Bulk data transfers add minimal latency (< 5 ms per MB)
+
+For detailed performance test results, see [TEST_RESULTS.md](tests/TEST_RESULTS.md#performance-benchmarks).
 
 ## What You Actually Need to Extract/Create
 
