@@ -200,6 +200,12 @@ if(ENABLE_PYTHON)
         target_compile_definitions(linux_crypto_python PRIVATE HAVE_OPENSSL)
     endif()
     
+    # Set RPATH so Python module can find the library
+    set_target_properties(linux_crypto_python PROPERTIES
+        INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib"
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+    
     # Install Python module
     install(TARGETS linux_crypto_python
         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/python3/dist-packages
