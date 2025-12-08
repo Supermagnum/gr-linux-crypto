@@ -1309,6 +1309,28 @@ decrypt_block = linux_crypto.brainpool_ecies_multi_decrypt(
 )
 ```
 
+**ECDSA Signing/Verification:**
+
+The module provides GNU Radio blocks for ECDSA signing and verification:
+
+```python
+from gnuradio import linux_crypto
+
+# Create signing block
+sign_block = linux_crypto.brainpool_ecdsa_sign(
+    curve='brainpoolP256r1',
+    private_key_pem=private_key_pem,
+    hash_algorithm='sha256'  # sha256, sha384, or sha512
+)
+
+# Create verification block
+verify_block = linux_crypto.brainpool_ecdsa_verify(
+    curve='brainpoolP256r1',
+    public_key_pem=public_key_pem,
+    hash_algorithm='sha256'  # sha256, sha384, or sha512
+)
+```
+
 **OpenSSL Requirements:**
 - Brainpool support requires OpenSSL 1.0.2 or later
 - OpenSSL 3.x provides improved Brainpool support
@@ -1533,17 +1555,17 @@ This module provides two distinct types of cryptographic operations:
 **Brainpool Elliptic Curves**
 - **brainpoolP256r1** (256-bit curve)
   - ECDH (Elliptic Curve Diffie-Hellman) key exchange
-  - ECDSA (Elliptic Curve Digital Signature Algorithm) signing/verification
+  - ECDSA (Elliptic Curve Digital Signature Algorithm) signing/verification (GNU Radio blocks available)
   - ECIES (Elliptic Curve Integrated Encryption Scheme) encryption/decryption
   - Multi-recipient ECIES (up to 25 recipients)
 - **brainpoolP384r1** (384-bit curve)
   - ECDH key exchange
-  - ECDSA signing/verification
+  - ECDSA signing/verification (GNU Radio blocks available)
   - ECIES encryption/decryption
   - Multi-recipient ECIES (up to 25 recipients)
 - **brainpoolP512r1** (512-bit curve)
   - ECDH key exchange
-  - ECDSA signing/verification
+  - ECDSA signing/verification (GNU Radio blocks available)
   - ECIES encryption/decryption
   - Multi-recipient ECIES (up to 25 recipients)
 
