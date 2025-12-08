@@ -97,16 +97,6 @@ except ImportError as e:
 
         # Build minimal __all__ for Python fallback
         __all__ = []
-
-        except ImportError:
-            # Python fallback also failed
-            raise ImportError(
-                f"Failed to import linux_crypto_python module: {e}\n"
-                "Make sure the module is built and installed correctly.\n"
-                "Run 'sudo make install' from the build directory.\n"
-                "\n"
-                "Python fallback also unavailable."
-            ) from e
     else:
         # Other import error (not linking-related)
         raise ImportError(
