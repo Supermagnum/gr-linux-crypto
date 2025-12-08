@@ -47,7 +47,13 @@ try:
         get_integration_status = linux_crypto_python.get_integration_status
 
     # Build __all__ list dynamically
-    __all__ = ["kernel_keyring_source", "nitrokey_interface", "kernel_crypto_aes"]
+    __all__ = [
+        "kernel_keyring_source",
+        "nitrokey_interface",
+        "kernel_crypto_aes",
+        "is_cpp_module_available",
+        "get_linking_error",
+    ]
     if hasattr(linux_crypto_python, "brainpool_ecies_encrypt"):
         __all__.extend(["brainpool_ecies_encrypt", "brainpool_ecies_decrypt"])
     if hasattr(linux_crypto_python, "brainpool_ecies_multi_encrypt"):
@@ -96,7 +102,7 @@ except ImportError as e:
         _CPP_MODULE_AVAILABLE = False
 
         # Build minimal __all__ for Python fallback
-        __all__ = []
+        __all__ = ["is_cpp_module_available", "get_linking_error"]
     else:
         # Other import error (not linking-related)
         raise ImportError(
