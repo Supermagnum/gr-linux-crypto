@@ -8,7 +8,7 @@ This module imports the pybind11 bindings and exposes them as gnuradio.linux_cry
 # Import GNU Radio base classes first to ensure types are registered
 # This must happen before importing the pybind11 module
 try:
-    from gnuradio import gr
+    import gnuradio.gr  # noqa: F401
 except ImportError:
     pass  # Will fail later if GNU Radio is not available
 
@@ -28,9 +28,13 @@ try:
     if hasattr(linux_crypto_python, "brainpool_ecies_decrypt"):
         brainpool_ecies_decrypt = linux_crypto_python.brainpool_ecies_decrypt
     if hasattr(linux_crypto_python, "brainpool_ecies_multi_encrypt"):
-        brainpool_ecies_multi_encrypt = linux_crypto_python.brainpool_ecies_multi_encrypt
+        brainpool_ecies_multi_encrypt = (
+            linux_crypto_python.brainpool_ecies_multi_encrypt
+        )
     if hasattr(linux_crypto_python, "brainpool_ecies_multi_decrypt"):
-        brainpool_ecies_multi_decrypt = linux_crypto_python.brainpool_ecies_multi_decrypt
+        brainpool_ecies_multi_decrypt = (
+            linux_crypto_python.brainpool_ecies_multi_decrypt
+        )
 
     # Expose any module-level functions
     if hasattr(linux_crypto_python, "get_integration_status"):
@@ -41,7 +45,9 @@ try:
     if hasattr(linux_crypto_python, "brainpool_ecies_encrypt"):
         __all__.extend(["brainpool_ecies_encrypt", "brainpool_ecies_decrypt"])
     if hasattr(linux_crypto_python, "brainpool_ecies_multi_encrypt"):
-        __all__.extend(["brainpool_ecies_multi_encrypt", "brainpool_ecies_multi_decrypt"])
+        __all__.extend(
+            ["brainpool_ecies_multi_encrypt", "brainpool_ecies_multi_decrypt"]
+        )
 
 except ImportError as e:
     # If pybind11 module not found, provide helpful error

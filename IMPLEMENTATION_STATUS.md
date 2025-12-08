@@ -1,11 +1,11 @@
 # Multi-Recipient ECIES Implementation Status
 
-**Date:** 2025-11-16  
+**Date:** 2025-11-16 (Updated: 2025-11-16)  
 **Status:** FULLY IMPLEMENTED - All components complete and tested
 
 ## Summary
 
-The multi-recipient ECIES functionality has been fully implemented at both Python and C++ levels with comprehensive testing. All components are complete, tested, and ready for production use.
+The multi-recipient ECIES functionality has been fully implemented at both Python and C++ levels with comprehensive testing. All components are complete, tested, and ready for production use. The implementation now supports both AES-256-GCM and ChaCha20-Poly1305 symmetric ciphers for bulk payload encryption.
 
 ## Fully Implemented Components
 
@@ -15,9 +15,12 @@ The multi-recipient ECIES functionality has been fully implemented at both Pytho
 - **Features:**
   - Multi-recipient encryption (1-25 recipients)
   - Format parsing and generation
-  - AES-GCM payload encryption
+  - Dual symmetric cipher support:
+    - AES-256-GCM (default, hardware-accelerated)
+    - ChaCha20-Poly1305 (battery-friendly, software-optimized)
   - HKDF key derivation
   - All Brainpool curves supported (P256r1, P384r1, P512r1)
+  - Automatic cipher detection from header during decryption
 
 ### 2. Callsign Key Store [COMPLETE]
 - **File:** `python/callsign_key_store.py`
@@ -32,10 +35,14 @@ The multi-recipient ECIES functionality has been fully implemented at both Pytho
 - **File:** `docs/multi_recipient_ecies_format.md`
 - **Status:** Complete
 - **Content:** Binary format specification with detailed field descriptions
+- **Features:**
+  - Cipher ID field in header (byte 3)
+  - Supports AES-256-GCM (0x01) and ChaCha20-Poly1305 (0x02)
+  - Backward compatible with existing AES-GCM format
 
 ### 4. Unit Tests [COMPLETE]
 - **File:** `tests/test_multi_recipient_ecies.py`
-- **Status:** 16/16 tests passing (100%)
+- **Status:** 20/20 tests passing (100%)
 - **Coverage:**
   - Single recipient encryption/decryption
   - Multiple recipients (1-25)
@@ -46,6 +53,9 @@ The multi-recipient ECIES functionality has been fully implemented at both Pytho
   - Edge cases (empty plaintext, invalid inputs, missing keys)
   - Callsign handling (case insensitivity, duplicate rejection)
   - Known test vectors
+  - ChaCha20-Poly1305 cipher support (4 new tests)
+  - Cipher interoperability validation
+  - Invalid cipher name handling
 
 ### 5. Documentation [COMPLETE]
 - **Files:**
@@ -73,9 +83,12 @@ The multi-recipient ECIES functionality has been fully implemented at both Pytho
   - Multi-recipient encryption (1-25 recipients)
   - Callsign-based key lookup from JSON key store
   - Format parsing and generation
-  - AES-GCM payload encryption
+  - Dual symmetric cipher support:
+    - AES-256-GCM (default, hardware-accelerated)
+    - ChaCha20-Poly1305 (battery-friendly, software-optimized)
   - ECIES symmetric key encryption per recipient
   - Thread-safe operations
+  - Cipher selection via constructor parameter
 
 ### 3. Python Bindings [COMPLETE]
 - **File:** `python/linux_crypto_python.cc`
@@ -104,14 +117,23 @@ The Python API is fully functional and can be used directly:
 from python.multi_recipient_ecies import MultiRecipientECIES
 from python.callsign_key_store import CallsignKeyStore
 
-# Create ECIES instance
-ecies = MultiRecipientECIES(curve='brainpoolP256r1')
+# Create ECIES instance (AES-GCM, default)
+ecies_aes = MultiRecipientECIES(
+    curve='brainpoolP256r1',
+    symmetric_cipher='aes-gcm'
+)
+
+# Or use ChaCha20-Poly1305 for battery-friendly encryption
+ecies_chacha = MultiRecipientECIES(
+    curve='brainpoolP256r1',
+    symmetric_cipher='chacha20-poly1305'
+)
 
 # Encrypt for multiple recipients
-encrypted = ecies.encrypt(plaintext, ['W1ABC', 'K2XYZ', 'N3DEF'])
+encrypted = ecies_aes.encrypt(plaintext, ['W1ABC', 'K2XYZ', 'N3DEF'])
 
-# Decrypt (each recipient)
-decrypted = ecies.decrypt(encrypted, 'W1ABC', private_key_pem)
+# Decrypt (each recipient) - automatically detects cipher from header
+decrypted = ecies_aes.decrypt(encrypted, 'W1ABC', private_key_pem)
 ```
 
 The C++ GNU Radio blocks are also available:
@@ -119,11 +141,20 @@ The C++ GNU Radio blocks are also available:
 ```python
 from gnuradio import linux_crypto
 
-# Create multi-recipient encrypt block
+# Create multi-recipient encrypt block (AES-GCM, default)
 encrypt_block = linux_crypto.brainpool_ecies_multi_encrypt(
     curve='brainpoolP256r1',
     callsigns=['W1ABC', 'K2XYZ'],
-    key_store_path=''
+    key_store_path='',
+    symmetric_cipher='aes-gcm'
+)
+
+# Or use ChaCha20-Poly1305
+encrypt_block_chacha = linux_crypto.brainpool_ecies_multi_encrypt(
+    curve='brainpoolP256r1',
+    callsigns=['W1ABC', 'K2XYZ'],
+    key_store_path='',
+    symmetric_cipher='chacha20-poly1305'
 )
 
 # Create multi-recipient decrypt block
@@ -138,11 +169,13 @@ decrypt_block = linux_crypto.brainpool_ecies_multi_decrypt(
 
 All components have been tested and validated:
 
-1. **Python Tests** - 16/16 passing (100%)
+1. **Python Tests** - 20/20 passing (100%)
    - All recipient counts (1-25) validated
    - All Brainpool curves validated
    - Format validation complete
    - Edge cases handled
+   - ChaCha20-Poly1305 cipher support validated (4 tests)
+   - Cipher interoperability verified
 
 2. **Code Quality**
    - Black formatting: Applied
@@ -157,11 +190,13 @@ All components have been tested and validated:
 
 ## Test Results
 
-**Python Tests:** 16/16 passing (100%)
+**Python Tests:** 20/20 passing (100%)
 - All recipient counts (1-25) validated
 - All Brainpool curves validated
 - Format validation complete
 - Edge cases handled
+- ChaCha20-Poly1305 cipher support validated
+- Cipher interoperability verified
 
 **C++ Implementation:** Files present and integrated
 - Source files: 4 files (2 headers, 2 implementations)
@@ -173,7 +208,8 @@ All components have been tested and validated:
 1. **Python API:** [READY] Fully functional
    - All Python functionality is complete and tested
    - Can be used in Python scripts and GNU Radio Python blocks
-   - 16/16 tests passing
+   - 20/20 tests passing
+   - Supports both AES-GCM and ChaCha20-Poly1305 ciphers
 
 2. **C++ GNU Radio blocks:** [READY] Fully implemented
    - C++ implementation files created and integrated
@@ -195,12 +231,14 @@ The multi-recipient ECIES feature is **FULLY IMPLEMENTED AND TESTED** at both Py
 - [COMPLETE] Multi-recipient encryption (1-25 recipients)
 - [COMPLETE] Callsign-based key lookup
 - [COMPLETE] Format specification
-- [COMPLETE] Comprehensive testing (16/16 tests passing)
+- [COMPLETE] Dual symmetric cipher support (AES-GCM and ChaCha20-Poly1305)
+- [COMPLETE] Comprehensive testing (20/20 tests passing)
 - [COMPLETE] Documentation
 
 **C++ GNU Radio Blocks:**
 - [COMPLETE] C++ implementation files (encrypt and decrypt)
-- [COMPLETE] Python bindings registered
+- [COMPLETE] Dual symmetric cipher support (AES-GCM and ChaCha20-Poly1305)
+- [COMPLETE] Python bindings registered (with cipher selection parameter)
 - [COMPLETE] GRC block definitions created
 - [COMPLETE] CMakeLists.txt integration
 
@@ -211,3 +249,96 @@ The multi-recipient ECIES feature is **FULLY IMPLEMENTED AND TESTED** at both Py
 - [COMPLETE] All 25 recipients validated for decryption
 
 The implementation is production-ready and fully integrated into the GNU Radio Linux Crypto module.
+
+## ChaCha20-Poly1305 Support (Added 2025-11-16)
+
+**Status:** FULLY IMPLEMENTED AND TESTED
+
+### Overview
+
+ChaCha20-Poly1305 symmetric cipher support has been added to the ECIES blocks, providing a battery-friendly alternative to AES-GCM for bulk payload encryption.
+
+### Key Features
+
+- **Dual Cipher Support**: Both AES-256-GCM and ChaCha20-Poly1305 are supported
+- **Automatic Detection**: Decryption automatically detects cipher from header (byte 3)
+- **Backward Compatible**: Default cipher remains AES-GCM (existing code continues to work)
+- **Battery-Friendly**: ChaCha20-Poly1305 recommended for battery-powered devices
+- **Software-Optimized**: ChaCha20-Poly1305 works efficiently without hardware acceleration
+
+### Implementation Details
+
+**Format Changes:**
+- Header byte 3 now contains cipher ID:
+  - `0x01` = AES-256-GCM (default)
+  - `0x02` = ChaCha20-Poly1305
+- Format remains backward compatible with existing AES-GCM encrypted blocks
+
+**Python API:**
+```python
+# AES-GCM (default)
+ecies = MultiRecipientECIES(
+    curve='brainpoolP256r1',
+    symmetric_cipher='aes-gcm'
+)
+
+# ChaCha20-Poly1305
+ecies = MultiRecipientECIES(
+    curve='brainpoolP256r1',
+    symmetric_cipher='chacha20-poly1305'
+)
+```
+
+**C++ API:**
+```python
+# AES-GCM (default)
+encrypt_block = linux_crypto.brainpool_ecies_multi_encrypt(
+    curve='brainpoolP256r1',
+    callsigns=['W1ABC'],
+    symmetric_cipher='aes-gcm'
+)
+
+# ChaCha20-Poly1305
+encrypt_block = linux_crypto.brainpool_ecies_multi_encrypt(
+    curve='brainpoolP256r1',
+    callsigns=['W1ABC'],
+    symmetric_cipher='chacha20-poly1305'
+)
+```
+
+### Testing
+
+- **4 new tests added** for ChaCha20-Poly1305 support
+- **Total test count**: 20/20 passing (100%)
+- **Test coverage**:
+  - Single recipient ChaCha20-Poly1305 encryption/decryption
+  - Multiple recipients ChaCha20-Poly1305 encryption/decryption
+  - Cipher interoperability (AES-GCM and ChaCha20-Poly1305 work independently)
+  - Invalid cipher name validation
+
+### Use Cases
+
+**Use AES-GCM when:**
+- Hardware acceleration (AES-NI) is available
+- Maximum performance is required
+- Standardized cipher is preferred
+
+**Use ChaCha20-Poly1305 when:**
+- Running on battery-powered devices
+- Hardware acceleration is not available
+- Software-only implementation is preferred
+- ARM processors (common in embedded systems)
+
+### Files Modified
+
+- `python/multi_recipient_ecies.py` - Added ChaCha20-Poly1305 methods
+- `lib/brainpool_ecies_multi_encrypt_impl.cc` - Added ChaCha20-Poly1305 encryption
+- `lib/brainpool_ecies_multi_decrypt_impl.cc` - Added ChaCha20-Poly1305 decryption
+- `include/gnuradio/linux_crypto/brainpool_ecies_multi_encrypt.h` - Added cipher parameter
+- `lib/brainpool_ecies_multi_encrypt_impl.h` - Added cipher support declarations
+- `lib/brainpool_ecies_multi_decrypt_impl.h` - Added cipher support declarations
+- `python/linux_crypto_python.cc` - Updated Python bindings
+- `docs/multi_recipient_ecies_format.md` - Updated format specification
+- `tests/test_multi_recipient_ecies.py` - Added ChaCha20-Poly1305 tests
+- `docs/examples.md` - Added ChaCha20-Poly1305 examples
+- `README.md` - Updated with ChaCha20-Poly1305 information

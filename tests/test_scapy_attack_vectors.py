@@ -28,9 +28,8 @@ def create_arp_spoof_packet(
     target_ip: str, target_mac: str, spoof_ip: str, attacker_mac: str
 ):
     """Craft an ARP reply that poisons the ARP cache of target."""
-    return (
-        Ether(dst=target_mac, src=attacker_mac)
-        / ARP(op=2, pdst=target_ip, hwdst=target_mac, psrc=spoof_ip, hwsrc=attacker_mac)
+    return Ether(dst=target_mac, src=attacker_mac) / ARP(
+        op=2, pdst=target_ip, hwdst=target_mac, psrc=spoof_ip, hwsrc=attacker_mac
     )
 
 
@@ -51,9 +50,8 @@ def create_syn_flood_packet(src_ip: str, dst_ip: str, dst_port: int):
     """Craft a SYN packet with spoofed IP and random values."""
     sport = random.randint(1024, 65535)
     seq = random.randint(0, 0xFFFFFFFF)
-    return (
-        IP(src=src_ip, dst=dst_ip)
-        / TCP(sport=sport, dport=dst_port, flags="S", seq=seq, options=[("MSS", 1460)])
+    return IP(src=src_ip, dst=dst_ip) / TCP(
+        sport=sport, dport=dst_port, flags="S", seq=seq, options=[("MSS", 1460)]
     )
 
 
@@ -93,7 +91,11 @@ def test_dhcp_starvation_packet_structure():
     bootp = pkt[BOOTP]
     dhcp = pkt[DHCP]
     assert bootp.chaddr.startswith(b"\x02\x00^")
-    msg_type = [opt for opt in dhcp.options if isinstance(opt, tuple) and opt[0] == "message-type"]
+    msg_type = [
+        opt
+        for opt in dhcp.options
+        if isinstance(opt, tuple) and opt[0] == "message-type"
+    ]
     assert msg_type and msg_type[0][1] == "discover"
     assert bytes(pkt)
 

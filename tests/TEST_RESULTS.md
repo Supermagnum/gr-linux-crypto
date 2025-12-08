@@ -1,7 +1,7 @@
 # gr-linux-crypto Test Results
 
 **Test Date:** 2025-11-16  
-**Last Test Run:** 413 passed, 31 skipped, 0 failed  
+**Last Test Run:** 417 passed, 31 skipped, 0 failed  
 **Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
 **Test Framework:** pytest 8.4.2
 
@@ -45,7 +45,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 413 passed / 444 total (31 skipped, 0 failures)
+- **Functional Tests:** 417 passed / 448 total (31 skipped, 0 failures)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -65,7 +65,7 @@
 - Scapy attack vector crafting: 4 tests passed (ARP spoofing, DHCP starvation, SYN flood, DNS amplification packet generation validated without transmitting traffic)
 - Brainpool ECC ECDH: All passed (6 tests including Wycheproof)
 - Brainpool ECC ECDSA: All passed (3 tests including Wycheproof - fixed)
-- Multi-recipient ECIES: All passed (16 tests, all recipient counts 1-25 validated)
+- Multi-recipient ECIES: All passed (20 tests, all recipient counts 1-25 validated, ChaCha20-Poly1305 support included)
 - Side-channel analysis: Framework ready (conceptual tests)
 - Memory/CPU monitoring: All passed
 - Hardware acceleration: Detected (AES-NI, kernel crypto API)
@@ -90,8 +90,8 @@
 ## Test Coverage Summary
 
 ### Functional Tests
-- **Total Tests:** 444 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy attack-vector tests, and Multi-Recipient ECIES)
-- **Passed:** 413 functional tests (93.0% of collected)
+- **Total Tests:** 448 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy attack-vector tests, and Multi-Recipient ECIES with ChaCha20-Poly1305 support)
+- **Passed:** 417 functional tests (93.1% of collected)
 - **Skipped:** 31 (optional features, external dependencies)
 - **Failed:** 0 (all tests passing or appropriately skipped)
 
@@ -110,7 +110,7 @@
 - `test_ectester.py`: 24 passed, 1 skipped (ECTester compatibility validation complete)
 - `test_rfc_compliance.py`: 12 passed, 3 skipped (RFC 7027/6954/8734 compliance tests)
 - `test_ecgdsa.py`: 12 passed (ECGDSA framework tests - implementation framework ready)
-- `test_multi_recipient_ecies.py`: 16 passed (Multi-recipient ECIES encryption/decryption - all recipient counts 1-25 validated)
+- `test_multi_recipient_ecies.py`: 20 passed (Multi-recipient ECIES encryption/decryption - all recipient counts 1-25 validated, includes ChaCha20-Poly1305 cipher support)
 - Other tests: Various framework and integration tests
 
 #### Scapy Attack Vector Tests
@@ -135,7 +135,8 @@ None - All tests passing or skipped
 - **NEW**: Added RFC 7027/6954/8734 compliance tests (`test_rfc_compliance.py`) - Protocol-specific Brainpool curve validation (test vectors programmatically generated)
 - **NEW**: Added ECGDSA framework tests (`test_ecgdsa.py`) - ECGDSA implementation framework and requirements documentation
 - **NEW**: Added RFC test vector parsers (`test_rfc_vectors.py`) - Framework for parsing RFC test vectors
-- **NEW**: Added Multi-Recipient ECIES tests (`test_multi_recipient_ecies.py`) - Comprehensive validation of multi-recipient encryption (16 tests, all recipient counts 1-25 validated)
+- **NEW**: Added Multi-Recipient ECIES tests (`test_multi_recipient_ecies.py`) - Comprehensive validation of multi-recipient encryption (20 tests, all recipient counts 1-25 validated)
+- **UPDATED**: Added ChaCha20-Poly1305 cipher support to ECIES blocks (4 new tests added, cipher interoperability validated)
 
 **Key Test Suites:**
 - `test_linux_crypto.py`: 248 passed, 24 skipped (100% core functionality)
@@ -306,7 +307,10 @@ From `security/fuzzing/fuzzing-results.md`:
 - Format specification: Complete (documented in `docs/multi_recipient_ecies_format.md`)
 - Python implementation: Complete and tested
 - Callsign key store: Functional (kernel keyring and file-based storage)
-- Test coverage: 16 tests passing (100% pass rate)
+- Symmetric cipher support:
+  - AES-256-GCM: Default, hardware-accelerated
+  - ChaCha20-Poly1305: Battery-friendly, software-optimized
+- Test coverage: 20 tests passing (100% pass rate)
   - Single recipient encryption/decryption: Validated
   - Multiple recipients (5): Validated
   - All recipient counts 1-25: Validated
@@ -316,8 +320,12 @@ From `security/fuzzing/fuzzing-results.md`:
   - Format validation: Validated
   - Edge cases: Validated (empty plaintext, invalid inputs, missing keys)
   - Callsign case insensitivity: Validated
+  - ChaCha20-Poly1305 cipher support: Validated (4 tests)
+  - Cipher interoperability: Validated
+  - Invalid cipher name handling: Validated
 - Integration tests: All encrypt/decrypt round-trips passing
 - Each recipient can successfully decrypt: Verified for all recipient counts
+- Cipher selection: Automatic detection from header during decryption
 
 **M17 Protocol Integration:**
 - M17 frame structure: 18 passed, 1 skipped (framework complete, frame parsing fixed)
@@ -343,7 +351,7 @@ From `security/fuzzing/fuzzing-results.md`:
 - ECDH key exchange: Working
 - ECDSA signing/verification: Working
 - ECIES encryption/decryption: Working (single and multi-recipient)
-- Multi-recipient ECIES: Working (supports 1-25 recipients)
+- Multi-recipient ECIES: Working (supports 1-25 recipients, dual cipher support: AES-GCM and ChaCha20-Poly1305)
 - Key serialization (PEM): Working
 - Callsign-based key store: Working
 - Performance: <1ms for all operations
@@ -363,7 +371,7 @@ From `security/fuzzing/fuzzing-results.md`:
 - ECTester compatibility: Validated (point operations, scalar multiplication, edge cases)
 - RFC 7027/6954/8734 compliance: Validated (protocol-specific ECDH operations validated, test vectors programmatically generated for compliance testing)
 - ECGDSA framework: Framework ready (implementation framework in place, requires specialized library for full implementation)
-- Multi-recipient ECIES: Validated (16 tests passing, all recipient counts 1-25 tested, format validation complete)
+- Multi-recipient ECIES: Validated (20 tests passing, all recipient counts 1-25 tested, format validation complete, ChaCha20-Poly1305 support included)
 
 ---
 

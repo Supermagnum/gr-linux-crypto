@@ -597,7 +597,9 @@ This combines the best of all worlds: proven key exchange (GnuPG), secure storag
 
 Think of it like this:
 - **gr-openssl** = Standard cryptographic operations (AES, RSA, SHA, etc.)
+  - GitHub: https://github.com/Supermagnum/gr-openssl
 - **gr-nacl** = Modern cryptography (X25519, Ed25519, ChaCha20-Poly1305)
+  - GitHub: https://github.com/Supermagnum/gr-nacl
 - **gr-linux-crypto** = Linux-only security infrastructure (kernel keyring, hardware keys, kernel crypto API)
 
 **gr-linux-crypto doesn't duplicate what gr-openssl and gr-nacl already do.** Instead, it provides the "glue" to use Linux-specific security features with those existing modules.
@@ -839,6 +841,8 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 
 ### **Basic OpenSSL Operations (Use gr-openssl)**
 
+**Repository:** https://github.com/Supermagnum/gr-openssl
+
 **What gr-openssl provides:**
 - **Symmetric Encryption**: AES (all key sizes and modes), DES, 3DES, Blowfish, Camellia
 - **Hashing**: SHA-1, SHA-256, SHA-384, SHA-512, MD5
@@ -876,6 +880,8 @@ tb.connect(keyring_src, encryptor)
 **gr-linux-crypto integration**: Provides kernel keyring as secure key source for gr-openssl blocks.
 
 ### **Modern Crypto (NaCl/libsodium) - Use gr-nacl**
+
+**Repository:** https://github.com/Supermagnum/gr-nacl
 
 **What gr-nacl provides:**
 - **Curve25519/X25519**: Elliptic curve Diffie-Hellman key exchange
@@ -1260,9 +1266,14 @@ from gr_linux_crypto.multi_recipient_ecies import MultiRecipientECIES
 from gr_linux_crypto.callsign_key_store import CallsignKeyStore
 
 # Single recipient
-ecies = MultiRecipientECIES(curve='brainpoolP256r1')
+ecies = MultiRecipientECIES(curve='brainpoolP256r1', symmetric_cipher='aes-gcm')
 encrypted = ecies.encrypt(b"Message", ['W1ABC'])
 decrypted = ecies.decrypt(encrypted, 'W1ABC', private_key_pem)
+
+# Or use ChaCha20-Poly1305 for battery-friendly encryption
+ecies_chacha = MultiRecipientECIES(curve='brainpoolP256r1', symmetric_cipher='chacha20-poly1305')
+encrypted = ecies_chacha.encrypt(b"Message", ['W1ABC'])
+decrypted = ecies_chacha.decrypt(encrypted, 'W1ABC', private_key_pem)
 
 # Multiple recipients (up to 25)
 recipients = ['W1ABC', 'K2XYZ', 'N3DEF']
@@ -1274,11 +1285,20 @@ encrypted = ecies.encrypt(b"Message", recipients)
 ```python
 from gnuradio import linux_crypto
 
-# Multi-recipient encrypt block
+# Multi-recipient encrypt block (AES-GCM, default)
 encrypt_block = linux_crypto.brainpool_ecies_multi_encrypt(
     curve='brainpoolP256r1',
     callsigns=['W1ABC', 'K2XYZ', 'N3DEF'],
-    key_store_path=''
+    key_store_path='',
+    symmetric_cipher='aes-gcm'
+)
+
+# Or use ChaCha20-Poly1305 for battery-friendly encryption
+encrypt_block_chacha = linux_crypto.brainpool_ecies_multi_encrypt(
+    curve='brainpoolP256r1',
+    callsigns=['W1ABC', 'K2XYZ', 'N3DEF'],
+    key_store_path='',
+    symmetric_cipher='chacha20-poly1305'
 )
 
 # Multi-recipient decrypt block
@@ -1316,7 +1336,9 @@ See `examples/brainpool_example.py` for basic operations and `docs/examples.md` 
 
 ### Optional
 - **gr-openssl** (for OpenSSL integration)
+  - GitHub: https://github.com/Supermagnum/gr-openssl
 - **gr-nacl** (for modern crypto integration)
+  - GitHub: https://github.com/Supermagnum/gr-nacl
 - **libnitrokey** (for hardware security modules)
 - **TPM libraries** (for TPM support)
 - **OpenSSL development headers** (libssl-dev)

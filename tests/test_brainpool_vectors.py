@@ -386,6 +386,7 @@ def download_wycheproof_vectors(curve: str, test_type: str = "ecdh") -> Optional
 
     # Validate URL scheme
     from urllib.parse import urlparse
+
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         print(f"Invalid URL scheme (only http/https allowed): {url}")

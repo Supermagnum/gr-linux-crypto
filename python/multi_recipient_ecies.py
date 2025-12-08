@@ -25,7 +25,7 @@ class MultiRecipientECIES:
 
     Supports up to 25 recipients using hybrid encryption:
     - Symmetric key encrypted for each recipient using ECIES
-    - Payload encrypted with AES-GCM using the symmetric key
+    - Payload encrypted with AES-GCM or ChaCha20-Poly1305 using the symmetric key
     """
 
     FORMAT_VERSION = 0x01
@@ -44,8 +44,18 @@ class MultiRecipientECIES:
 
     CURVE_NAMES = {v: k for k, v in CURVE_IDS.items()}
 
+    CIPHER_IDS = {
+        "aes-gcm": 0x01,
+        "chacha20-poly1305": 0x02,
+    }
+
+    CIPHER_NAMES = {v: k for k, v in CIPHER_IDS.items()}
+
     def __init__(
-        self, curve: str = "brainpoolP256r1", key_store_path: Optional[str] = None
+        self,
+        curve: str = "brainpoolP256r1",
+        key_store_path: Optional[str] = None,
+        symmetric_cipher: str = "aes-gcm",
     ):
         """
         Initialize multi-recipient ECIES.
@@ -53,9 +63,18 @@ class MultiRecipientECIES:
         Args:
             curve: Brainpool curve name
             key_store_path: Path to key store (None for default)
+            symmetric_cipher: Symmetric cipher for payload encryption
+                             ("aes-gcm" or "chacha20-poly1305")
         """
         self.curve = curve
         self.curve_id = self.CURVE_IDS.get(curve, 0x01)
+        self.symmetric_cipher = symmetric_cipher.lower()
+        if self.symmetric_cipher not in self.CIPHER_IDS:
+            raise ValueError(
+                f"Unsupported cipher: {symmetric_cipher}. "
+                f"Supported: {list(self.CIPHER_IDS.keys())}"
+            )
+        self.cipher_id = self.CIPHER_IDS[self.symmetric_cipher]
         self.crypto = CryptoHelpers()
         self.key_store = CallsignKeyStore(store_path=key_store_path)
 
@@ -90,7 +109,14 @@ class MultiRecipientECIES:
         symmetric_key = secrets.token_bytes(self.AES_KEY_SIZE)
         iv = secrets.token_bytes(self.AES_IV_SIZE)
 
-        ciphertext, tag = self._encrypt_aes_gcm(plaintext, symmetric_key, iv)
+        if self.symmetric_cipher == "aes-gcm":
+            ciphertext, tag = self._encrypt_aes_gcm(plaintext, symmetric_key, iv)
+        elif self.symmetric_cipher == "chacha20-poly1305":
+            ciphertext, tag = self._encrypt_chacha20_poly1305(
+                plaintext, symmetric_key, iv
+            )
+        else:
+            raise ValueError(f"Unsupported cipher: {self.symmetric_cipher}")
 
         recipient_blocks = []
         for callsign in callsigns:
@@ -113,7 +139,9 @@ class MultiRecipientECIES:
 
             recipient_blocks.append(recipient_block)
 
-        header = self._build_header(len(callsigns), len(ciphertext) + self.AES_IV_SIZE)
+        header = self._build_header(
+            len(callsigns), len(ciphertext) + self.AES_IV_SIZE, self.cipher_id
+        )
 
         result = header
         for block in recipient_blocks:
@@ -149,7 +177,7 @@ class MultiRecipientECIES:
         if len(encrypted_block) < self.HEADER_SIZE:
             raise ValueError("Encrypted block too short")
 
-        version, curve_id, recipient_count, reserved, data_length = struct.unpack(
+        version, curve_id, recipient_count, cipher_id, data_length = struct.unpack(
             ">BBBB I", encrypted_block[: self.HEADER_SIZE]
         )
 
@@ -160,6 +188,11 @@ class MultiRecipientECIES:
             raise ValueError(
                 f"Curve mismatch: expected {self.curve_id}, got {curve_id}"
             )
+
+        if cipher_id not in self.CIPHER_NAMES:
+            raise ValueError(f"Unsupported cipher ID: {cipher_id}")
+
+        block_cipher = self.CIPHER_NAMES[cipher_id]
 
         if recipient_count == 0 or recipient_count > self.MAX_RECIPIENTS:
             raise ValueError(f"Invalid recipient count: {recipient_count}")
@@ -239,18 +272,27 @@ class MultiRecipientECIES:
             encrypted_key_block, recipient_private_key_pem, private_key_password
         )
 
-        plaintext = self._decrypt_aes_gcm(ciphertext, symmetric_key, iv, tag)
+        if block_cipher == "aes-gcm":
+            plaintext = self._decrypt_aes_gcm(ciphertext, symmetric_key, iv, tag)
+        elif block_cipher == "chacha20-poly1305":
+            plaintext = self._decrypt_chacha20_poly1305(
+                ciphertext, symmetric_key, iv, tag
+            )
+        else:
+            raise ValueError(f"Unsupported cipher: {block_cipher}")
 
         return plaintext
 
-    def _build_header(self, recipient_count: int, data_length: int) -> bytes:
+    def _build_header(
+        self, recipient_count: int, data_length: int, cipher_id: int
+    ) -> bytes:
         """Build the block header."""
         return struct.pack(
             ">BBBB I",
             self.FORMAT_VERSION,
             self.curve_id,
             recipient_count,
-            0,
+            cipher_id,
             data_length,
         )
 
@@ -393,5 +435,37 @@ class MultiRecipientECIES:
         aesgcm = AESGCM(key)
         full_ciphertext = ciphertext + tag
         plaintext = aesgcm.decrypt(iv, full_ciphertext, None)
+
+        return plaintext
+
+    def _encrypt_chacha20_poly1305(
+        self, plaintext: bytes, key: bytes, nonce: bytes
+    ) -> Tuple[bytes, bytes]:
+        """Encrypt using ChaCha20-Poly1305."""
+        from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+
+        if len(nonce) != self.AES_IV_SIZE:
+            raise ValueError(f"Nonce must be {self.AES_IV_SIZE} bytes")
+
+        cipher = ChaCha20Poly1305(key)
+        ciphertext = cipher.encrypt(nonce, plaintext, None)
+
+        tag = ciphertext[-self.AES_TAG_SIZE :]
+        ciphertext_only = ciphertext[: -self.AES_TAG_SIZE]
+
+        return ciphertext_only, tag
+
+    def _decrypt_chacha20_poly1305(
+        self, ciphertext: bytes, key: bytes, nonce: bytes, tag: bytes
+    ) -> bytes:
+        """Decrypt using ChaCha20-Poly1305."""
+        from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+
+        if len(nonce) != self.AES_IV_SIZE:
+            raise ValueError(f"Nonce must be {self.AES_IV_SIZE} bytes")
+
+        cipher = ChaCha20Poly1305(key)
+        full_ciphertext = ciphertext + tag
+        plaintext = cipher.decrypt(nonce, full_ciphertext, None)
 
         return plaintext

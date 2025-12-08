@@ -48,17 +48,19 @@ brainpool_ecies_multi_encrypt::sptr
 brainpool_ecies_multi_encrypt::make(const std::string& curve,
                                     const std::vector<std::string>& callsigns,
                                     const std::string& key_store_path,
-                                    const std::string& kdf_info)
+                                    const std::string& kdf_info,
+                                    const std::string& symmetric_cipher)
 {
     return gnuradio::get_initial_sptr(
-        new brainpool_ecies_multi_encrypt_impl(curve, callsigns, key_store_path, kdf_info));
+        new brainpool_ecies_multi_encrypt_impl(curve, callsigns, key_store_path, kdf_info, symmetric_cipher));
 }
 
 brainpool_ecies_multi_encrypt_impl::brainpool_ecies_multi_encrypt_impl(
     const std::string& curve,
     const std::vector<std::string>& callsigns,
     const std::string& key_store_path,
-    const std::string& kdf_info)
+    const std::string& kdf_info,
+    const std::string& symmetric_cipher)
     : gr::sync_block("brainpool_ecies_multi_encrypt",
                      gr::io_signature::make(1, 1, sizeof(unsigned char)),
                      gr::io_signature::make(1, 1, sizeof(unsigned char))),
@@ -66,6 +68,8 @@ brainpool_ecies_multi_encrypt_impl::brainpool_ecies_multi_encrypt_impl(
       d_curve_name(curve),
       d_kdf_info(kdf_info),
       d_key_store_path(key_store_path),
+      d_symmetric_cipher(symmetric_cipher),
+      d_cipher_id(get_cipher_id_from_name(symmetric_cipher)),
       d_brainpool_ec(std::make_shared<brainpool_ec_impl>(d_curve))
 {
     if (d_key_store_path.empty()) {
@@ -464,6 +468,60 @@ brainpool_ecies_multi_encrypt_impl::encrypt_aes_gcm(const uint8_t* plaintext,
 }
 
 bool
+brainpool_ecies_multi_encrypt_impl::encrypt_chacha20_poly1305(const uint8_t* plaintext,
+                                                               size_t plaintext_len,
+                                                               const std::vector<uint8_t>& key,
+                                                               const std::vector<uint8_t>& nonce,
+                                                               std::vector<uint8_t>& ciphertext,
+                                                               std::vector<uint8_t>& tag)
+{
+    if (key.size() != AES_KEY_SIZE) {
+        return false;
+    }
+    if (nonce.size() != AES_IV_SIZE) {
+        return false;
+    }
+    
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        return false;
+    }
+    
+    if (EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), nullptr, nullptr, nullptr) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    if (EVP_EncryptInit_ex(ctx, nullptr, nullptr, key.data(), nonce.data()) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    ciphertext.resize(plaintext_len);
+    int outlen = 0;
+    
+    if (EVP_EncryptUpdate(ctx, ciphertext.data(), &outlen, plaintext, plaintext_len) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    int final_len = 0;
+    if (EVP_EncryptFinal_ex(ctx, ciphertext.data() + outlen, &final_len) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    tag.resize(AES_TAG_SIZE);
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, AES_TAG_SIZE, tag.data()) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    EVP_CIPHER_CTX_free(ctx);
+    return true;
+}
+
+bool
 brainpool_ecies_multi_encrypt_impl::encrypt_symmetric_key_ecies(
     const std::vector<uint8_t>& symmetric_key,
     EVP_PKEY* recipient_public_key,
@@ -554,17 +612,34 @@ brainpool_ecies_multi_encrypt_impl::serialize_ephemeral_public_key(EVP_PKEY* pub
 void
 brainpool_ecies_multi_encrypt_impl::build_header(uint8_t recipient_count,
                                                  uint32_t data_length,
+                                                 uint8_t cipher_id,
                                                  std::vector<uint8_t>& header)
 {
     header.resize(HEADER_SIZE);
     header[0] = FORMAT_VERSION;
     header[1] = get_curve_id();
     header[2] = recipient_count;
-    header[3] = 0;
+    header[3] = cipher_id;
     header[4] = static_cast<uint8_t>((data_length >> 24) & 0xFF);
     header[5] = static_cast<uint8_t>((data_length >> 16) & 0xFF);
     header[6] = static_cast<uint8_t>((data_length >> 8) & 0xFF);
     header[7] = static_cast<uint8_t>(data_length & 0xFF);
+}
+
+uint8_t
+brainpool_ecies_multi_encrypt_impl::get_cipher_id_from_name(const std::string& cipher_name) const
+{
+    std::string lower = cipher_name;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    
+    if (lower == "aes-gcm" || lower == "aes_gcm" || lower == "aesgcm") {
+        return CIPHER_ID_AES_GCM;
+    } else if (lower == "chacha20-poly1305" || lower == "chacha20_poly1305" || 
+               lower == "chacha20poly1305" || lower == "chacha") {
+        return CIPHER_ID_CHACHA20_POLY1305;
+    } else {
+        return CIPHER_ID_AES_GCM;
+    }
 }
 
 void
@@ -647,8 +722,19 @@ brainpool_ecies_multi_encrypt_impl::work(int noutput_items,
     
     std::vector<uint8_t> plaintext(in, in + noutput_items);
     std::vector<uint8_t> ciphertext, tag;
-    if (!encrypt_aes_gcm(plaintext.data(), plaintext.size(), symmetric_key, iv,
-                        ciphertext, tag)) {
+    bool encrypt_success = false;
+    
+    if (d_cipher_id == CIPHER_ID_AES_GCM) {
+        encrypt_success = encrypt_aes_gcm(plaintext.data(), plaintext.size(), symmetric_key, iv,
+                                          ciphertext, tag);
+    } else if (d_cipher_id == CIPHER_ID_CHACHA20_POLY1305) {
+        encrypt_success = encrypt_chacha20_poly1305(plaintext.data(), plaintext.size(), symmetric_key, iv,
+                                                    ciphertext, tag);
+    } else {
+        encrypt_success = false;
+    }
+    
+    if (!encrypt_success) {
         for (auto* pkey : recipient_public_keys) {
             EVP_PKEY_free(pkey);
         }
@@ -679,7 +765,7 @@ brainpool_ecies_multi_encrypt_impl::work(int noutput_items,
     
     uint32_t data_length = AES_IV_SIZE + ciphertext.size() + AES_TAG_SIZE;
     std::vector<uint8_t> header;
-    build_header(static_cast<uint8_t>(d_callsigns.size()), data_length, header);
+    build_header(static_cast<uint8_t>(d_callsigns.size()), data_length, d_cipher_id, header);
     
     size_t total_size = header.size();
     for (const auto& block : recipient_blocks) {

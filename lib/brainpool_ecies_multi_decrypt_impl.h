@@ -74,6 +74,16 @@ private:
                         const std::vector<uint8_t>& tag,
                         std::vector<uint8_t>& plaintext);
     
+    bool decrypt_chacha20_poly1305(const uint8_t* ciphertext,
+                                    size_t ciphertext_len,
+                                    const std::vector<uint8_t>& key,
+                                    const std::vector<uint8_t>& nonce,
+                                    const std::vector<uint8_t>& tag,
+                                    std::vector<uint8_t>& plaintext);
+    
+    static constexpr uint8_t CIPHER_ID_AES_GCM = 0x01;
+    static constexpr uint8_t CIPHER_ID_CHACHA20_POLY1305 = 0x02;
+    
     bool decrypt_symmetric_key_ecies(const std::vector<uint8_t>& encrypted_key_block,
                                     std::vector<uint8_t>& symmetric_key);
     

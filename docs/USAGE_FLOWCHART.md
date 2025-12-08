@@ -6,6 +6,10 @@ This document provides a visual guide for using gr-linux-crypto with gr-openssl 
 
 **Key Concept:** gr-linux-crypto provides Linux-specific key storage (kernel keyring, HSM), while gr-openssl and gr-nacl perform the actual cryptographic operations. They work together - gr-linux-crypto doesn't duplicate their functionality.
 
+**Related Repositories:**
+- gr-openssl: https://github.com/Supermagnum/gr-openssl
+- gr-nacl: https://github.com/Supermagnum/gr-nacl
+
 ## Quick Summary
 
 ### With gr-openssl (Traditional Crypto)

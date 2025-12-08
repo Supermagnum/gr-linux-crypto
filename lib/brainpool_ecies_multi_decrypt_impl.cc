@@ -293,6 +293,65 @@ brainpool_ecies_multi_decrypt_impl::decrypt_aes_gcm(const uint8_t* ciphertext,
     return true;
 }
 
+bool
+brainpool_ecies_multi_decrypt_impl::decrypt_chacha20_poly1305(const uint8_t* ciphertext,
+                                                               size_t ciphertext_len,
+                                                               const std::vector<uint8_t>& key,
+                                                               const std::vector<uint8_t>& nonce,
+                                                               const std::vector<uint8_t>& tag,
+                                                               std::vector<uint8_t>& plaintext)
+{
+    if (key.size() != AES_KEY_SIZE) {
+        return false;
+    }
+    if (nonce.size() != AES_IV_SIZE) {
+        return false;
+    }
+    if (tag.size() != AES_TAG_SIZE) {
+        return false;
+    }
+    
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        return false;
+    }
+    
+    if (EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), nullptr, nullptr, nullptr) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    if (EVP_DecryptInit_ex(ctx, nullptr, nullptr, key.data(), nonce.data()) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    plaintext.resize(ciphertext_len);
+    int outlen = 0;
+    
+    if (EVP_DecryptUpdate(ctx, plaintext.data(), &outlen, ciphertext, ciphertext_len) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, AES_TAG_SIZE,
+                           const_cast<uint8_t*>(tag.data())) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+    
+    int final_len = 0;
+    int result = EVP_DecryptFinal_ex(ctx, plaintext.data() + outlen, &final_len);
+    EVP_CIPHER_CTX_free(ctx);
+    
+    if (result != 1) {
+        return false;
+    }
+    
+    plaintext.resize(outlen + final_len);
+    return true;
+}
+
 EVP_PKEY*
 brainpool_ecies_multi_decrypt_impl::deserialize_ephemeral_public_key(const uint8_t* data, size_t data_len)
 {
@@ -416,6 +475,7 @@ brainpool_ecies_multi_decrypt_impl::work(int noutput_items,
     uint8_t version = in[0];
     uint8_t curve_id = in[1];
     uint8_t recipient_count = in[2];
+    uint8_t cipher_id = in[3];
     uint32_t data_length = (static_cast<uint32_t>(in[4]) << 24) |
                           (static_cast<uint32_t>(in[5]) << 16) |
                           (static_cast<uint32_t>(in[6]) << 8) |
@@ -516,7 +576,16 @@ brainpool_ecies_multi_decrypt_impl::work(int noutput_items,
     }
     
     std::vector<uint8_t> plaintext;
-    if (!decrypt_aes_gcm(ciphertext.data(), ciphertext.size(), symmetric_key, iv, tag, plaintext)) {
+    bool decrypt_success = false;
+    if (cipher_id == CIPHER_ID_AES_GCM) {
+        decrypt_success = decrypt_aes_gcm(ciphertext.data(), ciphertext.size(), symmetric_key, iv, tag, plaintext);
+    } else if (cipher_id == CIPHER_ID_CHACHA20_POLY1305) {
+        decrypt_success = decrypt_chacha20_poly1305(ciphertext.data(), ciphertext.size(), symmetric_key, iv, tag, plaintext);
+    } else {
+        decrypt_success = false;
+    }
+    
+    if (!decrypt_success) {
         memset(out, 0, noutput_items);
         return 0;
     }

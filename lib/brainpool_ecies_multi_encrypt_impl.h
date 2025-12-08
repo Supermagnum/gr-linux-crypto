@@ -48,6 +48,8 @@ private:
     std::string d_curve_name;
     std::string d_kdf_info;
     std::string d_key_store_path;
+    std::string d_symmetric_cipher;
+    uint8_t d_cipher_id;
     std::shared_ptr<brainpool_ec_impl> d_brainpool_ec;
     
     std::vector<std::string> d_callsigns;
@@ -64,6 +66,9 @@ private:
     static constexpr size_t MAX_CALLSIGN_LEN = 14;
     static constexpr uint8_t FORMAT_VERSION = 0x01;
     
+    static constexpr uint8_t CIPHER_ID_AES_GCM = 0x01;
+    static constexpr uint8_t CIPHER_ID_CHACHA20_POLY1305 = 0x02;
+    
     bool load_key_store();
     bool get_public_key_from_store(const std::string& callsign, std::string& public_key_pem);
     uint8_t get_curve_id() const;
@@ -79,6 +84,15 @@ private:
                         std::vector<uint8_t>& ciphertext,
                         std::vector<uint8_t>& tag);
     
+    bool encrypt_chacha20_poly1305(const uint8_t* plaintext,
+                                  size_t plaintext_len,
+                                  const std::vector<uint8_t>& key,
+                                  const std::vector<uint8_t>& nonce,
+                                  std::vector<uint8_t>& ciphertext,
+                                  std::vector<uint8_t>& tag);
+    
+    uint8_t get_cipher_id_from_name(const std::string& cipher_name) const;
+    
     bool encrypt_symmetric_key_ecies(const std::vector<uint8_t>& symmetric_key,
                                     EVP_PKEY* recipient_public_key,
                                     std::vector<uint8_t>& encrypted_key_block);
@@ -88,7 +102,7 @@ private:
     
     size_t get_public_key_size() const;
     
-    void build_header(uint8_t recipient_count, uint32_t data_length, std::vector<uint8_t>& header);
+    void build_header(uint8_t recipient_count, uint32_t data_length, uint8_t cipher_id, std::vector<uint8_t>& header);
     void build_recipient_block(const std::string& callsign,
                               const std::vector<uint8_t>& encrypted_key,
                               std::vector<uint8_t>& block);
@@ -97,7 +111,8 @@ public:
     brainpool_ecies_multi_encrypt_impl(const std::string& curve,
                                       const std::vector<std::string>& callsigns,
                                       const std::string& key_store_path,
-                                      const std::string& kdf_info);
+                                      const std::string& kdf_info,
+                                      const std::string& symmetric_cipher);
     ~brainpool_ecies_multi_encrypt_impl();
 
     void set_callsigns(const std::vector<std::string>& callsigns) override;

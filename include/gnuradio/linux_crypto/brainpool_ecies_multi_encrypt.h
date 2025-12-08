@@ -60,12 +60,14 @@ public:
      * \param callsigns Vector of recipient callsigns (1-25 callsigns)
      * \param key_store_path Path to key store file (empty for default)
      * \param kdf_info Optional context information for HKDF key derivation
+     * \param symmetric_cipher Symmetric cipher for payload encryption ("aes-gcm" or "chacha20-poly1305")
      * \return shared pointer to the new block
      */
     static sptr make(const std::string& curve = "brainpoolP256r1",
                     const std::vector<std::string>& callsigns = {},
                     const std::string& key_store_path = "",
-                    const std::string& kdf_info = "gr-linux-crypto-ecies-v1");
+                    const std::string& kdf_info = "gr-linux-crypto-ecies-v1",
+                    const std::string& symmetric_cipher = "aes-gcm");
 
     /*!
      * \brief Set recipient callsigns

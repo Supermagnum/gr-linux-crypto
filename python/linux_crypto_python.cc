@@ -144,7 +144,8 @@ void bind_brainpool_ecies_multi_encrypt(py::module& m)
              py::arg("curve") = "brainpoolP256r1",
              py::arg("callsigns") = std::vector<std::string>(),
              py::arg("key_store_path") = "",
-             py::arg("kdf_info") = "gr-linux-crypto-ecies-v1")
+             py::arg("kdf_info") = "gr-linux-crypto-ecies-v1",
+             py::arg("symmetric_cipher") = "aes-gcm")
         .def("set_callsigns", &brainpool_ecies_multi_encrypt::set_callsigns)
         .def("get_callsigns", &brainpool_ecies_multi_encrypt::get_callsigns)
         .def("add_callsign", &brainpool_ecies_multi_encrypt::add_callsign)

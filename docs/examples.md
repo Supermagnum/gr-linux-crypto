@@ -619,6 +619,10 @@ if __name__ == "__main__":
 
 ECIES (Elliptic Curve Integrated Encryption Scheme) provides authenticated encryption using Brainpool elliptic curves. This section demonstrates both single-recipient and multi-recipient encryption.
 
+ECIES supports two symmetric ciphers for bulk payload encryption:
+- **AES-256-GCM**: Recommended when hardware acceleration (AES-NI) is available
+- **ChaCha20-Poly1305**: Recommended for battery-powered devices and software-only implementations
+
 ### Single-Recipient ECIES
 
 ```python
@@ -641,8 +645,8 @@ def single_recipient_ecies_example():
     # Add recipient's public key to store
     key_store.add_public_key(recipient_callsign, public_key_pem.decode('ascii'))
     
-    # Create ECIES instance
-    ecies = MultiRecipientECIES(curve='brainpoolP256r1')
+    # Create ECIES instance (defaults to AES-GCM)
+    ecies = MultiRecipientECIES(curve='brainpoolP256r1', symmetric_cipher='aes-gcm')
     
     # Encrypt message
     plaintext = b"Secret message for single recipient"
@@ -688,8 +692,8 @@ def multi_recipient_ecies_example():
         key_store.add_public_key(callsign, public_key_pem.decode('ascii'))
         recipient_keypairs[callsign] = private_key_pem.decode('ascii')
     
-    # Create ECIES instance
-    ecies = MultiRecipientECIES(curve='brainpoolP256r1')
+    # Create ECIES instance (defaults to AES-GCM)
+    ecies = MultiRecipientECIES(curve='brainpoolP256r1', symmetric_cipher='aes-gcm')
     
     # Encrypt message for all recipients
     plaintext = b"Message for multiple recipients"
@@ -750,6 +754,54 @@ def callsign_key_store_example():
 
 if __name__ == "__main__":
     callsign_key_store_example()
+```
+
+### ChaCha20-Poly1305 Cipher Support
+
+For battery-powered devices or software-only implementations, ChaCha20-Poly1305 provides excellent performance without requiring hardware acceleration:
+
+```python
+#!/usr/bin/env python3
+from gr_linux_crypto.multi_recipient_ecies import MultiRecipientECIES
+from gr_linux_crypto.callsign_key_store import CallsignKeyStore
+from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
+def chacha20_poly1305_ecies_example():
+    """ECIES encryption using ChaCha20-Poly1305 cipher."""
+    crypto = CryptoHelpers()
+    key_store = CallsignKeyStore()
+    
+    # Generate key pair for recipient
+    recipient_callsign = "W1ABC"
+    recipient_private, recipient_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+    public_key_pem = crypto.serialize_brainpool_public_key(recipient_public)
+    private_key_pem = crypto.serialize_brainpool_private_key(recipient_private)
+    
+    # Add recipient's public key to store
+    key_store.add_public_key(recipient_callsign, public_key_pem.decode('ascii'))
+    
+    # Create ECIES instance with ChaCha20-Poly1305
+    ecies = MultiRecipientECIES(
+        curve='brainpoolP256r1',
+        symmetric_cipher='chacha20-poly1305'
+    )
+    
+    # Encrypt message
+    plaintext = b"Message encrypted with ChaCha20-Poly1305"
+    encrypted = ecies.encrypt(plaintext, [recipient_callsign])
+    
+    print(f"Plaintext: {plaintext}")
+    print(f"Encrypted length: {len(encrypted)} bytes")
+    print(f"Cipher: ChaCha20-Poly1305")
+    
+    # Decrypt message (automatically detects cipher from header)
+    decrypted = ecies.decrypt(encrypted, recipient_callsign, private_key_pem.decode('ascii'))
+    
+    print(f"Decrypted: {decrypted}")
+    print(f"Success: {plaintext == decrypted}")
+
+if __name__ == "__main__":
+    chacha20_poly1305_ecies_example()
 ```
 
 **Format Documentation:** The complete multi-recipient ECIES format specification is available in `docs/multi_recipient_ecies_format.md`.
