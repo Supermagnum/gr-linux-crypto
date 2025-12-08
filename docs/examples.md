@@ -9,6 +9,8 @@ This document provides comprehensive examples for using the GNU Radio Linux Cryp
 3. [Hardware Security Module Usage](#hardware-security-module-usage)
 4. [Complete Crypto Flow](#complete-crypto-flow)
 5. [Advanced Usage Patterns](#advanced-usage-patterns)
+6. [Brainpool ECIES Encryption](#brainpool-ecies-encryption)
+7. [Multi-Recipient ECIES](#multi-recipient-ecies)
 
 ## Basic AES Encryption
 
@@ -612,6 +614,145 @@ def error_handling_example():
 if __name__ == "__main__":
     error_handling_example()
 ```
+
+## Brainpool ECIES Encryption
+
+ECIES (Elliptic Curve Integrated Encryption Scheme) provides authenticated encryption using Brainpool elliptic curves. This section demonstrates both single-recipient and multi-recipient encryption.
+
+### Single-Recipient ECIES
+
+```python
+#!/usr/bin/env python3
+from gr_linux_crypto.multi_recipient_ecies import MultiRecipientECIES
+from gr_linux_crypto.callsign_key_store import CallsignKeyStore
+from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
+def single_recipient_ecies_example():
+    """Single-recipient ECIES encryption example."""
+    crypto = CryptoHelpers()
+    key_store = CallsignKeyStore()
+    
+    # Generate key pair for recipient
+    recipient_callsign = "W1ABC"
+    recipient_private, recipient_public = crypto.generate_brainpool_keypair('brainpoolP256r1')
+    public_key_pem = crypto.serialize_brainpool_public_key(recipient_public)
+    private_key_pem = crypto.serialize_brainpool_private_key(recipient_private)
+    
+    # Add recipient's public key to store
+    key_store.add_public_key(recipient_callsign, public_key_pem.decode('ascii'))
+    
+    # Create ECIES instance
+    ecies = MultiRecipientECIES(curve='brainpoolP256r1')
+    
+    # Encrypt message
+    plaintext = b"Secret message for single recipient"
+    encrypted = ecies.encrypt(plaintext, [recipient_callsign])
+    
+    print(f"Plaintext: {plaintext}")
+    print(f"Encrypted length: {len(encrypted)} bytes")
+    
+    # Decrypt message
+    decrypted = ecies.decrypt(encrypted, recipient_callsign, private_key_pem.decode('ascii'))
+    
+    print(f"Decrypted: {decrypted}")
+    print(f"Success: {plaintext == decrypted}")
+
+if __name__ == "__main__":
+    single_recipient_ecies_example()
+```
+
+### Multi-Recipient ECIES
+
+Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each recipient receives an encrypted copy of the symmetric key, while the payload is encrypted once.
+
+```python
+#!/usr/bin/env python3
+from gr_linux_crypto.multi_recipient_ecies import MultiRecipientECIES
+from gr_linux_crypto.callsign_key_store import CallsignKeyStore
+from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
+def multi_recipient_ecies_example():
+    """Multi-recipient ECIES encryption example."""
+    crypto = CryptoHelpers()
+    key_store = CallsignKeyStore()
+    
+    # Generate key pairs for multiple recipients
+    recipients = ['W1ABC', 'K2XYZ', 'N3DEF', 'W4GHI']
+    recipient_keypairs = {}
+    
+    for callsign in recipients:
+        private_key, public_key = crypto.generate_brainpool_keypair('brainpoolP256r1')
+        public_key_pem = crypto.serialize_brainpool_public_key(public_key)
+        private_key_pem = crypto.serialize_brainpool_private_key(private_key)
+        
+        key_store.add_public_key(callsign, public_key_pem.decode('ascii'))
+        recipient_keypairs[callsign] = private_key_pem.decode('ascii')
+    
+    # Create ECIES instance
+    ecies = MultiRecipientECIES(curve='brainpoolP256r1')
+    
+    # Encrypt message for all recipients
+    plaintext = b"Message for multiple recipients"
+    encrypted = ecies.encrypt(plaintext, recipients)
+    
+    print(f"Plaintext: {plaintext}")
+    print(f"Recipients: {recipients}")
+    print(f"Encrypted length: {len(encrypted)} bytes")
+    
+    # Each recipient can decrypt using their private key
+    for callsign in recipients:
+        decrypted = ecies.decrypt(encrypted, callsign, recipient_keypairs[callsign])
+        print(f"{callsign} decrypted: {decrypted}")
+        assert plaintext == decrypted, f"Decryption failed for {callsign}"
+    
+    print("All recipients successfully decrypted the message!")
+
+if __name__ == "__main__":
+    multi_recipient_ecies_example()
+```
+
+### Callsign Key Store Management
+
+```python
+#!/usr/bin/env python3
+from gr_linux_crypto.callsign_key_store import CallsignKeyStore
+from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
+def callsign_key_store_example():
+    """Example of managing callsign-based key store."""
+    crypto = CryptoHelpers()
+    key_store = CallsignKeyStore()
+    
+    # Add public keys for multiple callsigns
+    callsigns = ['W1ABC', 'K2XYZ', 'N3DEF']
+    
+    for callsign in callsigns:
+        _, public_key = crypto.generate_brainpool_keypair('brainpoolP256r1')
+        public_key_pem = crypto.serialize_brainpool_public_key(public_key)
+        key_store.add_public_key(callsign, public_key_pem.decode('ascii'))
+    
+    # List all callsigns in store
+    stored_callsigns = key_store.list_callsigns()
+    print(f"Stored callsigns: {stored_callsigns}")
+    
+    # Retrieve a public key
+    public_key_pem = key_store.get_public_key('W1ABC')
+    if public_key_pem:
+        print(f"Found public key for W1ABC")
+    
+    # Check if callsign exists
+    if key_store.has_callsign('K2XYZ'):
+        print("K2XYZ is in the key store")
+    
+    # Remove a callsign
+    key_store.remove_public_key('N3DEF')
+    print("Removed N3DEF from key store")
+
+if __name__ == "__main__":
+    callsign_key_store_example()
+```
+
+**Format Documentation:** The complete multi-recipient ECIES format specification is available in `docs/multi_recipient_ecies_format.md`.
 
 ## Best Practices
 

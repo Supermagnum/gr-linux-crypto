@@ -1,7 +1,7 @@
 # gr-linux-crypto Test Results
 
 **Test Date:** 2025-11-16  
-**Last Test Run:** 397 passed, 31 skipped, 0 failed  
+**Last Test Run:** 413 passed, 31 skipped, 0 failed  
 **Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
 **Test Framework:** pytest 8.4.2
 
@@ -45,7 +45,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 397 passed / 428 total (31 skipped, 0 failures)
+- **Functional Tests:** 413 passed / 444 total (31 skipped, 0 failures)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -65,6 +65,7 @@
 - Scapy attack vector crafting: 4 tests passed (ARP spoofing, DHCP starvation, SYN flood, DNS amplification packet generation validated without transmitting traffic)
 - Brainpool ECC ECDH: All passed (6 tests including Wycheproof)
 - Brainpool ECC ECDSA: All passed (3 tests including Wycheproof - fixed)
+- Multi-recipient ECIES: All passed (16 tests, all recipient counts 1-25 validated)
 - Side-channel analysis: Framework ready (conceptual tests)
 - Memory/CPU monitoring: All passed
 - Hardware acceleration: Detected (AES-NI, kernel crypto API)
@@ -89,8 +90,8 @@
 ## Test Coverage Summary
 
 ### Functional Tests
-- **Total Tests:** 428 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, and Scapy attack-vector tests)
-- **Passed:** 397 functional tests (92.7% of collected)
+- **Total Tests:** 444 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy attack-vector tests, and Multi-Recipient ECIES)
+- **Passed:** 413 functional tests (93.0% of collected)
 - **Skipped:** 31 (optional features, external dependencies)
 - **Failed:** 0 (all tests passing or appropriately skipped)
 
@@ -109,6 +110,7 @@
 - `test_ectester.py`: 24 passed, 1 skipped (ECTester compatibility validation complete)
 - `test_rfc_compliance.py`: 12 passed, 3 skipped (RFC 7027/6954/8734 compliance tests)
 - `test_ecgdsa.py`: 12 passed (ECGDSA framework tests - implementation framework ready)
+- `test_multi_recipient_ecies.py`: 16 passed (Multi-recipient ECIES encryption/decryption - all recipient counts 1-25 validated)
 - Other tests: Various framework and integration tests
 
 #### Scapy Attack Vector Tests
@@ -133,6 +135,7 @@ None - All tests passing or skipped
 - **NEW**: Added RFC 7027/6954/8734 compliance tests (`test_rfc_compliance.py`) - Protocol-specific Brainpool curve validation (test vectors programmatically generated)
 - **NEW**: Added ECGDSA framework tests (`test_ecgdsa.py`) - ECGDSA implementation framework and requirements documentation
 - **NEW**: Added RFC test vector parsers (`test_rfc_vectors.py`) - Framework for parsing RFC test vectors
+- **NEW**: Added Multi-Recipient ECIES tests (`test_multi_recipient_ecies.py`) - Comprehensive validation of multi-recipient encryption (16 tests, all recipient counts 1-25 validated)
 
 **Key Test Suites:**
 - `test_linux_crypto.py`: 248 passed, 24 skipped (100% core functionality)
@@ -297,6 +300,24 @@ From `security/fuzzing/fuzzing-results.md`:
 - Kernel crypto AES: Functional
 - Nitrokey interface: Framework ready
 - OpenSSL wrapper: Functional
+- Brainpool ECIES encrypt/decrypt: Framework ready (C++ headers defined, Python implementation complete)
+
+**Multi-Recipient ECIES:**
+- Format specification: Complete (documented in `docs/multi_recipient_ecies_format.md`)
+- Python implementation: Complete and tested
+- Callsign key store: Functional (kernel keyring and file-based storage)
+- Test coverage: 16 tests passing (100% pass rate)
+  - Single recipient encryption/decryption: Validated
+  - Multiple recipients (5): Validated
+  - All recipient counts 1-25: Validated
+  - Maximum recipients (25): Validated
+  - Different plaintext sizes: Validated
+  - Different Brainpool curves: Validated
+  - Format validation: Validated
+  - Edge cases: Validated (empty plaintext, invalid inputs, missing keys)
+  - Callsign case insensitivity: Validated
+- Integration tests: All encrypt/decrypt round-trips passing
+- Each recipient can successfully decrypt: Verified for all recipient counts
 
 **M17 Protocol Integration:**
 - M17 frame structure: 18 passed, 1 skipped (framework complete, frame parsing fixed)
@@ -321,7 +342,10 @@ From `security/fuzzing/fuzzing-results.md`:
 - Key pair generation: Working
 - ECDH key exchange: Working
 - ECDSA signing/verification: Working
+- ECIES encryption/decryption: Working (single and multi-recipient)
+- Multi-recipient ECIES: Working (supports 1-25 recipients)
 - Key serialization (PEM): Working
+- Callsign-based key store: Working
 - Performance: <1ms for all operations
 
 **Cross-Validation:**
@@ -339,6 +363,7 @@ From `security/fuzzing/fuzzing-results.md`:
 - ECTester compatibility: Validated (point operations, scalar multiplication, edge cases)
 - RFC 7027/6954/8734 compliance: Validated (protocol-specific ECDH operations validated, test vectors programmatically generated for compliance testing)
 - ECGDSA framework: Framework ready (implementation framework in place, requires specialized library for full implementation)
+- Multi-recipient ECIES: Validated (16 tests passing, all recipient counts 1-25 tested, format validation complete)
 
 ---
 
@@ -607,6 +632,9 @@ The underlying cryptographic libraries (OpenSSL, Linux kernel crypto API) implem
 - AES-GCM encryption/decryption
 - ChaCha20-Poly1305 encryption/decryption
 - Brainpool ECC operations (key generation, ECDH, ECDSA)
+- ECIES encryption/decryption (single and multi-recipient)
+- Multi-recipient ECIES (up to 25 recipients)
+- Callsign-based public key store
 - Key management and serialization
 - Linux kernel keyring integration
 - Kernel crypto API support
@@ -1101,6 +1129,19 @@ pytest tests/test_side_channel.py -v -s
    - RFC 8439 ChaCha20-Poly1305 validation: 3/3 vectors passing (100% pass rate)
    - Full AAD (Additional Authenticated Data) support implemented and validated
 
+6. **Multi-Recipient ECIES Tests** (`test_multi_recipient_ecies.py`)
+   - Single recipient encryption/decryption: Validated
+   - Multiple recipients (5): Validated
+   - All recipient counts 1-25: Validated (comprehensive coverage)
+   - Maximum recipients (25): Validated
+   - Different plaintext sizes: Validated (1 byte to 4KB)
+   - Different Brainpool curves: Validated (P256r1, P384r1, P512r1)
+   - Format validation: Validated (header, recipient blocks, encrypted data)
+   - Edge cases: Validated (empty plaintext, invalid inputs, missing keys)
+   - Callsign handling: Validated (case insensitivity, duplicate rejection)
+   - Known test vectors: Validated
+   - Status: 16/16 tests passing (100% pass rate)
+
 ### Running All Tests
 
 ```bash
@@ -1266,9 +1307,10 @@ The gr-linux-crypto module demonstrates:
 
 **Test Status:** **READY FOR USE** (Amateur Radio, Experimental, Research)
 
-**Test Results (Latest Run - 2025-11-01):**
-- 316 tests passed, 34 skipped, 2 failures (non-critical - external tool compatibility, test infrastructure)
+**Test Results (Latest Run - 2025-11-16):**
+- 413 tests passed, 31 skipped, 0 failures
 - Core functionality: 100% passing (248/248 core crypto tests, 19/19 performance tests)
+- Multi-recipient ECIES: 100% passing (16/16 tests, all recipient counts 1-25 validated)
 - Performance: All benchmarks exceeded (mean latency 8.7-11.5μs, target <100μs)
 - Security: 
   - Coverage testing: 805+ million executions, 374 edges, 403 features, 0 crashes (memory safety validated)
@@ -1276,9 +1318,7 @@ The gr-linux-crypto module demonstrates:
 - Side-Channel Analysis: dudect tests passed (no timing leakage detected)
 
 **Test Failures (Non-Critical):**
-The 2 failures are related to test infrastructure, not implementation:
-1. External OpenSSL CLI compatibility (bytes/string encoding issue, environment-dependent)
-2. Constant-time comparison test (test infrastructure refinement needed, not implementation issue)
+None - All tests passing
 
 **Certification Status:**
 - Uses certified cryptographic libraries (OpenSSL, Python cryptography)
@@ -1296,8 +1336,8 @@ The 2 failures are related to test infrastructure, not implementation:
 
 ---
 
-*Last Updated: 2025-11-01*  
+*Last Updated: 2025-11-16*  
 *Test Framework: pytest 8.4.2*  
 *Fuzzing: LibFuzzer (805+ million executions, 374 edges covered)*  
-*Test Execution: 352 tests collected, 316 passed, 34 skipped, 2 failed (non-critical)*
+*Test Execution: 444 tests collected, 413 passed, 31 skipped, 0 failed*
 

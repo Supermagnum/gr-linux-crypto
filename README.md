@@ -42,6 +42,7 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
    - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
    - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
+   - [Multi-Recipient ECIES Encryption](#multi-recipient-ecies-encryption)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
 11. [Dependencies](#dependencies)
    - [Required](#required)
@@ -1249,12 +1250,51 @@ loaded_private = crypto.load_brainpool_private_key(private_pem)
 
 
 
+**ECIES Encryption/Decryption:**
+
+The module supports ECIES (Elliptic Curve Integrated Encryption Scheme) for both single-recipient and multi-recipient (up to 25 recipients) encryption:
+
+**Python API:**
+```python
+from gr_linux_crypto.multi_recipient_ecies import MultiRecipientECIES
+from gr_linux_crypto.callsign_key_store import CallsignKeyStore
+
+# Single recipient
+ecies = MultiRecipientECIES(curve='brainpoolP256r1')
+encrypted = ecies.encrypt(b"Message", ['W1ABC'])
+decrypted = ecies.decrypt(encrypted, 'W1ABC', private_key_pem)
+
+# Multiple recipients (up to 25)
+recipients = ['W1ABC', 'K2XYZ', 'N3DEF']
+encrypted = ecies.encrypt(b"Message", recipients)
+# Each recipient decrypts with their own private key
+```
+
+**GNU Radio C++ Blocks:**
+```python
+from gnuradio import linux_crypto
+
+# Multi-recipient encrypt block
+encrypt_block = linux_crypto.brainpool_ecies_multi_encrypt(
+    curve='brainpoolP256r1',
+    callsigns=['W1ABC', 'K2XYZ', 'N3DEF'],
+    key_store_path=''
+)
+
+# Multi-recipient decrypt block
+decrypt_block = linux_crypto.brainpool_ecies_multi_decrypt(
+    curve='brainpoolP256r1',
+    recipient_callsign='W1ABC',
+    recipient_private_key_pem=private_key_pem
+)
+```
+
 **OpenSSL Requirements:**
 - Brainpool support requires OpenSSL 1.0.2 or later
 - OpenSSL 3.x provides improved Brainpool support
 - Accessible via standard EVP API for maximum compatibility
 
-See `examples/brainpool_example.py` for a complete demonstration.
+See `examples/brainpool_example.py` for basic operations and `docs/examples.md` for ECIES examples.
 
 ## Dependencies
 
@@ -1472,12 +1512,18 @@ This module provides two distinct types of cryptographic operations:
 - **brainpoolP256r1** (256-bit curve)
   - ECDH (Elliptic Curve Diffie-Hellman) key exchange
   - ECDSA (Elliptic Curve Digital Signature Algorithm) signing/verification
+  - ECIES (Elliptic Curve Integrated Encryption Scheme) encryption/decryption
+  - Multi-recipient ECIES (up to 25 recipients)
 - **brainpoolP384r1** (384-bit curve)
   - ECDH key exchange
   - ECDSA signing/verification
+  - ECIES encryption/decryption
+  - Multi-recipient ECIES (up to 25 recipients)
 - **brainpoolP512r1** (512-bit curve)
   - ECDH key exchange
   - ECDSA signing/verification
+  - ECIES encryption/decryption
+  - Multi-recipient ECIES (up to 25 recipients)
 
 ### Key Management
 - Kernel keyring integration (secure key storage)
@@ -1485,6 +1531,7 @@ This module provides two distinct types of cryptographic operations:
 - Key serialization (PEM format)
 - PKCS#7 padding for block ciphers
 - Key derivation: PBKDF2 (password-based), HKDF (RFC 5869 for shared secrets)
+- Callsign-based public key store for radio amateur use
 
 ### Authentication Modes
 - **GCM** (Galois/Counter Mode) - for AES

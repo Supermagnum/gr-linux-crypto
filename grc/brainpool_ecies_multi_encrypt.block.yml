@@ -1,0 +1,45 @@
+id: brainpool_ecies_multi_encrypt
+label: Brainpool ECIES Multi-Recipient Encrypt
+category: '[gr-linux-crypto]/Crypto'
+flags: [python, cpp]
+templates:
+  imports: |-
+    from gnuradio import linux_crypto
+  make: linux_crypto.brainpool_ecies_multi_encrypt(${curve}, ${callsigns}, ${key_store_path}, ${kdf_info})
+  callbacks:
+  - set_callsigns(${callsigns})
+  - set_kdf_info(${kdf_info})
+parameters:
+- id: curve
+  label: Brainpool Curve
+  dtype: string
+  default: '"brainpoolP256r1"'
+  options: ['"brainpoolP256r1"', '"brainpoolP384r1"', '"brainpoolP512r1"']
+  hide: none
+- id: callsigns
+  label: Recipient Callsigns (comma-separated)
+  dtype: string
+  default: '""'
+  hide: none
+- id: key_store_path
+  label: Key Store Path
+  dtype: string
+  default: '""'
+  hide: none
+- id: kdf_info
+  label: KDF Info
+  dtype: string
+  default: '"gr-linux-crypto-ecies-v1"'
+  hide: none
+inputs:
+- label: in
+  domain: stream
+  dtype: byte
+  vlen: 1
+outputs:
+- label: out
+  domain: stream
+  dtype: byte
+  vlen: 1
+file_format: 1
+

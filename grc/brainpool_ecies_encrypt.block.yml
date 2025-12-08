@@ -1,0 +1,40 @@
+id: brainpool_ecies_encrypt
+label: Brainpool ECIES Encrypt
+category: '[gr-linux-crypto]/Crypto'
+flags: [python, cpp]
+templates:
+  imports: |-
+    from gnuradio import linux_crypto
+  make: linux_crypto.brainpool_ecies_encrypt(${curve}, ${recipient_public_key_pem}, ${kdf_info})
+  callbacks:
+  - set_recipient_public_key(${recipient_public_key_pem})
+  - set_kdf_info(${kdf_info})
+parameters:
+- id: curve
+  label: Brainpool Curve
+  dtype: string
+  default: '"brainpoolP256r1"'
+  options: ['"brainpoolP256r1"', '"brainpoolP384r1"', '"brainpoolP512r1"']
+  hide: none
+- id: recipient_public_key_pem
+  label: Recipient Public Key (PEM)
+  dtype: string
+  default: '""'
+  hide: none
+- id: kdf_info
+  label: KDF Info
+  dtype: string
+  default: '"gr-linux-crypto-ecies-v1"'
+  hide: none
+inputs:
+- label: in
+  domain: stream
+  dtype: byte
+  vlen: 1
+outputs:
+- label: out
+  domain: stream
+  dtype: byte
+  vlen: 1
+file_format: 1
+
