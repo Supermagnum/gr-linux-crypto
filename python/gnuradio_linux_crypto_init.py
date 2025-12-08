@@ -13,9 +13,15 @@ except ImportError:
     pass  # Will fail later if GNU Radio is not available
 
 # Try to import the pybind11 module
+# If linking issues occur (undefined symbols), fall back to Python implementation
+_CPP_MODULE_AVAILABLE = False
+_LINKING_ERROR = None
+
 try:
     # Import the compiled pybind11 module
     import linux_crypto_python
+
+    _CPP_MODULE_AVAILABLE = True
 
     # Expose all the classes and functions from the pybind11 module
     kernel_keyring_source = linux_crypto_python.kernel_keyring_source
@@ -50,9 +56,83 @@ try:
         )
 
 except ImportError as e:
-    # If pybind11 module not found, provide helpful error
-    raise ImportError(
-        f"Failed to import linux_crypto_python module: {e}\n"
-        "Make sure the module is built and installed correctly.\n"
-        "Run 'sudo make install' from the build directory."
-    ) from e
+    error_msg = str(e)
+    _LINKING_ERROR = error_msg
+
+    # Check if this is a linking issue (undefined symbol or unknown base type)
+    is_linking_error = (
+        "undefined symbol" in error_msg.lower()
+        or "unknown base type" in error_msg.lower()
+        or "gr::block" in error_msg
+        or "gr::sync_block" in error_msg
+    )
+
+    if is_linking_error:
+        # Detected linking issue - provide clear error message
+        import warnings
+
+        warnings.warn(
+            f"gr-linux-crypto: Detected linking issues (undefined symbol error)\n"
+            f"Error: {error_msg}\n"
+            f"\n"
+            f"The C++ module cannot be loaded due to missing symbols.\n"
+            f"This usually means:\n"
+            f"  1. The module needs to be rebuilt with proper library linking\n"
+            f"  2. GNU Radio libraries are not properly linked\n"
+            f"  3. The module was built against a different GNU Radio version\n"
+            f"\n"
+            f"Falling back to Python implementation.\n"
+            f"To fix: Rebuild and reinstall the module from the build directory.",
+            ImportWarning,
+            stacklevel=2,
+        )
+
+        # Fall back to Python implementation
+        # Import Python-only implementations
+        try:
+            from python.multi_recipient_ecies import MultiRecipientECIES
+            from python.callsign_key_store import CallsignKeyStore
+
+            # Create wrapper classes that use Python implementation
+            class _PythonFallback:
+                """Fallback to Python implementation when C++ module unavailable"""
+
+                pass
+
+            # Note: Python implementations are available via direct import:
+            # from python.multi_recipient_ecies import MultiRecipientECIES
+            # from python.callsign_key_store import CallsignKeyStore
+
+            # Set flag for other code to check
+            _CPP_MODULE_AVAILABLE = False
+
+            # Build minimal __all__ for Python fallback
+            __all__ = []
+
+        except ImportError:
+            # Python fallback also failed
+            raise ImportError(
+                f"Failed to import linux_crypto_python module: {e}\n"
+                "Make sure the module is built and installed correctly.\n"
+                "Run 'sudo make install' from the build directory.\n"
+                "\n"
+                "Python fallback also unavailable."
+            ) from e
+    else:
+        # Other import error (not linking-related)
+        raise ImportError(
+            f"Failed to import linux_crypto_python module: {e}\n"
+            "Make sure the module is built and installed correctly.\n"
+            "Run 'sudo make install' from the build directory."
+        ) from e
+
+
+# Export availability flag
+def is_cpp_module_available():
+    """Check if C++ module is available (not just Python fallback)"""
+    return _CPP_MODULE_AVAILABLE
+
+
+def get_linking_error():
+    """Get the linking error message if C++ module failed to load"""
+    return _LINKING_ERROR

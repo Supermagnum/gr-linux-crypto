@@ -190,7 +190,8 @@ if(ENABLE_PYTHON)
     
     target_link_libraries(linux_crypto_python PRIVATE
         gnuradio-linux-crypto
-        ${GNURADIO_LIBRARIES}
+        gnuradio-runtime
+        gnuradio-pmt
     )
     
     # Add OpenSSL support to Python bindings if available
