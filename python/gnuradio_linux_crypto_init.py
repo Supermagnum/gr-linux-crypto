@@ -88,26 +88,15 @@ except ImportError as e:
         )
 
         # Fall back to Python implementation
-        # Import Python-only implementations
-        try:
-            from python.multi_recipient_ecies import MultiRecipientECIES
-            from python.callsign_key_store import CallsignKeyStore
+        # Python implementations are available via direct import:
+        # from python.multi_recipient_ecies import MultiRecipientECIES
+        # from python.callsign_key_store import CallsignKeyStore
 
-            # Create wrapper classes that use Python implementation
-            class _PythonFallback:
-                """Fallback to Python implementation when C++ module unavailable"""
+        # Set flag for other code to check
+        _CPP_MODULE_AVAILABLE = False
 
-                pass
-
-            # Note: Python implementations are available via direct import:
-            # from python.multi_recipient_ecies import MultiRecipientECIES
-            # from python.callsign_key_store import CallsignKeyStore
-
-            # Set flag for other code to check
-            _CPP_MODULE_AVAILABLE = False
-
-            # Build minimal __all__ for Python fallback
-            __all__ = []
+        # Build minimal __all__ for Python fallback
+        __all__ = []
 
         except ImportError:
             # Python fallback also failed
