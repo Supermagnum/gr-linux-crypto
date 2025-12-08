@@ -41,6 +41,10 @@ try:
         brainpool_ecies_multi_decrypt = (
             linux_crypto_python.brainpool_ecies_multi_decrypt
         )
+    if hasattr(linux_crypto_python, "brainpool_ecdsa_sign"):
+        brainpool_ecdsa_sign = linux_crypto_python.brainpool_ecdsa_sign
+    if hasattr(linux_crypto_python, "brainpool_ecdsa_verify"):
+        brainpool_ecdsa_verify = linux_crypto_python.brainpool_ecdsa_verify
 
     # Expose any module-level functions
     if hasattr(linux_crypto_python, "get_integration_status"):
@@ -60,6 +64,8 @@ try:
         __all__.extend(
             ["brainpool_ecies_multi_encrypt", "brainpool_ecies_multi_decrypt"]
         )
+    if hasattr(linux_crypto_python, "brainpool_ecdsa_sign"):
+        __all__.extend(["brainpool_ecdsa_sign", "brainpool_ecdsa_verify"])
 
 except ImportError as e:
     error_msg = str(e)

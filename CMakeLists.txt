@@ -104,6 +104,8 @@ if(OPENSSL_FOUND)
         lib/brainpool_ecies_decrypt_impl.cc
         lib/brainpool_ecies_multi_encrypt_impl.cc
         lib/brainpool_ecies_multi_decrypt_impl.cc
+        lib/brainpool_ecdsa_sign_impl.cc
+        lib/brainpool_ecdsa_verify_impl.cc
     )
 endif()
 
@@ -120,6 +122,8 @@ if(OPENSSL_FOUND)
         lib/brainpool_ecies_decrypt_impl.h
         lib/brainpool_ecies_multi_encrypt_impl.h
         lib/brainpool_ecies_multi_decrypt_impl.h
+        lib/brainpool_ecdsa_sign_impl.h
+        lib/brainpool_ecdsa_verify_impl.h
     )
 endif()
 

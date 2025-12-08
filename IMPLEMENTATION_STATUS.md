@@ -335,6 +335,98 @@ encrypt_block = linux_crypto.brainpool_ecies_multi_encrypt(
 - `lib/brainpool_ecies_multi_encrypt_impl.cc` - Added ChaCha20-Poly1305 encryption
 - `lib/brainpool_ecies_multi_decrypt_impl.cc` - Added ChaCha20-Poly1305 decryption
 - `include/gnuradio/linux_crypto/brainpool_ecies_multi_encrypt.h` - Added cipher parameter
+
+## ECDSA Signing and Verification Blocks (Added 2025-12-08)
+
+**Status:** FULLY IMPLEMENTED
+
+### Overview
+
+ECDSA (Elliptic Curve Digital Signature Algorithm) signing and verification blocks have been added to expose the existing `brainpool_ec_impl::sign()` and `verify()` functionality as GNU Radio blocks. This makes ECDSA signing/verification available in flowgraphs alongside the existing ECIES encryption blocks.
+
+### Key Features
+
+- **ECDSA Signing Block** (`brainpool_ecdsa_sign`):
+  - Signs input data using Brainpool private key
+  - Supports SHA-256, SHA-384, SHA-512 hash algorithms
+  - Outputs data + DER-encoded signature
+  - Configurable curve (P256r1, P384r1, P512r1)
+  - Thread-safe operations
+
+- **ECDSA Verification Block** (`brainpool_ecdsa_verify`):
+  - Verifies signatures using Brainpool public key
+  - Supports SHA-256, SHA-384, SHA-512 hash algorithms
+  - Outputs original data if valid, zeros if invalid
+  - Configurable curve (P256r1, P384r1, P512r1)
+  - Thread-safe operations
+
+### Implementation Details
+
+**C++ Header Files:**
+- `include/gnuradio/linux_crypto/brainpool_ecdsa_sign.h` - Signing block interface
+- `include/gnuradio/linux_crypto/brainpool_ecdsa_verify.h` - Verification block interface
+
+**C++ Implementation Files:**
+- `lib/brainpool_ecdsa_sign_impl.h` - Signing block implementation header
+- `lib/brainpool_ecdsa_sign_impl.cc` - Signing block implementation (~300 lines)
+- `lib/brainpool_ecdsa_verify_impl.h` - Verification block implementation header
+- `lib/brainpool_ecdsa_verify_impl.cc` - Verification block implementation (~280 lines)
+
+**Python Bindings:**
+- `bind_brainpool_ecdsa_sign()` - Python binding for signing block
+- `bind_brainpool_ecdsa_verify()` - Python binding for verification block
+- Blocks exposed via `gnuradio.linux_crypto` module
+
+**Build Integration:**
+- Source files added to `CMakeLists.txt`
+- Headers added to install list
+- Python bindings registered in `linux_crypto_python.cc`
+- Wrapper file updated to expose blocks
+
+### Usage
+
+**Python API:**
+```python
+from gnuradio import linux_crypto
+
+# Create signing block
+sign_block = linux_crypto.brainpool_ecdsa_sign(
+    curve='brainpoolP256r1',
+    private_key_pem=private_key_pem,
+    hash_algorithm='sha256'
+)
+
+# Create verification block
+verify_block = linux_crypto.brainpool_ecdsa_verify(
+    curve='brainpoolP256r1',
+    public_key_pem=public_key_pem,
+    hash_algorithm='sha256'
+)
+```
+
+**Block Behavior:**
+
+- **Signing Block**: Takes data stream as input, outputs data + signature appended
+- **Verification Block**: Takes data + signature as input, outputs original data if signature is valid, zeros if invalid
+
+### Integration Status
+
+- [COMPLETE] C++ header files created
+- [COMPLETE] C++ implementation files created
+- [COMPLETE] Python bindings added
+- [COMPLETE] CMakeLists.txt updated
+- [COMPLETE] Wrapper file updated
+- [COMPLETE] Build successful
+- [PENDING] GRC block definitions (optional)
+- [PENDING] Installation and runtime testing
+
+### Notes
+
+- ECDSA signing/verification functionality was already available in `brainpool_ec_impl` but was not exposed as GNU Radio blocks
+- These blocks make ECDSA operations available in GNU Radio flowgraphs
+- Supports all Brainpool curves (P256r1, P384r1, P512r1)
+- Hash algorithm can be changed at runtime via `set_hash_algorithm()`
+- Private/public keys can be updated at runtime via `set_private_key()` / `set_public_key()`
 - `lib/brainpool_ecies_multi_encrypt_impl.h` - Added cipher support declarations
 - `lib/brainpool_ecies_multi_decrypt_impl.h` - Added cipher support declarations
 - `python/linux_crypto_python.cc` - Updated Python bindings

@@ -2063,10 +2063,15 @@ For detailed performance test results, see [TEST_RESULTS.md](tests/TEST_RESULTS.
 ### 1. **Native C++ Blocks** (Implemented)
 ```
 Blocks implemented:
-- kernel_keyring_source    # Load key from kernel keyring (source only)
-- kernel_crypto_aes         # AES encryption via kernel crypto API
-- nitrokey_interface        # Access Nitrokey via libnitrokey
-- brainpool_ec              # Brainpool elliptic curve operations (ECDH, ECDSA)
+- kernel_keyring_source          # Load key from kernel keyring (source only)
+- kernel_crypto_aes              # AES encryption via kernel crypto API
+- nitrokey_interface             # Access Nitrokey via libnitrokey
+- brainpool_ecies_encrypt        # ECIES encryption (single recipient)
+- brainpool_ecies_decrypt        # ECIES decryption (single recipient)
+- brainpool_ecies_multi_encrypt  # ECIES encryption (multi-recipient, up to 25)
+- brainpool_ecies_multi_decrypt  # ECIES decryption (multi-recipient)
+- brainpool_ecdsa_sign           # ECDSA signing
+- brainpool_ecdsa_verify         # ECDSA verification
 ```
 
 **Note:** `keyring_key_sink` and `tpm_interface` are mentioned in design but not yet implemented.

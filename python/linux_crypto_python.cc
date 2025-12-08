@@ -32,6 +32,8 @@
 #include <gnuradio/linux_crypto/brainpool_ecies_decrypt.h>
 #include <gnuradio/linux_crypto/brainpool_ecies_multi_encrypt.h>
 #include <gnuradio/linux_crypto/brainpool_ecies_multi_decrypt.h>
+#include <gnuradio/linux_crypto/brainpool_ecdsa_sign.h>
+#include <gnuradio/linux_crypto/brainpool_ecdsa_verify.h>
 #endif
 
 namespace py = pybind11;
@@ -177,6 +179,40 @@ void bind_brainpool_ecies_multi_decrypt(py::module& m)
         .def("get_kdf_info", &brainpool_ecies_multi_decrypt::get_kdf_info)
         .def("get_curve", &brainpool_ecies_multi_decrypt::get_curve);
 }
+
+void bind_brainpool_ecdsa_sign(py::module& m)
+{
+    using brainpool_ecdsa_sign = gr::linux_crypto::brainpool_ecdsa_sign;
+
+    py::class_<brainpool_ecdsa_sign, gr::sync_block, std::shared_ptr<brainpool_ecdsa_sign>>(
+        m, "brainpool_ecdsa_sign")
+        .def(py::init(&brainpool_ecdsa_sign::make),
+             py::arg("curve") = "brainpoolP256r1",
+             py::arg("private_key_pem") = "",
+             py::arg("hash_algorithm") = "sha256")
+        .def("set_private_key", &brainpool_ecdsa_sign::set_private_key)
+        .def("get_private_key", &brainpool_ecdsa_sign::get_private_key)
+        .def("set_hash_algorithm", &brainpool_ecdsa_sign::set_hash_algorithm)
+        .def("get_hash_algorithm", &brainpool_ecdsa_sign::get_hash_algorithm)
+        .def("get_curve", &brainpool_ecdsa_sign::get_curve);
+}
+
+void bind_brainpool_ecdsa_verify(py::module& m)
+{
+    using brainpool_ecdsa_verify = gr::linux_crypto::brainpool_ecdsa_verify;
+
+    py::class_<brainpool_ecdsa_verify, gr::sync_block, std::shared_ptr<brainpool_ecdsa_verify>>(
+        m, "brainpool_ecdsa_verify")
+        .def(py::init(&brainpool_ecdsa_verify::make),
+             py::arg("curve") = "brainpoolP256r1",
+             py::arg("public_key_pem") = "",
+             py::arg("hash_algorithm") = "sha256")
+        .def("set_public_key", &brainpool_ecdsa_verify::set_public_key)
+        .def("get_public_key", &brainpool_ecdsa_verify::get_public_key)
+        .def("set_hash_algorithm", &brainpool_ecdsa_verify::set_hash_algorithm)
+        .def("get_hash_algorithm", &brainpool_ecdsa_verify::get_hash_algorithm)
+        .def("get_curve", &brainpool_ecdsa_verify::get_curve);
+}
 #endif
 
 PYBIND11_MODULE(linux_crypto_python, m)
@@ -192,6 +228,8 @@ PYBIND11_MODULE(linux_crypto_python, m)
     bind_brainpool_ecies_decrypt(m);
     bind_brainpool_ecies_multi_encrypt(m);
     bind_brainpool_ecies_multi_decrypt(m);
+    bind_brainpool_ecdsa_sign(m);
+    bind_brainpool_ecdsa_verify(m);
 #endif
 
     // Add module-level functions
