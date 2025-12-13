@@ -16,15 +16,7 @@ import sys
 
 import freedv_nitrokey_decryption_epy_block_0 as epy_block_0  # embedded python block
 import pmt
-from gnuradio import (
-    audio,
-    blocks,
-    filter,
-    gr,
-    linux_crypto,
-    qtgui,
-    vocoder,
-)
+from gnuradio import audio, blocks, filter, gr, linux_crypto, qtgui, vocoder
 from gnuradio.vocoder import codec2, freedv_api
 from PyQt5 import Qt
 
@@ -68,7 +60,9 @@ class freedv_nitrokey_decryption(gr.top_block, Qt.QWidget):
         ##################################################
         self.samp_rate = samp_rate = 8000
         self.nitrokey_slot = nitrokey_slot = 1
-        self.freedv_mode = "MODE_1600"  # freedv_mode available but not used in this example
+        self.freedv_mode = (
+            "MODE_1600"  # freedv_mode available but not used in this example
+        )
 
         ##################################################
         # Blocks

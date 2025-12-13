@@ -7,8 +7,8 @@ Implements the key block format and encryption/decryption logic
 for up to 25 recipients using Brainpool ECIES.
 """
 
-import struct
 import secrets
+import struct
 from typing import List, Optional, Tuple
 
 try:
@@ -442,7 +442,8 @@ class MultiRecipientECIES:
         self, plaintext: bytes, key: bytes, nonce: bytes
     ) -> Tuple[bytes, bytes]:
         """Encrypt using ChaCha20-Poly1305."""
-        from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+        from cryptography.hazmat.primitives.ciphers.aead import \
+            ChaCha20Poly1305
 
         if len(nonce) != self.AES_IV_SIZE:
             raise ValueError(f"Nonce must be {self.AES_IV_SIZE} bytes")
@@ -459,7 +460,8 @@ class MultiRecipientECIES:
         self, ciphertext: bytes, key: bytes, nonce: bytes, tag: bytes
     ) -> bytes:
         """Decrypt using ChaCha20-Poly1305."""
-        from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+        from cryptography.hazmat.primitives.ciphers.aead import \
+            ChaCha20Poly1305
 
         if len(nonce) != self.AES_IV_SIZE:
             raise ValueError(f"Nonce must be {self.AES_IV_SIZE} bytes")

@@ -20,16 +20,12 @@ from pathlib import Path
 import pytest
 
 try:
-    from test_brainpool_vectors import (
-        WycheproofParser,
-        download_wycheproof_vectors,
-    )
+    from test_brainpool_vectors import (WycheproofParser,
+                                        download_wycheproof_vectors)
 except ImportError:
     # Try relative import
-    from .test_brainpool_vectors import (
-        WycheproofParser,
-        download_wycheproof_vectors,
-    )
+    from .test_brainpool_vectors import (WycheproofParser,
+                                         download_wycheproof_vectors)
 
 # Import gr-linux-crypto Brainpool functions
 try:
@@ -153,9 +149,12 @@ class TestBrainpoolECDHWycheproof:
                 ):
                     # Load private key from bytes (OpenSSL format)
                     try:
-                        from cryptography.hazmat.backends import default_backend
-                        from cryptography.hazmat.primitives import serialization
-                        from cryptography.hazmat.primitives.asymmetric import ec
+                        from cryptography.hazmat.backends import \
+                            default_backend
+                        from cryptography.hazmat.primitives import \
+                            serialization
+                        from cryptography.hazmat.primitives.asymmetric import \
+                            ec
 
                         # Convert Wycheproof private key bytes to EC private key
                         # Wycheproof private keys are raw big-endian integers
@@ -340,7 +339,8 @@ class TestBrainpoolECDSAWycheproof:
         from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import ec
-        from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+        from cryptography.hazmat.primitives.asymmetric.utils import \
+            encode_dss_signature
 
         for vector in vectors:
             try:

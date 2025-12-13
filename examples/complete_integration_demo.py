@@ -191,9 +191,7 @@ class CompleteIntegrationDemo:
                         test_tb = gr.top_block()
 
                         # Create Nitrokey interface (not stored, just created for demo)
-                        _ = linux_crypto.nitrokey_interface(
-                            test_slot, auto_repeat=True
-                        )
+                        _ = linux_crypto.nitrokey_interface(test_slot, auto_repeat=True)
 
                         # Create data source
                         data_source = blocks.vector_source_b(

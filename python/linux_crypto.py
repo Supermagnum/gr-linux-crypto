@@ -11,7 +11,8 @@ from typing import Optional, Tuple, Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
+from cryptography.hazmat.primitives.ciphers.aead import (AESGCM,
+                                                         ChaCha20Poly1305)
 
 
 def encrypt(

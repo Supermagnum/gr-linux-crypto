@@ -13,15 +13,9 @@ from pathlib import Path
 import pytest
 
 try:
-    from test_vectors import (
-        NISTCAVPParser,
-        RFC8439Parser,
-    )
+    from test_vectors import NISTCAVPParser, RFC8439Parser
 except ImportError:
-    from .test_vectors import (
-        NISTCAVPParser,
-        RFC8439Parser,
-    )
+    from .test_vectors import NISTCAVPParser, RFC8439Parser
 
 # Import encryption functions
 try:

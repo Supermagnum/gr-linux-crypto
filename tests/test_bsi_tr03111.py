@@ -24,9 +24,7 @@ from typing import List, Tuple
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import (
-    EllipticCurvePrivateKey,
-    EllipticCurvePublicKey,
-)
+    EllipticCurvePrivateKey, EllipticCurvePublicKey)
 
 try:
     from gr_linux_crypto.crypto_helpers import CryptoHelpers

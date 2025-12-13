@@ -15,15 +15,7 @@ import signal
 import sys
 
 import freedv_nitrokey_encryption_epy_block_0 as epy_block_0  # embedded python block
-from gnuradio import (
-    audio,
-    blocks,
-    filter,
-    gr,
-    linux_crypto,
-    qtgui,
-    vocoder,
-)
+from gnuradio import audio, blocks, filter, gr, linux_crypto, qtgui, vocoder
 from gnuradio.vocoder import codec2, freedv_api
 from PyQt5 import Qt
 

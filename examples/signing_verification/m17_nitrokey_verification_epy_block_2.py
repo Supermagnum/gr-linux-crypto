@@ -1,14 +1,7 @@
-
 import pmt
 from gnuradio import gr
-from PyQt5.QtWidgets import (
-    QDialog,
-    QLabel,
-    QLineEdit,
-    QMessageBox,
-    QPushButton,
-    QVBoxLayout,
-)
+from PyQt5.QtWidgets import (QDialog, QLabel, QLineEdit, QMessageBox,
+                             QPushButton, QVBoxLayout)
 
 try:
     from libnitrokey import NitrokeyManager

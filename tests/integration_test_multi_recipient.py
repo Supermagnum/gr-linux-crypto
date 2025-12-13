@@ -6,21 +6,21 @@ Integration tests for multi-recipient ECIES.
 Validates complete encrypt/decrypt round-trips for all recipient counts.
 """
 
-import sys
 import os
+import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 try:
-    from python.multi_recipient_ecies import MultiRecipientECIES
     from python.callsign_key_store import CallsignKeyStore
     from python.crypto_helpers import CryptoHelpers
+    from python.multi_recipient_ecies import MultiRecipientECIES
 except ImportError:
     try:
-        from gr_linux_crypto.multi_recipient_ecies import MultiRecipientECIES
         from gr_linux_crypto.callsign_key_store import CallsignKeyStore
         from gr_linux_crypto.crypto_helpers import CryptoHelpers
+        from gr_linux_crypto.multi_recipient_ecies import MultiRecipientECIES
     except ImportError:
         print("Error: Could not import required modules")
         sys.exit(1)

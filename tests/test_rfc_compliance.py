@@ -19,17 +19,9 @@ from pathlib import Path
 import pytest
 
 try:
-    from test_rfc_vectors import (
-        RFC6954Parser,
-        RFC7027Parser,
-        RFC8734Parser,
-    )
+    from test_rfc_vectors import RFC6954Parser, RFC7027Parser, RFC8734Parser
 except ImportError:
-    from .test_rfc_vectors import (
-        RFC6954Parser,
-        RFC7027Parser,
-        RFC8734Parser,
-    )
+    from .test_rfc_vectors import RFC6954Parser, RFC7027Parser, RFC8734Parser
 
 try:
     from gr_linux_crypto.crypto_helpers import CryptoHelpers

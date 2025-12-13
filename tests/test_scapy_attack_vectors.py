@@ -11,17 +11,7 @@ from __future__ import annotations
 
 import random
 
-from scapy.all import (
-    ARP,
-    BOOTP,
-    DHCP,
-    DNS,
-    DNSQR,
-    Ether,
-    IP,
-    TCP,
-    UDP,
-)
+from scapy.all import ARP, BOOTP, DHCP, DNS, DNSQR, IP, TCP, UDP, Ether
 
 
 def create_arp_spoof_packet(

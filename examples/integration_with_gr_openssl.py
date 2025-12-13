@@ -19,7 +19,8 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 
 try:
-    from gnuradio import blocks, crypto, gr  # linux_crypto not used in this example
+    from gnuradio import (blocks,  # linux_crypto not used in this example
+                          crypto, gr)
     from gnuradio.crypto import sym_ciph_desc
 except ImportError as e:
     print(f"Import error: {e}")

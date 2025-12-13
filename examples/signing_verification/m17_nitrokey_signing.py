@@ -17,15 +17,7 @@ import sys
 import m17_nitrokey_signing_epy_block_0 as epy_block_0  # embedded python block
 import m17_nitrokey_signing_epy_block_1 as epy_block_1  # embedded python block
 import m17_nitrokey_signing_epy_block_2 as epy_block_2  # embedded python block
-from gnuradio import (
-    audio,
-    blocks,
-    filter,
-    gr,
-    linux_crypto,
-    qtgui,
-    vocoder,
-)
+from gnuradio import audio, blocks, filter, gr, linux_crypto, qtgui, vocoder
 from gnuradio.vocoder import codec2
 from PyQt5 import Qt
 

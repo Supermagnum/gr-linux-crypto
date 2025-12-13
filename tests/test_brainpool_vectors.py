@@ -234,9 +234,8 @@ class WycheproofParser:
                 sig_s = b""
 
                 try:
-                    from cryptography.hazmat.primitives.asymmetric.utils import (
-                        decode_dss_signature,
-                    )
+                    from cryptography.hazmat.primitives.asymmetric.utils import \
+                        decode_dss_signature
 
                     # Try to decode as DER
                     r, s = decode_dss_signature(sig)

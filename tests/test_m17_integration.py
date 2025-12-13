@@ -17,21 +17,13 @@ import pytest
 
 # Import M17 frame handling
 try:
-    from python.m17_frame import (
-        M17EncryptionSubtype,
-        M17EncryptionType,
-        M17Frame,
-        M17SessionKeyExchange,
-    )
+    from python.m17_frame import (M17EncryptionSubtype, M17EncryptionType,
+                                  M17Frame, M17SessionKeyExchange)
 except ImportError:
     try:
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
-        from m17_frame import (
-            M17EncryptionSubtype,
-            M17EncryptionType,
-            M17Frame,
-            M17SessionKeyExchange,
-        )
+        from m17_frame import (M17EncryptionSubtype, M17EncryptionType,
+                               M17Frame, M17SessionKeyExchange)
     except ImportError:
         pytest.skip("Cannot import m17_frame")
 

@@ -10,8 +10,8 @@ for secure storage when available, with file-based fallback.
 
 import json
 import os
-from typing import Dict, Optional
 from pathlib import Path
+from typing import Dict, Optional
 
 try:
     from .keyring_helper import KeyringHelper

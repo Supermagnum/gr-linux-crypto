@@ -19,22 +19,19 @@ from pathlib import Path
 import pytest
 
 try:
-    from test_brainpool_vectors import WycheproofParser, download_wycheproof_vectors
+    from test_brainpool_vectors import (WycheproofParser,
+                                        download_wycheproof_vectors)
 except ImportError:
-    from .test_brainpool_vectors import WycheproofParser, download_wycheproof_vectors
+    from .test_brainpool_vectors import (WycheproofParser,
+                                         download_wycheproof_vectors)
 
 try:
-    from test_brainpool_vectors_extended import (
-        LinuxKernelParser,
-        MbedTLSParser,
-        download_linux_kernel_testmgr,
-    )
+    from test_brainpool_vectors_extended import (LinuxKernelParser,
+                                                 MbedTLSParser,
+                                                 download_linux_kernel_testmgr)
 except ImportError:
     from .test_brainpool_vectors_extended import (
-        LinuxKernelParser,
-        MbedTLSParser,
-        download_linux_kernel_testmgr,
-    )
+        LinuxKernelParser, MbedTLSParser, download_linux_kernel_testmgr)
 
 try:
     from gr_linux_crypto.crypto_helpers import CryptoHelpers
@@ -173,8 +170,10 @@ class TestBrainpoolAllSources:
                         and len(vector.public_key) > 0
                     ):
                         # Load private key from bytes (OpenSSL format)
-                        from cryptography.hazmat.backends import default_backend
-                        from cryptography.hazmat.primitives.asymmetric import ec
+                        from cryptography.hazmat.backends import \
+                            default_backend
+                        from cryptography.hazmat.primitives.asymmetric import \
+                            ec
 
                         # Convert Wycheproof private key bytes to EC private key
                         private_key_int = int.from_bytes(vector.private_key, "big")
@@ -203,7 +202,8 @@ class TestBrainpoolAllSources:
                             # Try ASN.1/DER format (starts with 0x30 = SEQUENCE)
                             if vector.public_key[0] == 0x30:
                                 # Use cryptography library to load DER-encoded public key
-                                from cryptography.hazmat.primitives import serialization
+                                from cryptography.hazmat.primitives import \
+                                    serialization
 
                                 try:
                                     public_key = serialization.load_der_public_key(

@@ -10,18 +10,17 @@ Tests include:
 - Verification that each recipient can decrypt
 """
 
-import unittest
-import tempfile
 import os
-from pathlib import Path
-
 import sys
+import tempfile
+import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "python"))
 
-from multi_recipient_ecies import MultiRecipientECIES
-from callsign_key_store import CallsignKeyStore, create_test_key_store
-from crypto_helpers import CryptoHelpers
+from callsign_key_store import CallsignKeyStore  # noqa: E402
+from crypto_helpers import CryptoHelpers  # noqa: E402
+from multi_recipient_ecies import MultiRecipientECIES  # noqa: E402
 
 
 class TestMultiRecipientECIES(unittest.TestCase):
