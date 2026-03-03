@@ -205,10 +205,18 @@ if(ENABLE_PYTHON)
     find_package(Python3 COMPONENTS Interpreter Development)
     find_package(pybind11 REQUIRED)
     
-    # Create Python bindings
+    # Use Python's actual site-packages path so the module is on sys.path
+    # (e.g. lib/python3.12/site-packages or lib/python3.12/dist-packages)
+    if(Python3_SITELIB)
+        set(LINUX_CRYPTO_PYTHON_INSTALL_DIR "${Python3_SITELIB}")
+    else()
+        set(LINUX_CRYPTO_PYTHON_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/dist-packages")
+    endif()
+    message(STATUS "  Python bindings install dir: ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}")
+    
+    # Create Python bindings (C++ sources only; .py files are not compiled by pybind11)
     pybind11_add_module(linux_crypto_python
         python/linux_crypto_python.cc
-        python/linux_crypto_integration.py
     )
     
     target_link_libraries(linux_crypto_python PRIVATE
@@ -229,14 +237,14 @@ if(ENABLE_PYTHON)
         BUILD_WITH_INSTALL_RPATH TRUE
     )
     
-    # Install Python module
+    # Install Python module into Python's site path so it is importable
     install(TARGETS linux_crypto_python
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/python3/dist-packages
+        DESTINATION ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}
     )
     
     # Install Python wrapper module to gnuradio package
     install(FILES python/gnuradio_linux_crypto_init.py
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/python3/dist-packages/gnuradio
+        DESTINATION ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}/gnuradio
         RENAME linux_crypto.py
     )
 endif()
