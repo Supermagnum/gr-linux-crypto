@@ -247,6 +247,19 @@ if(ENABLE_PYTHON)
         DESTINATION ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}/gnuradio
         RENAME linux_crypto.py
     )
+    
+    # Install gr_linux_crypto Python package (KeyringHelper, CryptoHelpers, etc.)
+    install(FILES
+        python/__init__.py
+        python/keyring_helper.py
+        python/crypto_helpers.py
+        python/callsign_key_store.py
+        python/multi_recipient_ecies.py
+        python/m17_frame.py
+        python/linux_crypto_integration.py
+        python/linux_crypto.py
+        DESTINATION ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}/gr_linux_crypto
+    )
 endif()
 
 ########################################################################
