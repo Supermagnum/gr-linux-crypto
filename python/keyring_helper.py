@@ -65,6 +65,10 @@ class KeyringHelper:
             temp_file = f.name
 
         try:
+            # Original behaviour: pass the temporary filename as payload.
+            # Keyctl will store the filename string in the key, not the file contents.
+            # Higher-level wrappers (e.g. gr-k-gdss) are responsible for interpreting
+            # the returned value from keyctl read.
             result = self._run_keyctl(
                 ["add", key_type, key_description, temp_file, keyring]
             )
