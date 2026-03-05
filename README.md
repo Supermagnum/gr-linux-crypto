@@ -16,6 +16,7 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
    - [What is a "GnuPG Agent"?](#what-is-a-gnupg-agent)
    - [What Are "Pinentry Programs"?](#what-are-pinentry-programs)
    - [How to Create a GnuPG Key](#how-to-create-a-gnupg-key)
+     - [How to get GnuPG key ID](#how-to-get-gnupg-key-id)
    - [Advanced Key Management: Centralized Key Generation and Distribution](#advanced-key-management-centralized-key-generation-and-distribution)
    - [Web of Trust and Key Signing Parties](#web-of-trust-and-key-signing-parties)
    - [Key servers - what are those?](#key-servers---what-are-those)
@@ -237,7 +238,7 @@ uid           [ultimate] John Doe <john@example.com>
 sub   rsa3072 2024-01-15 [E]
 ```
 
-**How to get GnuPG key ID**
+### How to get GnuPG key ID
 
 List keys with:
 ```bash
