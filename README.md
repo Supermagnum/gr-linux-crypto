@@ -271,7 +271,7 @@ gpg --export --armor john@example.com > my_public_key.asc
 # Share this file - it's safe to share publicly
 ```
 
-**Your private key stays on your computer** - never share it!
+**Your private key stays on your computer/Hardware Key device** - never share it!
 
 ### Advanced Key Management: Centralized Key Generation and Distribution
 
