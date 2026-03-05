@@ -189,21 +189,34 @@ After generating keys on your Nitrokey 3A, you'll need to extract the public key
 First, identify your key ID:
 
 ```bash
-# List keys to find the key ID
+# List secret keys (for private key operations)
+gpg --list-secret-keys
+
+# List public keys
 gpg --list-keys
 
-# Or show detailed information with fingerprints
+# Show detailed information with fingerprints
 gpg --list-keys --keyid-format LONG
 ```
 
-Example output showing key ID:
+Example output:
 ```
-/home/user/.gnupg/pubring.kbx
--------------------------------------
 pub   brainpoolP256r1 2024-01-15 [SC]
-      ABC123DEF4567890ABCDEF1234567890ABCDEF12  ← This is the key ID
-uid           [ultimate] Your Callsign <your@email.com>
+      A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2
+uid           [ultimate] Alice <alice@example.com>
 sub   brainpoolP256r1 2024-01-15 [E]
+```
+
+The long hex string on the `pub` line is the **full fingerprint**. The last 16 characters are the **long key ID**, and the last 8 characters are the **short key ID**.
+
+To get just the fingerprint/ID cleanly (one per line, all keys):
+```bash
+gpg --list-keys --with-colons | grep "^fpr" | cut -d: -f10
+```
+
+For a specific key by email:
+```bash
+gpg --list-keys --with-colons alice@example.com | grep "^fpr" | cut -d: -f10
 ```
 
 Extract the public key:

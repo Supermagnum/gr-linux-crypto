@@ -237,6 +237,33 @@ uid           [ultimate] John Doe <john@example.com>
 sub   rsa3072 2024-01-15 [E]
 ```
 
+**How to get GnuPG key ID**
+
+List keys with:
+```bash
+gpg --list-secret-keys
+```
+
+Example output (Brainpool key):
+```
+pub   brainpoolP256r1 2024-01-15 [SC]
+      A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2
+uid           [ultimate] Alice <alice@example.com>
+sub   brainpoolP256r1 2024-01-15 [E]
+```
+
+The long hex string on the `pub` line is the **full fingerprint**. The last 16 characters are the **long key ID**, and the last 8 characters are the **short key ID**.
+
+To get just the fingerprint (one per line) from all keys:
+```bash
+gpg --list-keys --with-colons | grep "^fpr" | cut -d: -f10
+```
+
+To get the fingerprint for a specific key by email:
+```bash
+gpg --list-keys --with-colons alice@example.com | grep "^fpr" | cut -d: -f10
+```
+
 **Step 4: Export your public key (to share with others)**
 ```bash
 gpg --export --armor john@example.com > my_public_key.asc
