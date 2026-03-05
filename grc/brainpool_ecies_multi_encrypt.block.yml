@@ -48,12 +48,13 @@ outputs:
   vlen: 1
 
 documentation: |-
-  Multi-recipient ECIES encryption (up to 25 recipients). Recipient Callsigns is a
-  comma-separated list of callsigns; Key Store Path points to a JSON key store
-  mapping callsigns to public keys. Optional key_in for dynamic key input. KDF
-  Info must match decrypt. Curves: brainpoolP256r1, brainpoolP384r1,
-  brainpoolP512r1. Output format is the multi-recipient ECIES envelope (see
-  docs multi_recipient_ecies_format.md).
+  Multi-recipient ECIES (up to 25 recipients). Recipient Callsigns: comma-separated
+  list (e.g. W1ABC,K2XYZ or group1,group2); required. Key Store Path: optional.
+  JSON file can define key groups: "group1": ["key1","key2","key3"]; use group name
+  in callsigns to encrypt for all members. Keys can be PEM, keygrip (40 hex), or
+  key group (array). add_keygrip(callsign, keygrip); keyctl add user "callsign:X" "<keygrip>".
+  gpg --list-secret-keys --with-keygrip. Use callsign as name or comment. Optional key_in.
+  KDF Info must match decrypt. See multi_recipient_ecies_format.md.
 
 file_format: 1
 

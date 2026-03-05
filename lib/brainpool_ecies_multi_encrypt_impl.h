@@ -54,6 +54,8 @@ private:
     
     std::vector<std::string> d_callsigns;
     std::map<std::string, EVP_PKEY*> d_recipient_keys;
+    std::map<std::string, std::string> d_recipient_keygrips;
+    std::map<std::string, std::vector<std::string>> d_groups;
     mutable std::mutex d_mutex;
     
     std::vector<uint8_t> d_input_buffer;
@@ -74,7 +76,9 @@ private:
     static constexpr uint8_t CIPHER_ID_CHACHA20_POLY1305 = 0x02;
     
     bool load_key_store();
+    bool get_public_key_from_keyring(const std::string& callsign, std::string& public_key_pem);
     bool get_public_key_from_store(const std::string& callsign, std::string& public_key_pem);
+    std::vector<std::string> expand_callsigns() const;
     uint8_t get_curve_id() const;
     
     bool derive_key_hkdf(const std::vector<uint8_t>& shared_secret,

@@ -216,9 +216,9 @@ gpg --full-generate-key
 1. **Key type:** Choose "RSA and RSA" (recommended) or "ECC" (modern, smaller keys)
 2. **Key size:** Choose 3072 or 4096 bits (higher is more secure, slower)
 3. **Expiration:** Choose how long the key is valid (or "Key does not expire")
-4. **Your name:** Enter your real name or callsign
+4. **Your name:** Use your **callsign** (e.g. `W1ABC`) or your real name; for use with this module's callsign-based key store and keyring, **use the callsign as the name** so it matches the callsign you use when adding keys (`callsign:CALLSIGN`).
 5. **Email:** Enter your email address
-6. **Comment:** Optional (e.g., "Amateur Radio Callsign: KG7ABC")
+6. **Comment:** Optional. If you used your real name above, put your callsign here (e.g. "Callsign: KG7ABC"); otherwise you can add a short note (e.g. "Amateur Radio").
 7. **Passphrase:** Enter a strong passphrase (this protects your private key)
 
 **Step 3: Verify your key was created**
@@ -228,15 +228,16 @@ gpg --list-keys        # Shows public keys
 gpg --list-secret-keys # Shows private keys
 ```
 
-**Example output:**
+**Example output (callsign as name):**
 ```
 /home/user/.gnupg/pubring.kbx
 -------------------------------------
 pub   rsa3072 2024-01-15 [SC]
       ABC123DEF4567890ABCDEF1234567890ABCDEF12
-uid           [ultimate] John Doe <john@example.com>
+uid           [ultimate] W1ABC <your@email.com>
 sub   rsa3072 2024-01-15 [E]
 ```
+Using the callsign as the name (or in the comment) keeps the key identity aligned with the callsign used in the key store and keyring (`callsign:W1ABC`).
 
 ### How to get GnuPG key ID
 
@@ -245,11 +246,11 @@ List keys with:
 gpg --list-secret-keys
 ```
 
-Example output (Brainpool key):
+Example output (Brainpool key; callsign as name):
 ```
 pub   brainpoolP256r1 2024-01-15 [SC]
       A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2
-uid           [ultimate] Alice <alice@example.com>
+uid           [ultimate] W1ABC <your@email.com>
 sub   brainpoolP256r1 2024-01-15 [E]
 ```
 
@@ -260,9 +261,9 @@ To get just the fingerprint (one per line) from all keys:
 gpg --list-keys --with-colons | grep "^fpr" | cut -d: -f10
 ```
 
-To get the fingerprint for a specific key by email:
+To get the fingerprint for a specific key by callsign (or email):
 ```bash
-gpg --list-keys --with-colons alice@example.com | grep "^fpr" | cut -d: -f10
+gpg --list-keys --with-colons W1ABC | grep "^fpr" | cut -d: -f10
 ```
 
 **Step 4: Export your public key (to share with others)**
@@ -1345,6 +1346,25 @@ recipients = ['W1ABC', 'K2XYZ', 'N3DEF']
 encrypted = ecies.encrypt(b"Message", recipients)
 # Each recipient decrypts with their own private key
 ```
+
+**Key Store Path (key_store_path) and Recipient Callsigns (callsigns)**
+
+The **Brainpool ECIES Multi-Recipient Encrypt** block needs a mapping from recipient callsigns to their Brainpool public keys so it can encrypt for up to 25 recipients. **callsigns** is a comma-separated list of those recipients (e.g. `W1ABC,K2XYZ`). **key_store_path** is optional: you can use **only the kernel keyring** and leave the file empty or omit it.
+
+- **Keyring-only (no JSON file):** Add each recipient's public key to the keyring with description `callsign:CALLSIGN` (e.g. `keyctl add user "callsign:W1ABC" "$(cat pubkey.pem)"` or `CallsignKeyStore(...).add_public_key(callsign, public_key_pem)`). Set **callsigns** to the comma-separated list of recipients. Leave Key Store Path empty (`""`); the block will look up keys in the session keyring, then the user keyring. No JSON file is required.
+- **Optional JSON file:** If you set **key_store_path**, the block loads that file first (cache). For any callsign not in the file, it then looks in the keyring. So the file is an optional cache; if the file is missing or empty, the block still works using the keyring. Default when empty: `~/.gnuradio/callsign_keys.json`.
+- **Hardware keys (multiple public keys per device):** You can store a **keygrip** (40 hex chars) instead of PEM for a callsign. The block then fetches the public key from the OpenPGP Card / Nitrokey (or other GnuPG-accessible hardware). So one device with multiple keys (e.g. different slots or key grips) can supply multiple recipient keys: store one keygrip per callsign in the keyring (e.g. `keyctl add user "callsign:W1ABC" "A1B2C3D4E5F6..."`) or in the JSON file, or use `CallsignKeyStore.add_keygrip(callsign, keygrip)`. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`.
+- **File format (when used):** One JSON object. Each key is either a callsign or a **group name**. Values can be: (a) public key in PEM (string), (b) keygrip (40 hex), or (c) a **key group**: an array of callsigns. When you set **callsigns** to a group name (e.g. `net1`), the block expands it to all members of that group (e.g. `key1`, `key2`, `key3`) and encrypts for each. Groups allow one label to refer to multiple recipients; total recipients after expansion must not exceed 25.
+  ```json
+  {
+    "W1ABC": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
+    "K2XYZ": "A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2",
+    "group1": ["W1ABC", "K2XYZ", "N3DEF"],
+    "group2": ["KEY4", "KEY5", "KEY6"]
+  }
+  ```
+  Here `group1` and `group2` are key groups. Set **callsigns** to `group1` or `group1,group2,W1ABC` etc.; the block expands groups to their members and looks up each member's key (PEM or keygrip). The second entry is a keygrip; the block fetches that key from the OpenPGP Card when encrypting.
+- **callsigns required:** The list of recipient callsigns must be set; if **callsigns** is empty, the block does not encrypt for any recipients. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment** so the same callsign is used in the keyring and in **callsigns**.
 
 **GNU Radio C++ Blocks:**
 ```python

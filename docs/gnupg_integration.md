@@ -121,10 +121,10 @@ When prompted about off-card backup:
 Make off-card backup of encryption key? (Y/n) n
 ```
 
-Enter your details:
-- **Real name:** Your callsign
+Enter your details (use callsign as name or comment so it matches the key store and keyring):
+- **Real name:** Your **callsign** (e.g. `W1ABC`) so the key identity matches `callsign:CALLSIGN` in the keyring and key store
 - **Email address:** your@email.com
-- **Comment:** Repeater Authentication
+- **Comment:** Optional (e.g. "Amateur Radio" or "Repeater Authentication"); if you use your real name above, put your callsign here
 
 Enter the default PINs when prompted:
 - **User PIN:** Default is `123456` (you will change this)
@@ -199,11 +199,11 @@ gpg --list-keys
 gpg --list-keys --keyid-format LONG
 ```
 
-Example output:
+Example output (callsign used as name so it matches key store/keyring):
 ```
 pub   brainpoolP256r1 2024-01-15 [SC]
       A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2
-uid           [ultimate] Alice <alice@example.com>
+uid           [ultimate] W1ABC <your@email.com>
 sub   brainpoolP256r1 2024-01-15 [E]
 ```
 
@@ -216,7 +216,7 @@ gpg --list-keys --with-colons | grep "^fpr" | cut -d: -f10
 
 For a specific key by email:
 ```bash
-gpg --list-keys --with-colons alice@example.com | grep "^fpr" | cut -d: -f10
+gpg --list-keys --with-colons W1ABC | grep "^fpr" | cut -d: -f10
 ```
 
 Extract the public key:
@@ -342,6 +342,8 @@ If `pcsc_scan` doesn't detect your Nitrokey 3A:
 ```bash
 gpg --full-generate-key
 # Follow prompts to select key type, size, expiration
+# Use your callsign as the name (or as the comment) so the key matches
+# callsign-based key store and keyring (callsign:CALLSIGN) in this module
 ```
 
 **Import existing key from `.asc` file:**

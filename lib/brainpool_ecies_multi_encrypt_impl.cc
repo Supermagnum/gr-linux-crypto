@@ -28,11 +28,13 @@
 
 #include <gnuradio/io_signature.h>
 #include "brainpool_ecies_multi_encrypt_impl.h"
+#include "openpgp_card_helper.h"
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
 #include <openssl/pem.h>
 #include <openssl/bio.h>
+#include <keyutils.h>
 #include <cstring>
 #include <stdexcept>
 #include <algorithm>
@@ -140,6 +142,30 @@ static std::string trim_upper(const std::string& str)
     return result;
 }
 
+static std::string trim_string(const std::string& str)
+{
+    size_t start = str.find_first_not_of(" \t\n\r");
+    if (start == std::string::npos) {
+        return "";
+    }
+    size_t end = str.find_last_not_of(" \t\n\r");
+    return str.substr(start, end - start + 1);
+}
+
+static bool is_keygrip(const std::string& s)
+{
+    std::string t = trim_string(s);
+    if (t.length() != 40) {
+        return false;
+    }
+    for (char c : t) {
+        if (!std::isxdigit(static_cast<unsigned char>(c))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static std::string extract_json_string_value(const std::string& json, const std::string& key)
 {
     std::string search_key = "\"" + key + "\"";
@@ -200,38 +226,157 @@ brainpool_ecies_multi_encrypt_impl::load_key_store()
             pos = key_end + 1;
             continue;
         }
-        
+        size_t after_colon = json_content.find_first_not_of(" \t\n\r", colon_pos + 1);
+        if (after_colon == std::string::npos) {
+            pos = key_end + 1;
+            continue;
+        }
+        if (json_content[after_colon] == '[') {
+            std::vector<std::string> members;
+            size_t arr_pos = after_colon + 1;
+            while (arr_pos < json_content.size()) {
+                size_t q = json_content.find('"', arr_pos);
+                if (q == std::string::npos) {
+                    break;
+                }
+                size_t bracket_before = json_content.find(']', arr_pos);
+                if (bracket_before != std::string::npos && bracket_before < q) {
+                    break;
+                }
+                size_t q2 = json_content.find('"', q + 1);
+                if (q2 == std::string::npos) {
+                    break;
+                }
+                std::string member = trim_upper(json_content.substr(q + 1, q2 - q - 1));
+                if (member.length() > 0 && member.length() <= MAX_CALLSIGN_LEN) {
+                    members.push_back(member);
+                }
+                size_t next_quote = json_content.find('"', q2 + 1);
+                size_t bracket_end = json_content.find(']', q2 + 1);
+                if (bracket_end != std::string::npos && (next_quote == std::string::npos || bracket_end < next_quote)) {
+                    break;
+                }
+                if (next_quote == std::string::npos) {
+                    break;
+                }
+                arr_pos = next_quote;
+            }
+            if (!members.empty()) {
+                std::lock_guard<std::mutex> lock(d_mutex);
+                d_groups[callsign] = members;
+            }
+            size_t bracket_end = json_content.find(']', after_colon);
+            pos = (bracket_end != std::string::npos) ? bracket_end + 1 : json_content.size();
+            continue;
+        }
         size_t value_start = json_content.find('"', colon_pos);
         if (value_start == std::string::npos) {
             pos = key_end + 1;
             continue;
         }
-        
         size_t value_end = json_content.find('"', value_start + 1);
         if (value_end == std::string::npos) {
             pos = key_end + 1;
             continue;
         }
-        
-        std::string pem_key = json_content.substr(value_start + 1, value_end - value_start - 1);
-        
-        BIO* bio = BIO_new_mem_buf(pem_key.data(), pem_key.size());
-        if (bio) {
-            EVP_PKEY* pkey = PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
-            BIO_free(bio);
-            if (pkey) {
-                std::lock_guard<std::mutex> lock(d_mutex);
-                if (d_recipient_keys.find(callsign) != d_recipient_keys.end()) {
-                    EVP_PKEY_free(d_recipient_keys[callsign]);
+        std::string value_str = json_content.substr(value_start + 1, value_end - value_start - 1);
+        std::string value_trimmed = trim_string(value_str);
+
+        if (is_keygrip(value_trimmed)) {
+            std::lock_guard<std::mutex> lock(d_mutex);
+            d_recipient_keygrips[callsign] = value_trimmed;
+        } else {
+            BIO* bio = BIO_new_mem_buf(value_str.data(), value_str.size());
+            if (bio) {
+                EVP_PKEY* pkey = PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
+                BIO_free(bio);
+                if (pkey) {
+                    std::lock_guard<std::mutex> lock(d_mutex);
+                    if (d_recipient_keys.find(callsign) != d_recipient_keys.end()) {
+                        EVP_PKEY_free(d_recipient_keys[callsign]);
+                    }
+                    d_recipient_keys[callsign] = pkey;
                 }
-                d_recipient_keys[callsign] = pkey;
             }
         }
-        
+
         pos = value_end + 1;
     }
     
     return true;
+}
+
+std::vector<std::string>
+brainpool_ecies_multi_encrypt_impl::expand_callsigns() const
+{
+    std::lock_guard<std::mutex> lock(d_mutex);
+    std::vector<std::string> out;
+    for (const auto& cs : d_callsigns) {
+        auto it = d_groups.find(cs);
+        if (it != d_groups.end()) {
+            for (const auto& member : it->second) {
+                if (out.size() >= MAX_RECIPIENTS) {
+                    return out;
+                }
+                out.push_back(member);
+            }
+        } else {
+            if (out.size() >= MAX_RECIPIENTS) {
+                return out;
+            }
+            out.push_back(cs);
+        }
+    }
+    return out;
+}
+
+bool
+brainpool_ecies_multi_encrypt_impl::get_public_key_from_keyring(const std::string& callsign,
+                                                               std::string& public_key_pem)
+{
+    if (callsign.empty() || callsign.length() > MAX_CALLSIGN_LEN) {
+        return false;
+    }
+    std::string desc = "callsign:" + callsign;
+    key_serial_t kid = keyctl(KEYCTL_SEARCH, KEY_SPEC_USER_SESSION_KEYRING, "user", desc.c_str(), 0);
+    if (kid < 0) {
+        kid = keyctl(KEYCTL_SEARCH, KEY_SPEC_USER_KEYRING, "user", desc.c_str(), 0);
+    }
+    if (kid < 0) {
+        return false;
+    }
+    long key_size = keyctl(KEYCTL_READ, kid, nullptr, 0);
+    if (key_size <= 0 || key_size > 65536) {
+        return false;
+    }
+    std::vector<char> buf(static_cast<size_t>(key_size));
+    long nread = keyctl(KEYCTL_READ, kid, buf.data(), key_size);
+    if (nread != key_size) {
+        return false;
+    }
+    public_key_pem.assign(buf.data(), static_cast<size_t>(key_size));
+    return !public_key_pem.empty();
+}
+
+static bool evp_pkey_to_pem_string(EVP_PKEY* pkey, std::string& out)
+{
+    if (!pkey) {
+        return false;
+    }
+    BIO* bio = BIO_new(BIO_s_mem());
+    if (!bio) {
+        return false;
+    }
+    bool ok = (PEM_write_bio_PUBKEY(bio, pkey) == 1);
+    if (ok) {
+        char* ptr = nullptr;
+        long len = BIO_get_mem_data(bio, &ptr);
+        if (len > 0 && ptr) {
+            out.assign(ptr, len);
+        }
+    }
+    BIO_free(bio);
+    return ok && !out.empty();
 }
 
 bool
@@ -239,30 +384,73 @@ brainpool_ecies_multi_encrypt_impl::get_public_key_from_store(const std::string&
                                                               std::string& public_key_pem)
 {
     std::string normalized = trim_upper(callsign);
-    
-    std::lock_guard<std::mutex> lock(d_mutex);
-    auto it = d_recipient_keys.find(normalized);
-    if (it != d_recipient_keys.end() && it->second) {
-        BIO* bio = BIO_new(BIO_s_mem());
-        if (!bio) {
-            return false;
+    std::string keygrip_from_file;
+
+    {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        auto it = d_recipient_keys.find(normalized);
+        if (it != d_recipient_keys.end() && it->second) {
+            return evp_pkey_to_pem_string(it->second, public_key_pem);
         }
-        
-        if (PEM_write_bio_PUBKEY(bio, it->second) != 1) {
-            BIO_free(bio);
-            return false;
+        auto kg_it = d_recipient_keygrips.find(normalized);
+        if (kg_it != d_recipient_keygrips.end()) {
+            keygrip_from_file = kg_it->second;
         }
-        
-        char* pem_ptr = nullptr;
-        long pem_len = BIO_get_mem_data(bio, &pem_ptr);
-        if (pem_len > 0 && pem_ptr) {
-            public_key_pem.assign(pem_ptr, pem_len);
-        }
-        BIO_free(bio);
-        return !public_key_pem.empty();
     }
-    
-    return false;
+
+    if (!keygrip_from_file.empty()) {
+        EVP_PKEY* pkey = openpgp_card_helper::get_public_key_from_card(keygrip_from_file);
+        if (!pkey) {
+            return false;
+        }
+        bool ok = evp_pkey_to_pem_string(pkey, public_key_pem);
+        std::lock_guard<std::mutex> lock(d_mutex);
+        if (d_recipient_keys.find(normalized) != d_recipient_keys.end()) {
+            EVP_PKEY_free(d_recipient_keys[normalized]);
+        }
+        d_recipient_keys[normalized] = pkey;
+        return ok;
+    }
+
+    std::string keyring_pem;
+    if (!get_public_key_from_keyring(normalized, keyring_pem)) {
+        return false;
+    }
+
+    if (is_keygrip(keyring_pem)) {
+        std::string keygrip = trim_string(keyring_pem);
+        EVP_PKEY* pkey = openpgp_card_helper::get_public_key_from_card(keygrip);
+        if (!pkey) {
+            return false;
+        }
+        std::lock_guard<std::mutex> lock(d_mutex);
+        if (d_recipient_keys.find(normalized) != d_recipient_keys.end()) {
+            EVP_PKEY_free(d_recipient_keys[normalized]);
+        }
+        d_recipient_keys[normalized] = pkey;
+        return evp_pkey_to_pem_string(pkey, public_key_pem);
+    }
+
+    BIO* bio = BIO_new_mem_buf(keyring_pem.data(), keyring_pem.size());
+    if (!bio) {
+        return false;
+    }
+    EVP_PKEY* pkey = PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
+    BIO_free(bio);
+    if (!pkey) {
+        return false;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        auto it = d_recipient_keys.find(normalized);
+        if (it != d_recipient_keys.end() && it->second) {
+            EVP_PKEY_free(it->second);
+        }
+        d_recipient_keys[normalized] = pkey;
+    }
+    public_key_pem = keyring_pem;
+    return true;
 }
 
 void
@@ -672,29 +860,27 @@ brainpool_ecies_multi_encrypt_impl::work(int noutput_items,
         process_key_input(key_in, noutput_items);
     }
     
-    std::lock_guard<std::mutex> lock(d_mutex);
-    
-    if (d_callsigns.empty()) {
+    std::vector<std::string> expanded = expand_callsigns();
+    if (expanded.empty()) {
         memset(out, 0, noutput_items);
         return 0;
     }
-    
-    if (d_callsigns.size() > MAX_RECIPIENTS) {
+    if (expanded.size() > MAX_RECIPIENTS) {
         memset(out, 0, noutput_items);
         return 0;
     }
-    
+
     std::vector<EVP_PKEY*> recipient_public_keys;
-    for (const auto& callsign : d_callsigns) {
+    for (const auto& callsign : expanded) {
         EVP_PKEY* pkey = nullptr;
-        
-        // First, check if we have a key from the key input port
-        if (d_use_key_input_port && d_recipient_keys.find(callsign) != d_recipient_keys.end()) {
-            pkey = d_recipient_keys[callsign];
-            // Increment reference count (we'll free it later)
-            EVP_PKEY_up_ref(pkey);
-        } else {
-            // Fall back to key store
+        {
+            std::lock_guard<std::mutex> lock(d_mutex);
+            if (d_use_key_input_port && d_recipient_keys.find(callsign) != d_recipient_keys.end()) {
+                pkey = d_recipient_keys[callsign];
+                EVP_PKEY_up_ref(pkey);
+            }
+        }
+        if (!pkey) {
             std::string public_key_pem;
             if (!get_public_key_from_store(callsign, public_key_pem)) {
                 // Free already loaded keys
@@ -769,7 +955,7 @@ brainpool_ecies_multi_encrypt_impl::work(int noutput_items,
     }
     
     std::vector<std::vector<uint8_t>> recipient_blocks;
-    for (size_t i = 0; i < d_callsigns.size(); ++i) {
+    for (size_t i = 0; i < expanded.size(); ++i) {
         std::vector<uint8_t> encrypted_key_block;
         if (!encrypt_symmetric_key_ecies(symmetric_key, recipient_public_keys[i],
                                         encrypted_key_block)) {
@@ -779,9 +965,8 @@ brainpool_ecies_multi_encrypt_impl::work(int noutput_items,
             memset(out, 0, noutput_items);
             return 0;
         }
-        
         std::vector<uint8_t> recipient_block;
-        build_recipient_block(d_callsigns[i], encrypted_key_block, recipient_block);
+        build_recipient_block(expanded[i], encrypted_key_block, recipient_block);
         recipient_blocks.push_back(recipient_block);
     }
     
@@ -791,7 +976,7 @@ brainpool_ecies_multi_encrypt_impl::work(int noutput_items,
     
     uint32_t data_length = AES_IV_SIZE + ciphertext.size() + AES_TAG_SIZE;
     std::vector<uint8_t> header;
-    build_header(static_cast<uint8_t>(d_callsigns.size()), data_length, d_cipher_id, header);
+    build_header(static_cast<uint8_t>(expanded.size()), data_length, d_cipher_id, header);
     
     size_t total_size = header.size();
     for (const auto& block : recipient_blocks) {

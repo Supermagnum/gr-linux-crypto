@@ -27,6 +27,10 @@ class CallsignKeyStore:
 
     Supports both kernel keyring storage (preferred) and file-based
     storage (fallback). Keys are stored in PEM format.
+
+    When generating keys (e.g. with GnuPG or on Nitrokey), use the callsign
+    as the key's name or as the comment so the same callsign is used when
+    adding keys here and in the keyring (callsign:CALLSIGN).
     """
 
     def __init__(self, store_path: Optional[str] = None, use_keyring: bool = True):
@@ -101,6 +105,42 @@ class CallsignKeyStore:
                 pass
 
         self._cache[callsign] = public_key_pem
+        self._save_to_file()
+        return True
+
+    def add_keygrip(self, callsign: str, keygrip: str) -> bool:
+        """
+        Add a keygrip for a callsign (hardware key on OpenPGP Card / Nitrokey).
+
+        The multi-recipient encrypt block will fetch the public key from the
+        device when it sees a 40-character hex keygrip. Use this when the
+        recipient's key is on a hardware device (multiple keys per device
+        are supported by storing one keygrip per callsign).
+
+        Args:
+            callsign: Radio amateur callsign (e.g., "W1ABC")
+            keygrip: 40-character hex keygrip (e.g. from gpg --list-secret-keys --with-keygrip)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        callsign = callsign.upper().strip()
+        keygrip = keygrip.strip().replace(" ", "").lower()
+        if len(keygrip) != 40 or not all(c in "0123456789abcdef" for c in keygrip):
+            return False
+        if not callsign or len(callsign) > 14:
+            return False
+
+        if self.use_keyring and self.keyring_helper:
+            try:
+                key_description = f"callsign:{callsign}"
+                self.keyring_helper.add_key(
+                    "user", key_description, keygrip.encode("ascii")
+                )
+            except Exception:
+                pass
+
+        self._cache[callsign] = keygrip
         self._save_to_file()
         return True
 
