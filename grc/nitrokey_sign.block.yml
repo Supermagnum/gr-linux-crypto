@@ -20,5 +20,13 @@ outputs:
 - domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  Nitrokey interface block (legacy name). Outputs data from the Nitrokey
+  password-safe; slot is typically fixed or default. Auto Repeat controls
+  whether the data is repeated to fill the stream. Requires libnitrokey and a
+  connected Nitrokey. For explicit slot selection use Nitrokey Interface
+  (linux_crypto_nitrokey_interface).
+
 file_format: 1
 

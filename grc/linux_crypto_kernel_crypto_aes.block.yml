@@ -43,4 +43,14 @@ outputs:
   domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  AES encryption/decryption using the Linux kernel crypto API (AF_ALG). Supports
+  CBC, ECB, CTR, and GCM. Key and IV are set as parameters (e.g. 32 bytes for
+  AES-256, 16 bytes for IV). Encrypt=true for encryption, false for decryption.
+  For key material from keyring or hardware, feed a key stream into a separate
+  keyring or Nitrokey source and use that flow for key input, or set key/IV
+  from flowgraph variables. Block size is 16 bytes for CBC/ECB; use PKCS#7
+  padding for arbitrary-length data.
+
 file_format: 1

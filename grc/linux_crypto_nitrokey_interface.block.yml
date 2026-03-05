@@ -30,4 +30,13 @@ outputs:
   domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  Reads key or secret data from a Nitrokey password-safe slot and outputs it as
+  a byte stream. Slot Number is the password-safe slot index (typically 0-15).
+  Auto Repeat: when true, the slot data is repeated to fill the stream; when
+  false, output is produced once. Requires libnitrokey and a connected Nitrokey.
+  Use as key source for encryption blocks. If the device is disconnected,
+  output may be zeros until reconnected and keys reloaded.
+
 file_format: 1

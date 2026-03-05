@@ -54,5 +54,13 @@ outputs:
   domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  Multi-recipient ECIES decryption. Decrypts a stream encrypted for multiple
+  recipients; this block uses Recipient Callsign to select the recipient and
+  Key Source (kernel_keyring or opgp_card) with Recipient Key Identifier (key ID
+  or keygrip). Optional key_in for dynamic key input. KDF Info must match
+  encrypt. Curves: brainpoolP256r1, brainpoolP384r1, brainpoolP512r1.
+
 file_format: 1
 

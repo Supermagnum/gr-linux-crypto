@@ -25,5 +25,12 @@ outputs:
 - domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  Same as Kernel Keyring Source (linux_crypto_kernel_keyring_source): reads key
+  material from the Linux kernel keyring by key ID and outputs a byte stream.
+  Key ID is the key serial. Auto Repeat controls whether the key is repeated to
+  fill the stream. Add keys with keyctl or gr_linux_crypto KeyringHelper.
+
 file_format: 1
 

@@ -258,17 +258,31 @@ if(ENABLE_PYTHON)
         python/m17_frame.py
         python/linux_crypto_integration.py
         python/linux_crypto.py
+        python/gdss_set_key_source.py
         DESTINATION ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}/gr_linux_crypto
     )
 endif()
 
 ########################################################################
-# GRC blocks
+# GRC blocks (explicit install so blocks and tree are always installed)
 ########################################################################
 if(ENABLE_GRC)
-    install(DIRECTORY grc/
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/share/gnuradio/grc/blocks
-        FILES_MATCHING PATTERN "*.yml"
+    set(GRC_BLOCKS_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/gnuradio/grc/blocks")
+    message(STATUS "  GRC blocks install dir: ${GRC_BLOCKS_INSTALL_DIR}")
+    install(FILES
+        grc/gr-linux-crypto.tree.yml
+        grc/linux_crypto_gdss_set_key_source.block.yml
+        grc/linux_crypto_kernel_keyring_source.block.yml
+        grc/linux_crypto_kernel_crypto_aes.block.yml
+        grc/linux_crypto_nitrokey_interface.block.yml
+        grc/kernel_keyring_source.block.yml
+        grc/kernel_aes_encrypt.block.yml
+        grc/nitrokey_sign.block.yml
+        grc/brainpool_ecies_encrypt.block.yml
+        grc/brainpool_ecies_decrypt.block.yml
+        grc/brainpool_ecies_multi_encrypt.block.yml
+        grc/brainpool_ecies_multi_decrypt.block.yml
+        DESTINATION ${GRC_BLOCKS_INSTALL_DIR}
     )
 endif()
 

@@ -48,5 +48,14 @@ outputs:
   domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  Single-recipient ECIES (Elliptic Curve Integrated Encryption Scheme) encryption
+  using Brainpool curves. Encrypts the input stream for one recipient. Key
+  Source: kernel_keyring (use key ID) or opgp_card (use keygrip). Recipient Key
+  Identifier is the key ID (keyring) or keygrip hex (OpenPGP Card). Optional
+  key_in port for dynamic key input. KDF Info is a string used in key derivation;
+  must match decrypt side. Curves: brainpoolP256r1, brainpoolP384r1, brainpoolP512r1.
+
 file_format: 1
 

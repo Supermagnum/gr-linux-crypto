@@ -208,9 +208,9 @@ flowchart TD
 
 ```python
 # Step 1: Store key in kernel keyring (using keyctl or Python helper)
-from gr_linux_crypto.keyring_helper import KernelKeyringManager
-keyring = KernelKeyringManager()
-key_id = keyring.add_key("my_aes_key", b"32-byte-key-data-here")
+from gr_linux_crypto.keyring_helper import KeyringHelper
+helper = KeyringHelper()
+key_id = helper.add_key("user", "my_aes_key", b"32-byte-key-data-here")
 
 # Step 2: Create kernel keyring source (gr-linux-crypto)
 from gnuradio import linux_crypto

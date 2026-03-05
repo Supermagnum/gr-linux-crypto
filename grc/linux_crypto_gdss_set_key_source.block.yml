@@ -1,0 +1,48 @@
+id: linux_crypto_gdss_set_key_source
+label: GDSS Set Key Source
+category: '[gr-linux-crypto]/GDSS'
+flags: [python]
+
+parameters:
+- id: shared_secret_hex
+  label: Shared Secret (64 hex chars)
+  dtype: string
+  default: '""'
+  hide: none
+- id: session_id
+  label: Session ID
+  dtype: int
+  default: '1'
+  hide: none
+- id: tx_seq
+  label: TX Sequence
+  dtype: int
+  default: '0'
+  hide: none
+
+inputs: []
+
+outputs:
+- domain: message
+  id: set_key_out
+  label: set_key
+  optional: true
+
+templates:
+  imports: |-
+    from gr_linux_crypto import gdss_set_key_source_block
+  make: |-
+    gdss_set_key_source_block(
+        shared_secret_hex=${shared_secret_hex},
+        session_id=${session_id},
+        tx_seq=${tx_seq})
+
+documentation: |-
+  Outputs the set_key PMT message for gr-k-gdss spreader/despreader.
+  Key and nonce are derived from the shared secret (HKDF) and session_id/tx_seq;
+  no manual key entry. Connect set_key_out to the set_key port of
+  Keyed GDSS Spreader and Keyed GDSS Despreader.
+  Shared secret: 64 hex chars (32 bytes). For zero manual entry use gr-k-gdss
+  key_injector with keyring_id instead.
+
+file_format: 1

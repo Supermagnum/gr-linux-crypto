@@ -48,5 +48,13 @@ outputs:
   domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  Single-recipient ECIES decryption using Brainpool curves. Decrypts a stream
+  encrypted for this key. Key Source: kernel_keyring or opgp_card. Recipient Key
+  Identifier is key ID (keyring) or keygrip (OpenPGP Card). Optional key_in port
+  for dynamic key input. KDF Info must match the encrypt block. Curves:
+  brainpoolP256r1, brainpoolP384r1, brainpoolP512r1.
+
 file_format: 1
 

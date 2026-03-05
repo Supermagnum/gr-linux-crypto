@@ -290,7 +290,7 @@ Once exported, you can share your public key:
 Once someone imports your public key, they can use it in the codebase:
 
 ```python
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 # Encrypt for you using your public key (after they import it)
 encrypted = M17SessionKeyExchange.encrypt_key_for_recipient(
@@ -420,7 +420,7 @@ sub   rsa3072 2024-01-15 [E]
 Once the key is imported, you can use it in the codebase by referencing its key ID or email:
 
 ```python
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 # Use key ID (from gpg --list-keys output)
 encrypted = M17SessionKeyExchange.encrypt_key_for_recipient(
@@ -590,12 +590,12 @@ gpg --card-edit
 
 ### Current Implementation
 
-The module provides GnuPG integration via the `M17SessionKeyExchange` class in `python/m17_frame.py`. This class uses subprocess calls to the `gpg` command.
+The module provides GnuPG integration via the `M17SessionKeyExchange` class in the `gr_linux_crypto.m17_frame` module. This class uses subprocess calls to the `gpg` command.
 
 ### Basic Usage Example
 
 ```python
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 # Generate session key
 session_key = M17SessionKeyExchange.generate_session_key()
@@ -628,7 +628,7 @@ decrypted_key = M17SessionKeyExchange.decrypt_key(encrypted_key)
 ```python
 #!/usr/bin/env python3
 from gnuradio import gr
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 class GnuPGEncryptBlock(gr.sync_block):
     """GNU Radio block for GnuPG encryption."""
@@ -673,7 +673,7 @@ encrypted_session_key = M17SessionKeyExchange.encrypt_key_for_recipient(
 )
 
 # 3. Use session key with AES (symmetric, fast)
-from gr_linux_crypto.python.linux_crypto import encrypt
+from gr_linux_crypto.linux_crypto import encrypt
 ciphertext, iv, auth_tag = encrypt('aes-256', session_key, data, auth='gcm')
 
 # 4. Send: encrypted_session_key + ciphertext
@@ -702,7 +702,7 @@ Combine GnuPG with kernel crypto for performance:
 shared_secret = M17SessionKeyExchange.decrypt_key(encrypted_key)
 
 # 2. Store key in kernel keyring (secure storage)
-from gr_linux_crypto.python.keyring_helper import KeyringHelper
+from gr_linux_crypto import KeyringHelper
 helper = KeyringHelper()
 key_id = helper.add_key('user', 'session_key', shared_secret)
 
@@ -724,7 +724,7 @@ encryptor = linux_crypto.kernel_crypto_aes(
 #!/usr/bin/env python3
 """Basic GnuPG encryption/decryption example."""
 
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 # Setup: Ensure keys are in GnuPG keyring
 # gpg --list-keys
@@ -760,7 +760,7 @@ else:
 #!/usr/bin/env python3
 """Sign data using GnuPG with hardware token (Nitrokey)."""
 
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 # Ensure Nitrokey is configured in GnuPG
 # gpg --card-status
@@ -793,7 +793,7 @@ else:
 
 from gnuradio import gr
 import numpy as np
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 class GnuPGKeyExchangeBlock(gr.basic_block):
     """Block that performs GnuPG-based key exchange."""
@@ -929,7 +929,7 @@ class GnuPGBlockWithPIN(gr.sync_block):
                 return len(output_items[0])
         
         # Perform GnuPG operation using subprocess (as per current implementation)
-        from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+        from gr_linux_crypto.m17_frame import M17SessionKeyExchange
         data = bytes(input_items[0])
         
         # Decrypt using session key exchange method
@@ -1379,7 +1379,7 @@ Here's how to use these dialogs in a GNU Radio block:
 
 from gnuradio import gr
 import numpy as np
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 from PyQt5.QtWidgets import QDialog
 
 class GnuPGBlockWithCustomPIN(gr.sync_block):

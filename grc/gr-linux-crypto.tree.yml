@@ -1,0 +1,22 @@
+---
+id: gr-linux-crypto
+name: gr-linux-crypto
+category: '[gr-linux-crypto]'
+description: Linux kernel crypto, keyring, and hardware security integration for GNU Radio
+
+'[gr-linux-crypto]':
+- Sources:
+  - linux_crypto_kernel_keyring_source
+  - kernel_keyring_source
+- Crypto:
+  - linux_crypto_kernel_crypto_aes
+  - kernel_aes_encrypt
+  - brainpool_ecies_encrypt
+  - brainpool_ecies_decrypt
+  - brainpool_ecies_multi_encrypt
+  - brainpool_ecies_multi_decrypt
+- Hardware:
+  - linux_crypto_nitrokey_interface
+  - nitrokey_sign
+- GDSS:
+  - linux_crypto_gdss_set_key_source

@@ -6,11 +6,25 @@ This document provides comprehensive examples for using the GNU Radio Linux Cryp
 
 1. [Basic AES Encryption](#basic-aes-encryption)
 2. [Kernel Keyring Integration](#kernel-keyring-integration)
-3. [Hardware Security Module Usage](#hardware-security-module-usage)
-4. [Complete Crypto Flow](#complete-crypto-flow)
-5. [Advanced Usage Patterns](#advanced-usage-patterns)
-6. [Brainpool ECIES Encryption](#brainpool-ecies-encryption)
-7. [Multi-Recipient ECIES](#multi-recipient-ecies)
+3. [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss)
+4. [Hardware Security Module Usage](#hardware-security-module-usage)
+5. [Complete Crypto Flow](#complete-crypto-flow)
+6. [Advanced Usage Patterns](#advanced-usage-patterns)
+7. [Brainpool ECIES Encryption](#brainpool-ecies-encryption)
+8. [Multi-Recipient ECIES](#multi-recipient-ecies)
+
+### GRC blocks reference
+
+| Block | Category in GRC | Documented in |
+|-------|-----------------|---------------|
+| Kernel Keyring Source | Sources | [Kernel Keyring Integration](#kernel-keyring-integration) |
+| Kernel Crypto AES | Crypto | [Basic AES Encryption](#basic-aes-encryption) |
+| Nitrokey Interface / Nitrokey Sign | Hardware | [Hardware Security Module Usage](#hardware-security-module-usage) |
+| GDSS Set Key Source | GDSS | [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss) |
+| Brainpool ECIES Encrypt/Decrypt | Crypto | [Brainpool ECIES Encryption](#brainpool-ecies-encryption) |
+| Brainpool ECIES Multi-Recipient Encrypt/Decrypt | Crypto | [Multi-Recipient ECIES](#multi-recipient-ecies) |
+
+Each block's `.block.yml` also includes a `documentation` field visible in the GRC block info panel.
 
 ## Basic AES Encryption
 
@@ -139,6 +153,49 @@ def gr_keyring_flowgraph():
 if __name__ == "__main__":
     gr_keyring_flowgraph()
 ```
+
+## GDSS Set Key Source (gr-k-gdss)
+
+The **GDSS Set Key Source** block provides the `set_key` PMT message required by [gr-k-gdss](https://github.com/gnuradio/gr-k-gdss) Keyed GDSS Spreader (`kgdss_spreader_cc`) and Keyed GDSS Despreader (`kgdss_despreader_cc`). It derives the 32-byte masking key from a shared secret using HKDF (info `gdss-chacha20-masking-v1`) and builds the 12-byte nonce from session ID (4 bytes big-endian) and TX sequence (8 bytes big-endian), matching gr-k-gdss session key derivation so that key and nonce never need manual entry.
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `shared_secret_hex` | str | Shared secret as 64 hexadecimal characters (32 bytes). Must match the secret used by the other side (e.g. from ECDH). |
+| `session_id` | int | Session identifier used in nonce (default 1). |
+| `tx_seq` | int | Transmission sequence number used in nonce (default 0). |
+
+### Output
+
+- **Message port `set_key_out`**: PMT dict with keys `"key"` (u8vector, 32 bytes) and `"nonce"` (u8vector, 12 bytes). Emitted once when the flowgraph starts. Connect to the `set_key` input of the Keyed GDSS Spreader and Keyed GDSS Despreader.
+
+### Requirements
+
+- `gr_linux_crypto.CryptoHelpers` (OpenSSL; used for HKDF). The block is part of the installed `gr_linux_crypto` package.
+- For key injection from kernel keyring without manual hex entry, use gr-k-gdss key_injector with `keyring_id` instead.
+
+### Python Example
+
+```python
+from gnuradio import gr
+from gr_linux_crypto import gdss_set_key_source_block
+
+# Shared secret from ECDH or other key agreement (64 hex chars = 32 bytes)
+shared_secret_hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+block = gdss_set_key_source_block(
+    shared_secret_hex=shared_secret_hex,
+    session_id=1,
+    tx_seq=0,
+)
+# In a flowgraph: connect block's set_key_out message port to the set_key
+# port of kgdss_spreader_cc and kgdss_despreader_cc.
+```
+
+### GRC
+
+In GNU Radio Companion the block appears under category **\[gr-linux-crypto]/GDSS** as **GDSS Set Key Source**. Connect the **set_key** output message port to the **set_key** input of the Keyed GDSS Spreader and Keyed GDSS Despreader blocks.
 
 ## Hardware Security Module Usage
 

@@ -46,5 +46,14 @@ outputs:
   domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  Multi-recipient ECIES encryption (up to 25 recipients). Recipient Callsigns is a
+  comma-separated list of callsigns; Key Store Path points to a JSON key store
+  mapping callsigns to public keys. Optional key_in for dynamic key input. KDF
+  Info must match decrypt. Curves: brainpoolP256r1, brainpoolP384r1,
+  brainpoolP512r1. Output format is the multi-recipient ECIES envelope (see
+  docs multi_recipient_ecies_format.md).
+
 file_format: 1
 

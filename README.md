@@ -46,6 +46,7 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
 10. [Usage Examples](#usage-examples)
    - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
    - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
+   - [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss)
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
    - [Multi-Recipient ECIES Encryption](#multi-recipient-ecies-encryption)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
@@ -456,7 +457,7 @@ echo "Secret message" | gpg --encrypt --recipient recipient@example.com > encryp
 
 **Example: Signing radio transmissions**
 ```python
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 # Sign a message to prove your identity
 message = b"Repeater config: adjust squelch to -120 dBm"
@@ -532,7 +533,7 @@ gpg --import contact_public_key.asc
 **Step 2: Session Key Exchange (Initial Setup)**
 ```python
 # In your GNU Radio Python script
-from gr_linux_crypto.python.m17_frame import M17SessionKeyExchange
+from gr_linux_crypto.m17_frame import M17SessionKeyExchange
 
 # Exchange encryption keys securely (using GnuPG)
 session_key = M17SessionKeyExchange.generate_session_key()
@@ -546,7 +547,7 @@ encrypted_key = M17SessionKeyExchange.encrypt_key_for_recipient(
 **Step 3: Store Keys Securely**
 ```python
 # Store session key in kernel keyring (secure, Linux-specific)
-from gr_linux_crypto.python.keyring_helper import KeyringHelper
+from gr_linux_crypto import KeyringHelper
 helper = KeyringHelper()
 key_id = helper.add_key('user', 'session_key', session_key)
 ```
@@ -1221,6 +1222,37 @@ encryptor = nacl.encrypt_secret("nitrokey_key")
 tb.connect(nitrokey_source, encryptor)
 ```
 
+### GDSS Set Key Source (gr-k-gdss)
+
+The **GDSS Set Key Source** block produces the `set_key` PMT message expected by [gr-k-gdss](https://github.com/gnuradio/gr-k-gdss) Keyed GDSS Spreader and Keyed GDSS Despreader. It derives the 32-byte masking key from a shared secret via HKDF and builds the 12-byte nonce from session ID and TX sequence, so key and nonce are set automatically with no manual entry.
+
+**Parameters:**
+- **Shared Secret (64 hex chars)**: 32-byte shared secret as 64 hexadecimal characters. Must match the secret used by the other side.
+- **Session ID**: Integer session identifier (used in nonce; default 1).
+- **TX Sequence**: Transmission sequence number (used in nonce; default 0).
+
+**Output:** Message port `set_key_out` emitting a PMT dict with `"key"` (u8vector 32 bytes) and `"nonce"` (u8vector 12 bytes). Connect this to the `set_key` input of `kgdss_spreader_cc` and `kgdss_despreader_cc`. The message is sent once when the flowgraph starts.
+
+**Requirements:** `gr_linux_crypto.CryptoHelpers` (OpenSSL/HKDF). For zero manual entry from kernel keyring, use gr-k-gdss key_injector with keyring_id instead.
+
+```python
+from gnuradio import gr
+from gr_linux_crypto import gdss_set_key_source_block
+
+# Shared secret from ECDH or other key agreement (64 hex chars = 32 bytes)
+shared_secret_hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+gdss_src = gdss_set_key_source_block(
+    shared_secret_hex=shared_secret_hex,
+    session_id=1,
+    tx_seq=0,
+)
+# Connect gdss_src.message_port_pub("set_key_out", ...) to set_key port of
+# Keyed GDSS Spreader and Keyed GDSS Despreader in your flowgraph.
+```
+
+**GRC:** Block is under category `[gr-linux-crypto]/GDSS` as "GDSS Set Key Source". If the block does not appear in the block list, ensure you have run `sudo make install` from the build directory (so that `gr-linux-crypto.tree.yml` and the block YAML are installed), then restart GNU Radio Companion.
+
 ### Brainpool Elliptic Curve Cryptography
 ```python
 from gr_linux_crypto.crypto_helpers import CryptoHelpers
@@ -1492,7 +1524,8 @@ sudo ldconfig
 **Note:** The uninstall target removes all files that were installed by `make install`, including:
 - Library files (`libgnuradio-linux-crypto.so*`)
 - Header files (`include/gnuradio/linux_crypto/*.h`)
-- Python bindings (`linux_crypto_python*.so`)
+- Python bindings (`linux_crypto_python*.so` and `gnuradio/linux_crypto.py`)
+- Python package `gr_linux_crypto` (KeyringHelper, CryptoHelpers, etc.) in site-packages
 - GRC block definitions (`share/gnuradio/grc/blocks/*.yml`)
 - Example scripts (`share/gr-linux-crypto/examples/*.py`)
 - Documentation (if installed)
@@ -1503,11 +1536,41 @@ sudo ldconfig
 # Check if library was installed
 ldconfig -p | grep linux-crypto
 
-# Test Python import
-python3 -c "from gnuradio import linux_crypto; print('Module installed successfully!')"
+# Test GNU Radio block bindings
+python3 -c "from gnuradio import linux_crypto; print('gnuradio.linux_crypto: OK')"
+
+# Test Python helper package (KeyringHelper, CryptoHelpers, etc.)
+python3 -c "from gr_linux_crypto import KeyringHelper, CryptoHelpers; print('gr_linux_crypto: OK')"
+
+# Check GRC blocks are installed (path may differ if you used a custom prefix)
+ls /usr/local/share/gnuradio/grc/blocks/gr-linux-crypto.tree.yml
+ls /usr/local/share/gnuradio/grc/blocks/linux_crypto_*.block.yml
 ```
 
 **Note:** If you get "No rule to make target 'install'" error, you're likely in the wrong directory. Make sure you're in the `build` directory before running `sudo make install`.
+
+#### GRC blocks (e.g. GDSS Set Key Source) not showing
+
+GNU Radio Companion finds blocks under the same prefix as GNU Radio. If the **gr-linux-crypto** category or blocks do not appear in GRC:
+
+1. **Use the same install prefix as GNU Radio** (usually `/usr/local`). Reconfigure and reinstall:
+   ```bash
+   cd build
+   cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
+   sudo make install
+   sudo ldconfig
+   ```
+2. **Confirm GRC block files are installed** (replace `/usr/local` if your prefix is different):
+   ```bash
+   ls /usr/local/share/gnuradio/grc/blocks/gr-linux-crypto.tree.yml
+   ls /usr/local/share/gnuradio/grc/blocks/linux_crypto_gdss_set_key_source.block.yml
+   ```
+3. **If you use a custom prefix**, tell GRC where to find blocks. In `~/.gnuradio/config.conf` add:
+   ```ini
+   [grc]
+   local_blocks_path=/your/prefix/share/gnuradio/grc/blocks
+   ```
+   Or set the environment variable before starting GRC: `export GRC_BLOCKS_PATH=/your/prefix/share/gnuradio/grc/blocks`. Then restart GNU Radio Companion.
 
 ## Important Note
 
@@ -2111,25 +2174,36 @@ Blocks implemented:
 **Note:** `keyring_key_sink` and `tpm_interface` are mentioned in design but not yet implemented.
 
 ### 2. **Integration Helpers** (Implemented)
+Installed as the `gr_linux_crypto` Python package (no PYTHONPATH needed after `make install`). Import with `from gr_linux_crypto import KeyringHelper, CryptoHelpers` or `from gr_linux_crypto.keyring_helper import KeyringHelper`, etc.
+
 ```
-Python helpers:
+Python package gr_linux_crypto:
 - keyring_helper.py        # keyctl wrapper for kernel keyring operations
 - crypto_helpers.py        # Integration utilities and helper functions
-- linux_crypto.py          # High-level encrypt/decrypt functions
+- linux_crypto.py         # High-level encrypt/decrypt functions
 - linux_crypto_integration.py  # Integration with gr-openssl and gr-nacl
+- callsign_key_store.py   # Callsign-based key store
+- multi_recipient_ecies.py    # Multi-recipient ECIES
+- m17_frame.py            # M17 frame and session key helpers
+- gdss_set_key_source.py  # set_key PMT source for gr-k-gdss spreader/despreader
 ```
 
 ### 3. **GNU Radio Companion Blocks** (Implemented)
-```
-GRC blocks:
-- linux_crypto_kernel_keyring_source.block.yml
-- linux_crypto_kernel_crypto_aes.block.yml
-- linux_crypto_nitrokey_interface.block.yml
-```
 
-**Additional GRC files (legacy/non-standard names):**
-- kernel_keyring_source.block.yml
-- kernel_aes_encrypt.block.yml
+All blocks appear under category `[gr-linux-crypto]` in GRC. Each block's YAML includes a `documentation` field shown in the block info panel.
+
+| Block (GRC label) | Description |
+|-------------------|-------------|
+| **Kernel Keyring Source** (linux_crypto_kernel_keyring_source) | Reads key bytes from the Linux kernel keyring by key ID; optional auto-repeat. |
+| **Kernel Crypto AES** (linux_crypto_kernel_crypto_aes) | AES encrypt/decrypt via kernel crypto API; modes CBC, ECB, CTR, GCM. |
+| **Nitrokey Interface** (linux_crypto_nitrokey_interface) | Reads key/secret from a Nitrokey password-safe slot; optional auto-repeat. |
+| **GDSS Set Key Source** (linux_crypto_gdss_set_key_source) | Outputs `set_key` PMT for gr-k-gdss spreader/despreader; HKDF + session nonce. |
+| **Brainpool ECIES Encrypt** (brainpool_ecies_encrypt) | Single-recipient ECIES encryption; key from keyring or OpenPGP Card. |
+| **Brainpool ECIES Decrypt** (brainpool_ecies_decrypt) | Single-recipient ECIES decryption; key from keyring or OpenPGP Card. |
+| **Brainpool ECIES Multi-Recipient Encrypt** (brainpool_ecies_multi_encrypt) | Multi-recipient ECIES (up to 25); callsigns + key store path. |
+| **Brainpool ECIES Multi-Recipient Decrypt** (brainpool_ecies_multi_decrypt) | Multi-recipient ECIES decryption; recipient callsign + key source. |
+
+**Legacy GRC block names (same functionality):** `kernel_keyring_source`, `kernel_aes_encrypt`, `nitrokey_sign`.
 
 ## Why This Approach?
 

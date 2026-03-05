@@ -30,4 +30,13 @@ outputs:
   domain: stream
   dtype: byte
   vlen: 1
+
+documentation: |-
+  Reads key material from the Linux kernel keyring and outputs it as a byte stream.
+  Key ID is the key serial (e.g. from keyctl add user). When Auto Repeat is true,
+  the key data is repeated to fill the stream; when false, the key is output once
+  then the block may pad or behave according to keyring semantics. Use this as a
+  key source for encryption blocks (e.g. kernel_crypto_aes) or for key injection
+  in flowgraphs. Keys are added with keyctl or gr_linux_crypto KeyringHelper.
+
 file_format: 1

@@ -32,6 +32,7 @@ Python bindings use:
 - `pybind11` - Standard GNU Radio binding approach
 - Standard GNU Radio block inheritance patterns
 - No version-specific code
+- The `gr_linux_crypto` Python package (KeyringHelper, CryptoHelpers, etc.) is installed to the same Python site-packages path as the block bindings, so `from gr_linux_crypto import KeyringHelper` works after `make install` without PYTHONPATH
 
 ### 4. Library Versioning
 
