@@ -50,6 +50,7 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
    - [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss)
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
    - [Multi-Recipient ECIES Encryption](#multi-recipient-ecies-encryption)
+   - [CallsignKeyStore and key groups API](#callsignkeystore-and-key-groups-api)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
 11. [Dependencies](#dependencies)
    - [Required](#required)
@@ -1366,7 +1367,7 @@ The **Brainpool ECIES Multi-Recipient Encrypt** block needs a mapping from recip
   Here `group1` and `group2` are key groups. Set **callsigns** to `group1` or `group1,group2,W1ABC` etc.; the block expands groups to their members and looks up each member's key (PEM or keygrip). The second entry is a keygrip; the block fetches that key from the OpenPGP Card when encrypting.
 - **callsigns required:** The list of recipient callsigns must be set; if **callsigns** is empty, the block does not encrypt for any recipients. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment** so the same callsign is used in the keyring and in **callsigns**.
 
-**CallsignKeyStore and key groups API**
+### CallsignKeyStore and key groups API
 
 The Python helper `CallsignKeyStore` (from `gr_linux_crypto` or `gr_linux_crypto.callsign_key_store`) manages the JSON key store and key groups. Use it to add keys, keygrips, and groups so the multi-recipient encrypt block can resolve them.
 
