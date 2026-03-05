@@ -11,7 +11,7 @@ for secure storage when available, with file-based fallback.
 import json
 import os
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 try:
     from .keyring_helper import KeyringHelper
@@ -31,6 +31,10 @@ class CallsignKeyStore:
     When generating keys (e.g. with GnuPG or on Nitrokey), use the callsign
     as the key's name or as the comment so the same callsign is used when
     adding keys here and in the keyring (callsign:CALLSIGN).
+
+    Key groups (add_group, get_group, list_groups, remove_group) let you
+    define named groups of callsigns in the JSON file. The multi-recipient
+    encrypt block expands a group name in **callsigns** to all members.
     """
 
     def __init__(self, store_path: Optional[str] = None, use_keyring: bool = True):
@@ -57,25 +61,41 @@ class CallsignKeyStore:
 
         self.store_path = store_path
         self._cache: Dict[str, str] = {}
+        self._groups: Dict[str, List[str]] = {}
         self._load_from_file()
 
     def _load_from_file(self):
-        """Load keys from file-based store."""
+        """Load keys and groups from file-based store."""
         if os.path.exists(self.store_path):
             try:
                 with open(self.store_path, "r") as f:
-                    self._cache = json.load(f)
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    self._cache = {}
+                    self._groups = {}
+                    for k, v in data.items():
+                        if isinstance(v, list):
+                            self._groups[k] = [str(x).upper().strip() for x in v]
+                        else:
+                            self._cache[k] = str(v)
+                else:
+                    self._cache = {}
+                    self._groups = {}
             except Exception:
                 self._cache = {}
+                self._groups = {}
         else:
             self._cache = {}
+            self._groups = {}
 
     def _save_to_file(self):
-        """Save keys to file-based store."""
+        """Save keys and groups to file-based store."""
         try:
-            os.makedirs(os.path.dirname(self.store_path), exist_ok=True)
+            os.makedirs(os.path.dirname(self.store_path) or ".", exist_ok=True)
+            merged = dict(self._cache)
+            merged.update(self._groups)
             with open(self.store_path, "w") as f:
-                json.dump(self._cache, f, indent=2)
+                json.dump(merged, f, indent=2)
         except Exception:
             pass
 
@@ -196,9 +216,70 @@ class CallsignKeyStore:
 
         return False
 
+    def add_group(self, group_name: str, callsigns: List[str]) -> bool:
+        """
+        Add or replace a key group: a named list of callsigns.
+
+        The multi-recipient encrypt block can use the group name in the
+        **callsigns** parameter; it will be expanded to all members.
+        Stored in the JSON file only (not in the keyring).
+
+        Args:
+            group_name: Name of the group (e.g. "net_control")
+            callsigns: List of callsigns in the group (e.g. ["W1ABC", "K2XYZ"])
+
+        Returns:
+            True if successful, False otherwise
+        """
+        group_name = group_name.strip()
+        if not group_name or len(group_name) > 32:
+            return False
+        normalized = [str(c).upper().strip() for c in callsigns if c and str(c).strip()]
+        self._groups[group_name] = normalized
+        self._save_to_file()
+        return True
+
+    def get_group(self, group_name: str) -> Optional[List[str]]:
+        """
+        Get the list of callsigns for a key group.
+
+        Args:
+            group_name: Name of the group
+
+        Returns:
+            List of callsigns, or None if the group does not exist
+        """
+        return self._groups.get(group_name.strip())
+
+    def list_groups(self) -> List[str]:
+        """
+        List all key group names in the store.
+
+        Returns:
+            Sorted list of group names
+        """
+        return sorted(self._groups.keys())
+
+    def remove_group(self, group_name: str) -> bool:
+        """
+        Remove a key group.
+
+        Args:
+            group_name: Name of the group
+
+        Returns:
+            True if the group existed and was removed, False otherwise
+        """
+        group_name = group_name.strip()
+        if group_name in self._groups:
+            del self._groups[group_name]
+            self._save_to_file()
+            return True
+        return False
+
     def list_callsigns(self) -> list:
         """
-        List all callsigns in the store.
+        List all callsigns in the store (keys and keygrips, not group names).
 
         Returns:
             List of callsigns

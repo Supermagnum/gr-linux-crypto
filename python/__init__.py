@@ -8,6 +8,7 @@ integration, hardware security modules, and cryptographic operations.
 
 from .crypto_helpers import CryptoHelpers, GNURadioCryptoUtils
 from .keyring_helper import KeyringHelper
+from .callsign_key_store import CallsignKeyStore
 
 try:
     from .gdss_set_key_source import gdss_set_key_source_block
@@ -19,5 +20,6 @@ __all__ = [
     "KeyringHelper",
     "CryptoHelpers",
     "GNURadioCryptoUtils",
+    "CallsignKeyStore",
     "gdss_set_key_source_block",
 ]

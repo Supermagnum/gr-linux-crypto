@@ -1366,6 +1366,19 @@ The **Brainpool ECIES Multi-Recipient Encrypt** block needs a mapping from recip
   Here `group1` and `group2` are key groups. Set **callsigns** to `group1` or `group1,group2,W1ABC` etc.; the block expands groups to their members and looks up each member's key (PEM or keygrip). The second entry is a keygrip; the block fetches that key from the OpenPGP Card when encrypting.
 - **callsigns required:** The list of recipient callsigns must be set; if **callsigns** is empty, the block does not encrypt for any recipients. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment** so the same callsign is used in the keyring and in **callsigns**.
 
+**CallsignKeyStore and key groups API**
+
+The Python helper `CallsignKeyStore` (from `gr_linux_crypto` or `gr_linux_crypto.callsign_key_store`) manages the JSON key store and key groups. Use it to add keys, keygrips, and groups so the multi-recipient encrypt block can resolve them.
+
+- **Import:** `from gr_linux_crypto import CallsignKeyStore` or `from gr_linux_crypto.callsign_key_store import CallsignKeyStore`
+- **Keys:** `add_public_key(callsign, public_key_pem)`, `add_keygrip(callsign, keygrip)`, `get_public_key(callsign)`, `list_callsigns()`, `remove_public_key(callsign)`, `has_callsign(callsign)`
+- **Key groups (API):**
+  - `add_group(group_name, callsigns)` — Add or replace a group; `callsigns` is a list of callsign strings (e.g. `["W1ABC", "K2XYZ"]`). Persisted in the JSON file.
+  - `get_group(group_name)` — Return the list of callsigns for the group, or `None` if the group does not exist.
+  - `list_groups()` — Return a sorted list of all group names in the store.
+  - `remove_group(group_name)` — Remove the group; returns `True` if it existed.
+- **Constructor:** `CallsignKeyStore(store_path=None, use_keyring=True)`. Default path: `~/.gnuradio/callsign_keys.json`.
+
 **GNU Radio C++ Blocks:**
 ```python
 from gnuradio import linux_crypto

@@ -69,6 +69,11 @@ The generated API documentation includes:
    - Device management
    - Security features
 
+5. **CallsignKeyStore and key groups API** (Python)
+   - `gr_linux_crypto.CallsignKeyStore` for key store and key groups
+   - `add_group`, `get_group`, `list_groups`, `remove_group` for key groups
+   - See README "CallsignKeyStore and key groups API" and `examples.md` "Key groups API"
+
 ## Documentation Standards
 
 This documentation follows GNU Radio standards:

@@ -1130,6 +1130,43 @@ if __name__ == "__main__":
     callsign_key_store_example()
 ```
 
+### Key groups API (CallsignKeyStore)
+
+Key groups are named lists of callsigns stored in the JSON key store. The multi-recipient encrypt block expands a group name in **callsigns** to all members. Use the same store path as **key_store_path** so the block and your script share the file.
+
+**API (CallsignKeyStore):**
+
+| Method | Description |
+|--------|-------------|
+| `add_group(group_name, callsigns)` | Add or replace a group. `callsigns` is a list of strings (e.g. `["W1ABC", "K2XYZ"]`). Persisted in the JSON file. Returns `True` on success. |
+| `get_group(group_name)` | Return the list of callsigns for the group, or `None` if the group does not exist. |
+| `list_groups()` | Return a sorted list of all group names in the store. |
+| `remove_group(group_name)` | Remove the group. Returns `True` if the group existed. |
+
+**Import:** `from gr_linux_crypto import CallsignKeyStore` or `from gr_linux_crypto.callsign_key_store import CallsignKeyStore`.
+
+**Example:**
+
+```python
+#!/usr/bin/env python3
+from gr_linux_crypto import CallsignKeyStore
+
+store = CallsignKeyStore()  # default: ~/.gnuradio/callsign_keys.json
+
+# Define groups (callsigns must exist as keys or in keyring)
+store.add_group("net_control", ["W1ABC", "K2XYZ", "N3DEF"])
+store.add_group("region_east", ["KEY4", "KEY5", "KEY6"])
+
+# Inspect groups
+print(store.list_groups())           # ['net_control', 'region_east']
+print(store.get_group("net_control"))  # ['W1ABC', 'K2XYZ', 'N3DEF']
+
+# In GRC or block API: set callsigns to "net_control" or "net_control,region_east"
+# The block expands to all members and encrypts for each (max 25 after expansion).
+
+store.remove_group("region_east")
+```
+
 ### ChaCha20-Poly1305 Cipher Support
 
 For battery-powered devices or software-only implementations, ChaCha20-Poly1305 provides excellent performance without requiring hardware acceleration:
