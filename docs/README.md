@@ -74,6 +74,9 @@ The generated API documentation includes:
    - `add_group`, `get_group`, `list_groups`, `remove_group` for key groups
    - See README "CallsignKeyStore and key groups API" and `examples.md` "Key groups API"
 
+6. **Glossary** ([GLOSSARY.md](GLOSSARY.md))
+   - Technical terms used in the module (ECIES, Brainpool, keygrip, Shamir, HPKE, etc.)
+
 ## Documentation Standards
 
 This documentation follows GNU Radio standards:

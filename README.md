@@ -44,12 +44,15 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
 7. [Key Design Principles](#key-design-principles)
 8. [Usage Flowchart](#usage-flowchart)
 9. [Documentation](#documentation)
+   - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
 10. [Usage Examples](#usage-examples)
    - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
    - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
    - [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss)
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
    - [Multi-Recipient ECIES Encryption](#multi-recipient-ecies-encryption)
+   - [Available APIs](#available-apis)
+   - [Independent use — mix and match freely](#independent-use--mix-and-match-freely)
    - [CallsignKeyStore and key groups API](#callsignkeystore-and-key-groups-api)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
 11. [Dependencies](#dependencies)
@@ -1178,6 +1181,7 @@ See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing 
 
 ## Documentation
 
+- [Glossary](docs/GLOSSARY.md) - Technical terms and definitions (ECIES, Brainpool, keygrip, Shamir, etc.)
 - [Usage Flowchart](docs/USAGE_FLOWCHART.md) - Integration patterns and workflows
 - [GnuPG Integration Guide](docs/gnupg_integration.md) - GnuPG setup, PIN handling, and examples
 - [Architecture Documentation](docs/architecture.md) - Module architecture and design
@@ -1364,6 +1368,40 @@ plaintext = ecies.verify_and_decrypt(
 **Shamir secret sharing (K-of-N quorum):** To require K recipients to combine shares to decrypt, use `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)`. Each recipient gets one share in the block; use `get_share_from_shamir_block(block, callsign)` to extract it. Any K recipients pass their shares to `decrypt_shamir(block, collected_shares)`. All Brainpool curve sizes are supported (P256r1, P384r1, P512r1; BSI TR 03111 / RFC 5639). Low-level helpers: `create_shamir_backed_key`, `reconstruct_session_key`, `split`, `reconstruct`, `get_curve_prime`, `get_max_secret_bytes`, `get_share_value_bytes`, `SUPPORTED_CURVES` in `gr_linux_crypto` (see `python/shamir_secret_sharing.py`).
 
 **Nitrokey / OpenPGP Card decrypt:** For on-card decryption (private key never leaves the device), use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`). Python helper `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip. `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions to use the block.
+
+#### Available APIs
+
+**Shamir low-level**
+
+- `split(secret, threshold_k, num_shares_n, prime, curve)` — max secret: 31 / 47 / 63 bytes for P256 / P384 / P512
+- `reconstruct(shares, prime, secret_length, curve)`
+- `create_shamir_backed_key(threshold_k, num_shares_n, prime, curve)` — returns a 32-byte session key
+- `reconstruct_session_key(shares, prime, curve)`
+- `get_curve_prime(curve)`, `get_max_secret_bytes(curve)`, `get_share_value_bytes(curve)`, `SUPPORTED_CURVES`
+
+**MultiRecipientECIES**
+
+- `encrypt(plaintext, recipients)` / `decrypt(ciphertext, callsign, private_key_pem)`
+- `encrypt_and_sign(...)` / `verify_and_decrypt(...)`
+- `encrypt_shamir(plaintext, callsigns, threshold_k, curve)` / `decrypt_shamir(...)` / `get_share_from_shamir_block(...)`
+
+**HPKE-style**
+
+- `HPKEBrainpool.seal(...)` / `open(...)` / `seal_with_auth(...)` / `open_with_auth(...)`
+
+**Nitrokey / card**
+
+- `get_keygrip_from_key_id(...)`, `decrypt_with_card(...)` (documented stub), C++ block with `key_source="opgp_card"`
+
+#### Independent use — mix and match freely
+
+| You want | Use |
+|----------|-----|
+| ECIES only | `MultiRecipientECIES.encrypt` / `decrypt` |
+| Shamir only | `split` / `reconstruct` or `create_shamir_backed_key` / `reconstruct_session_key` |
+| ECIES + Shamir (K-of-N quorum) | `encrypt_shamir` / `decrypt_shamir` |
+| Clean high-level API | `HPKEBrainpool.seal` / `open` |
+| Hardware-backed keys | Nitrokey C++ block or `decrypt_with_card` |
 
 **Key Store Path (key_store_path) and Recipient Callsigns (callsigns)**
 
