@@ -1346,7 +1346,18 @@ decrypted = ecies_chacha.decrypt(encrypted, 'W1ABC', private_key_pem)
 recipients = ['W1ABC', 'K2XYZ', 'N3DEF']
 encrypted = ecies.encrypt(b"Message", recipients)
 # Each recipient decrypts with their own private key
+
+# Sender-authenticated multi-recipient (sign ciphertext with sender's Brainpool key)
+encrypted, sender_sig = ecies.encrypt_and_sign(
+    b"Message", recipients, sender_private_key_pem, hash_algorithm='sha256'
+)
+# Recipients verify sender then decrypt
+plaintext = ecies.verify_and_decrypt(
+    encrypted, 'W1ABC', recipient_private_key_pem, sender_sig, sender_public_key_pem
+)
 ```
+
+**Brainpool key agreement (ECKA-EG):** For BSI-style key derivation from ECDH, use `CryptoHelpers.brainpool_ecka_eg(private_key, peer_public_key, info=..., key_length=32)`. See `docs/multi_recipient_ecies_implementation.md`.
 
 **Key Store Path (key_store_path) and Recipient Callsigns (callsigns)**
 

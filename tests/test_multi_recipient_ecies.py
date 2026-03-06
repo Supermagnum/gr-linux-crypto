@@ -223,6 +223,83 @@ class TestMultiRecipientECIES(unittest.TestCase):
                     encrypted_g2, callsign, private_key_pem.decode("ascii")
                 )
 
+    def test_encrypt_and_sign_verify_and_decrypt_roundtrip(self):
+        """Test sender-authenticated multi-recipient: encrypt_and_sign then verify_and_decrypt."""
+        self._generate_test_recipients(2)
+
+        sender_priv, sender_pub = self.crypto.generate_brainpool_keypair(self.curve)
+        sender_priv_pem = self.crypto.serialize_brainpool_private_key(
+            sender_priv
+        ).decode("ascii")
+        sender_pub_pem = self.crypto.serialize_brainpool_public_key(
+            sender_pub
+        ).decode("ascii")
+
+        plaintext = b"Authenticated multi-recipient message"
+        callsigns = self.test_callsigns
+
+        enc, sig = self.ecies.encrypt_and_sign(
+            plaintext, callsigns, sender_priv_pem, hash_algorithm="sha256"
+        )
+        self.assertIsInstance(enc, bytes)
+        self.assertIsInstance(sig, bytes)
+        self.assertGreater(len(sig), 0)
+
+        for callsign, private_key_pem, _ in self.test_keypairs:
+            dec = self.ecies.verify_and_decrypt(
+                enc, callsign, private_key_pem.decode("ascii"), sig, sender_pub_pem
+            )
+            self.assertEqual(plaintext, dec)
+
+    def test_verify_and_decrypt_rejects_bad_signature(self):
+        """Test that verify_and_decrypt raises when sender signature is invalid."""
+        self._generate_test_recipients(1)
+
+        sender_priv, sender_pub = self.crypto.generate_brainpool_keypair(self.curve)
+        sender_priv_pem = self.crypto.serialize_brainpool_private_key(
+            sender_priv
+        ).decode("ascii")
+        sender_pub_pem = self.crypto.serialize_brainpool_public_key(
+            sender_pub
+        ).decode("ascii")
+
+        plaintext = b"Secret"
+        enc, _ = self.ecies.encrypt_and_sign(
+            plaintext, [self.test_callsigns[0]], sender_priv_pem
+        )
+        bad_sig = b"\x00" * 64
+
+        callsign, private_key_pem, _ = self.test_keypairs[0]
+        with self.assertRaises(ValueError) as ctx:
+            self.ecies.verify_and_decrypt(
+                enc, callsign, private_key_pem.decode("ascii"),
+                bad_sig, sender_pub_pem
+            )
+        self.assertIn("signature verification failed", str(ctx.exception).lower())
+
+    def test_encrypt_and_sign_multiple_recipients(self):
+        """Test encrypt_and_sign with three recipients; all can verify_and_decrypt."""
+        self._generate_test_recipients(3)
+
+        sender_priv, sender_pub = self.crypto.generate_brainpool_keypair(self.curve)
+        sender_priv_pem = self.crypto.serialize_brainpool_private_key(
+            sender_priv
+        ).decode("ascii")
+        sender_pub_pem = self.crypto.serialize_brainpool_public_key(
+            sender_pub
+        ).decode("ascii")
+
+        plaintext = b"Message for three recipients with sender auth"
+        enc, sig = self.ecies.encrypt_and_sign(
+            plaintext, self.test_callsigns, sender_priv_pem
+        )
+
+        for callsign, private_key_pem, _ in self.test_keypairs:
+            dec = self.ecies.verify_and_decrypt(
+                enc, callsign, private_key_pem.decode("ascii"), sig, sender_pub_pem
+            )
+            self.assertEqual(plaintext, dec)
+
     def test_different_plaintext_sizes(self):
         """Test with different plaintext sizes."""
         self._generate_test_recipients(3)
@@ -558,6 +635,49 @@ class TestChaCha20Poly1305(unittest.TestCase):
                 key_store_path=self.temp_file.name,
                 symmetric_cipher="invalid-cipher",
             )
+
+
+class TestBrainpoolEckaEg(unittest.TestCase):
+    """Tests for Brainpool ECKA-EG key agreement (CryptoHelpers.brainpool_ecka_eg)."""
+
+    def setUp(self):
+        self.crypto = CryptoHelpers()
+        self.curve = "brainpoolP256r1"
+
+    def test_ecka_eg_derives_same_key_both_sides(self):
+        """ECKA-EG: both parties derive the same key from ECDH + HKDF."""
+        alice_priv, alice_pub = self.crypto.generate_brainpool_keypair(self.curve)
+        bob_priv, bob_pub = self.crypto.generate_brainpool_keypair(self.curve)
+
+        key_alice = self.crypto.brainpool_ecka_eg(alice_priv, bob_pub, key_length=32)
+        key_bob = self.crypto.brainpool_ecka_eg(bob_priv, alice_pub, key_length=32)
+
+        self.assertEqual(key_alice, key_bob)
+        self.assertEqual(len(key_alice), 32)
+
+    def test_ecka_eg_domain_separation(self):
+        """ECKA-EG: different info strings yield different keys."""
+        alice_priv, alice_pub = self.crypto.generate_brainpool_keypair(self.curve)
+        bob_priv, bob_pub = self.crypto.generate_brainpool_keypair(self.curve)
+
+        key1 = self.crypto.brainpool_ecka_eg(
+            alice_priv, bob_pub, info=b"context-1", key_length=32
+        )
+        key2 = self.crypto.brainpool_ecka_eg(
+            alice_priv, bob_pub, info=b"context-2", key_length=32
+        )
+        self.assertNotEqual(key1, key2)
+
+    def test_ecka_eg_key_length(self):
+        """ECKA-EG: key_length parameter is respected."""
+        alice_priv, alice_pub = self.crypto.generate_brainpool_keypair(self.curve)
+        bob_priv, bob_pub = self.crypto.generate_brainpool_keypair(self.curve)
+
+        for length in (16, 32, 48):
+            key = self.crypto.brainpool_ecka_eg(
+                alice_priv, bob_pub, key_length=length
+            )
+            self.assertEqual(len(key), length)
 
 
 if __name__ == "__main__":

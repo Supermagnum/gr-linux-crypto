@@ -473,6 +473,41 @@ class CryptoHelpers:
         return shared_secret
 
     @staticmethod
+    def brainpool_ecka_eg(
+        private_key: EllipticCurvePrivateKey,
+        peer_public_key: EllipticCurvePublicKey,
+        *,
+        info: bytes = b"gr-linux-crypto-ecka-eg-v1",
+        key_length: int = 32,
+        hash_algorithm: str = "sha256",
+    ) -> bytes:
+        """
+        Brainpool Elliptic Curve Key Agreement (ECKA-EG) helper.
+
+        This is a thin wrapper around Brainpool ECDH + HKDF that follows the
+        BSI-style ECKA-EG construction: derive a symmetric key from the ECDH
+        shared secret using HKDF with domain-separated 'info'.
+
+        Args:
+            private_key: Local Brainpool private key
+            peer_public_key: Peer Brainpool public key
+            info: Domain separation/context string for HKDF (default is module-specific)
+            key_length: Desired output key length in bytes (default: 32)
+            hash_algorithm: HKDF hash ('sha256', 'sha384', or 'sha512')
+
+        Returns:
+            Derived symmetric key bytes suitable for use with AES/ChaCha, etc.
+        """
+        shared_secret = CryptoHelpers.brainpool_ecdh(private_key, peer_public_key)
+        return CryptoHelpers.derive_key_hkdf(
+            shared_secret,
+            salt=b"",
+            info=info,
+            length=key_length,
+            algorithm=hash_algorithm,
+        )
+
+    @staticmethod
     def brainpool_sign(
         data: Union[str, bytes],
         private_key: EllipticCurvePrivateKey,

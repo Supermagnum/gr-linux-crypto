@@ -1037,7 +1037,7 @@ if __name__ == "__main__":
 
 ## Multi-Recipient ECIES
 
-Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each recipient receives an encrypted copy of the symmetric key, while the payload is encrypted once.
+Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each recipient receives an encrypted copy of the symmetric key, while the payload is encrypted once. Optional **sender authentication** is available via `encrypt_and_sign()` and `verify_and_decrypt()` (sign the ciphertext with the sender's Brainpool ECDSA key; recipients verify before decrypt). For BSI-style key agreement, use `CryptoHelpers.brainpool_ecka_eg()` (ECDH + HKDF).
 
 ### Key Store Path (key_store_path) and callsigns
 

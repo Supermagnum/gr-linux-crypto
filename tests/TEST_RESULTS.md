@@ -1,9 +1,9 @@
 # gr-linux-crypto Test Results
 
 **Test Date:** 2026-01-26  
-**Last Test Run:** 417 passed, 31 skipped, 1 failed (side-channel timing variance)  
+**Last Test Run:** 424 passed, 31 skipped, 0 failed  
 **Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
-**Test Framework:** pytest 8.4.2
+**Test Framework:** pytest 7.4.4
 
 ## Table of Contents
 
@@ -45,7 +45,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 417 passed / 449 total (31 skipped, 1 failure; see side-channel notes below)
+- **Functional Tests:** 424 passed / 455 total (31 skipped, 0 failures)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -65,7 +65,7 @@
 - Scapy attack vector crafting: 4 tests passed (ARP spoofing, DHCP starvation, SYN flood, DNS amplification packet generation validated without transmitting traffic)
 - Brainpool ECC ECDH: All passed (6 tests including Wycheproof)
 - Brainpool ECC ECDSA: All passed (3 tests including Wycheproof - fixed)
-- Multi-recipient ECIES: All passed (20 tests, all recipient counts 1-25 validated, ChaCha20-Poly1305 support included)
+- Multi-recipient ECIES: All passed (27 tests: recipient counts 1-25, ChaCha20-Poly1305, group isolation, ECKA-EG key agreement, sender encrypt_and_sign/verify_and_decrypt)
 - Side-channel analysis: Framework ready (conceptual tests)
 - Memory/CPU monitoring: All passed
 - Hardware acceleration: Detected (AES-NI, kernel crypto API)
@@ -90,10 +90,10 @@
 ## Test Coverage Summary
 
 ### Functional Tests
-- **Total Tests:** 449 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy attack-vector tests, and Multi-Recipient ECIES with ChaCha20-Poly1305 support)
-- **Passed:** 417 functional tests (~92.9% of collected)
+- **Total Tests:** 455 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy attack-vector tests, and Multi-Recipient ECIES with ChaCha20-Poly1305, ECKA-EG, sender authentication)
+- **Passed:** 424 functional tests (~93.2% of collected)
 - **Skipped:** 31 (optional features, external dependencies)
-- **Failed:** 1 (side-channel timing variance in Python-level constant-time comparison test)
+- **Failed:** 0
 
 **Detailed Breakdown:**
 - `test_linux_crypto.py`: 248 passed, 24 skipped (100% core functionality)
@@ -102,7 +102,7 @@
 - `test_performance.py`: 19 passed, 1 skipped (all performance benchmarks passed)
 - `test_scapy_attack_vectors.py`: 4 passed (Scapy attack-vector packet crafting helpers validate ARP spoofing, DHCP starvation, SYN flood, DNS amplification packets without sending traffic)
 - `test_brainpool_comprehensive.py`: 16 passed, 1 skipped (core Brainpool ECDH and ECDSA working, OpenSSL CLI interop fixed)
-- `test_side_channel.py`: Side-channel framework complete; constant-time comparison test is environment-sensitive. On this run, one Python-level constant-time comparison test (`test_auth_tag_constant_time_comparison`) reported unusually high timing variance and failed (see Test Failures).
+- `test_side_channel.py`: 6 passed (side-channel framework complete; constant-time comparison test can be environment-sensitive).
 - `test_m17_integration.py`: 18 passed, 1 skipped (M17 framework complete, frame parsing fixed)
 - `test_brainpool_all_sources.py`: 5 passed, 2 skipped (Wycheproof ECDH comprehensive test now passes, OpenSSL CLI compatibility fixed)
 - `test_nist_vectors.py`: 4 passed (all NIST and RFC8439 test vectors passing with full AAD support)
@@ -110,7 +110,7 @@
 - `test_ectester.py`: 24 passed, 1 skipped (ECTester compatibility validation complete)
 - `test_rfc_compliance.py`: 12 passed, 3 skipped (RFC 7027/6954/8734 compliance tests)
 - `test_ecgdsa.py`: 12 passed (ECGDSA framework tests - implementation framework ready)
-- `test_multi_recipient_ecies.py`: 21 passed (Multi-recipient ECIES encryption/decryption - all recipient counts 1-25 validated, includes ChaCha20-Poly1305 cipher support and callsign group isolation test)
+- `test_multi_recipient_ecies.py`: 27 passed (Multi-recipient ECIES; recipient counts 1-25; ChaCha20-Poly1305; callsign group isolation; Brainpool ECKA-EG; sender encrypt_and_sign/verify_and_decrypt)
 - Other tests: Various framework and integration tests
 
 #### Scapy Attack Vector Tests
@@ -120,7 +120,7 @@
 - **Status:** 4 tests passed — validates packet layering, critical fields, and serialization to bytes.
 
 **Test Failures (Non-Critical):**
-- `tests/test_side_channel.py::TestTimingSideChannels::test_auth_tag_constant_time_comparison` — FAILED on this run due to unusually high measured timing variance at the Python level (median ~17% vs. expected much lower). This test is explicitly documented as sensitive to interpreter and system load. For production use, constant-time behaviour should be validated at the C/library level using tools like dudect; the underlying cryptographic libraries are still expected to use constant-time comparisons.
+None on this run.
 
 **Recent Fixes:**
 - `test_wycheproof_comprehensive` - FIXED: Now passes with ASN.1/DER public key parsing
@@ -137,6 +137,7 @@
 - **NEW**: Added RFC test vector parsers (`test_rfc_vectors.py`) - Framework for parsing RFC test vectors
 - **NEW**: Added Multi-Recipient ECIES tests (`test_multi_recipient_ecies.py`) - Comprehensive validation of multi-recipient encryption (20 tests, all recipient counts 1-25 validated)
 - **UPDATED**: Added ChaCha20-Poly1305 cipher support to ECIES blocks (4 new tests added, cipher interoperability validated)
+- **NEW**: Brainpool ECKA-EG key agreement (`CryptoHelpers.brainpool_ecka_eg`) and sender-authenticated multi-recipient (`encrypt_and_sign` / `verify_and_decrypt`); 6 new unit tests in `test_multi_recipient_ecies.py` (TestBrainpoolEckaEg, encrypt_and_sign/verify_and_decrypt roundtrip and rejection of bad signature)
 
 **Key Test Suites:**
 - `test_linux_crypto.py`: 248 passed, 24 skipped (100% core functionality)

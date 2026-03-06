@@ -283,6 +283,102 @@ class MultiRecipientECIES:
 
         return plaintext
 
+    def encrypt_and_sign(
+        self,
+        plaintext: bytes,
+        callsigns: List[str],
+        sender_private_key_pem: str,
+        sender_private_key_password: str = "",
+        hash_algorithm: str = "sha256",
+    ) -> Tuple[bytes, bytes]:
+        """
+        Encrypt for multiple recipients and authenticate the sender with Brainpool ECDSA.
+
+        This is a high-level helper that:
+        1. Calls encrypt(plaintext, callsigns) to build the multi-recipient ECIES block.
+        2. Signs the resulting ciphertext block with the sender's Brainpool private key.
+
+        The signature is NOT embedded into the ECIES format; it is returned separately
+        so that existing decoders remain compatible. Callers should transport both
+        (encrypted_block, sender_signature) together.
+
+        Args:
+            plaintext: Data to encrypt
+            callsigns: List of recipient callsigns (1-25)
+            sender_private_key_pem: Sender's Brainpool private key (PEM, PKCS#8)
+            sender_private_key_password: Optional password for the private key
+            hash_algorithm: Hash algorithm for ECDSA ('sha256', 'sha384', 'sha512')
+
+        Returns:
+            Tuple of (encrypted_block, sender_signature)
+        """
+        encrypted = self.encrypt(plaintext, callsigns)
+
+        sender_private_key = self.crypto.load_brainpool_private_key(
+            sender_private_key_pem.encode("ascii"),
+            password=(
+                sender_private_key_password.encode("ascii")
+                if sender_private_key_password
+                else None
+            ),
+        )
+
+        signature = self.crypto.brainpool_sign(
+            encrypted, sender_private_key, hash_algorithm=hash_algorithm
+        )
+        return encrypted, signature
+
+    def verify_and_decrypt(
+        self,
+        encrypted_block: bytes,
+        recipient_callsign: str,
+        recipient_private_key_pem: str,
+        sender_signature: bytes,
+        sender_public_key_pem: str,
+        private_key_password: str = "",
+        hash_algorithm: str = "sha256",
+    ) -> bytes:
+        """
+        Verify sender ECDSA signature and then decrypt for a specific recipient.
+
+        This is the counterpart to encrypt_and_sign():
+        1. Verifies the sender's Brainpool ECDSA signature over the entire ECIES block.
+        2. If verification succeeds, calls decrypt() to recover the plaintext.
+
+        Args:
+            encrypted_block: Multi-recipient ECIES block
+            recipient_callsign: Recipient callsign for decryption
+            recipient_private_key_pem: Recipient's Brainpool private key (PEM)
+            sender_signature: ECDSA signature produced by encrypt_and_sign()
+            sender_public_key_pem: Sender's Brainpool public key (PEM)
+            private_key_password: Optional password for recipient private key
+            hash_algorithm: Hash algorithm used for signing ('sha256', 'sha384', 'sha512')
+
+        Returns:
+            Decrypted plaintext bytes
+
+        Raises:
+            ValueError: If sender signature verification fails
+        """
+        sender_public_key = self.crypto.load_brainpool_public_key(
+            sender_public_key_pem.encode("ascii")
+        )
+
+        if not self.crypto.brainpool_verify(
+            encrypted_block,
+            sender_signature,
+            sender_public_key,
+            hash_algorithm=hash_algorithm,
+        ):
+            raise ValueError("Sender ECDSA signature verification failed")
+
+        return self.decrypt(
+            encrypted_block,
+            recipient_callsign,
+            recipient_private_key_pem,
+            private_key_password=private_key_password,
+        )
+
     def _build_header(
         self, recipient_count: int, data_length: int, cipher_id: int
     ) -> bytes:
