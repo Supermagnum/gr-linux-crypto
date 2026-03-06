@@ -1,7 +1,7 @@
 # gr-linux-crypto Test Results
 
-**Test Date:** 2025-11-16  
-**Last Test Run:** 417 passed, 31 skipped, 0 failed  
+**Test Date:** 2026-01-26  
+**Last Test Run:** 417 passed, 31 skipped, 1 failed (side-channel timing variance)  
 **Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
 **Test Framework:** pytest 8.4.2
 
@@ -45,7 +45,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 417 passed / 448 total (31 skipped, 0 failures)
+- **Functional Tests:** 417 passed / 449 total (31 skipped, 1 failure; see side-channel notes below)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -90,10 +90,10 @@
 ## Test Coverage Summary
 
 ### Functional Tests
-- **Total Tests:** 448 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy attack-vector tests, and Multi-Recipient ECIES with ChaCha20-Poly1305 support)
-- **Passed:** 417 functional tests (93.1% of collected)
+- **Total Tests:** 449 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy attack-vector tests, and Multi-Recipient ECIES with ChaCha20-Poly1305 support)
+- **Passed:** 417 functional tests (~92.9% of collected)
 - **Skipped:** 31 (optional features, external dependencies)
-- **Failed:** 0 (all tests passing or appropriately skipped)
+- **Failed:** 1 (side-channel timing variance in Python-level constant-time comparison test)
 
 **Detailed Breakdown:**
 - `test_linux_crypto.py`: 248 passed, 24 skipped (100% core functionality)
@@ -102,7 +102,7 @@
 - `test_performance.py`: 19 passed, 1 skipped (all performance benchmarks passed)
 - `test_scapy_attack_vectors.py`: 4 passed (Scapy attack-vector packet crafting helpers validate ARP spoofing, DHCP starvation, SYN flood, DNS amplification packets without sending traffic)
 - `test_brainpool_comprehensive.py`: 16 passed, 1 skipped (core Brainpool ECDH and ECDSA working, OpenSSL CLI interop fixed)
-- `test_side_channel.py`: 5 passed (side-channel framework complete, constant-time comparison test made robust for Python timing overhead)
+- `test_side_channel.py`: Side-channel framework complete; constant-time comparison test is environment-sensitive. On this run, one Python-level constant-time comparison test (`test_auth_tag_constant_time_comparison`) reported unusually high timing variance and failed (see Test Failures).
 - `test_m17_integration.py`: 18 passed, 1 skipped (M17 framework complete, frame parsing fixed)
 - `test_brainpool_all_sources.py`: 5 passed, 2 skipped (Wycheproof ECDH comprehensive test now passes, OpenSSL CLI compatibility fixed)
 - `test_nist_vectors.py`: 4 passed (all NIST and RFC8439 test vectors passing with full AAD support)
@@ -110,7 +110,7 @@
 - `test_ectester.py`: 24 passed, 1 skipped (ECTester compatibility validation complete)
 - `test_rfc_compliance.py`: 12 passed, 3 skipped (RFC 7027/6954/8734 compliance tests)
 - `test_ecgdsa.py`: 12 passed (ECGDSA framework tests - implementation framework ready)
-- `test_multi_recipient_ecies.py`: 20 passed (Multi-recipient ECIES encryption/decryption - all recipient counts 1-25 validated, includes ChaCha20-Poly1305 cipher support)
+- `test_multi_recipient_ecies.py`: 21 passed (Multi-recipient ECIES encryption/decryption - all recipient counts 1-25 validated, includes ChaCha20-Poly1305 cipher support and callsign group isolation test)
 - Other tests: Various framework and integration tests
 
 #### Scapy Attack Vector Tests
@@ -120,7 +120,7 @@
 - **Status:** 4 tests passed — validates packet layering, critical fields, and serialization to bytes.
 
 **Test Failures (Non-Critical):**
-None - All tests passing or skipped
+- `tests/test_side_channel.py::TestTimingSideChannels::test_auth_tag_constant_time_comparison` — FAILED on this run due to unusually high measured timing variance at the Python level (median ~17% vs. expected much lower). This test is explicitly documented as sensitive to interpreter and system load. For production use, constant-time behaviour should be validated at the C/library level using tools like dudect; the underlying cryptographic libraries are still expected to use constant-time comparisons.
 
 **Recent Fixes:**
 - `test_wycheproof_comprehensive` - FIXED: Now passes with ASN.1/DER public key parsing
@@ -131,7 +131,7 @@ None - All tests passing or skipped
 - `test_openssl_compatibility` (test_brainpool_all_sources.py) - FIXED: OpenSSL CLI stdin issue fixed by using temporary file for OpenSSL 3.0+ compatibility
 - `test_openssl_encrypt/decrypt` (test_linux_crypto.py) - FIXED: OpenSSL CLI GCM mode handling fixed (proper tag extraction and combination, added -nopad flag, improved error handling)
 - `test_edge_cases` (test_ectester.py) - FIXED: Verification API usage corrected (verify() raises exception on failure, doesn't return boolean)
-- `test_auth_tag_constant_time_comparison` - FIXED: Made test more robust to handle Python timing overhead by using multiple runs, median statistics, and more lenient thresholds that account for Python interpreter overhead
+- `test_auth_tag_constant_time_comparison` - FIXED: Made test more robust to handle Python timing overhead by using multiple runs, median statistics, and more lenient thresholds that account for Python interpreter overhead (note: still environment-sensitive; see Test Failures)
 - **NEW**: Added RFC 7027/6954/8734 compliance tests (`test_rfc_compliance.py`) - Protocol-specific Brainpool curve validation (test vectors programmatically generated)
 - **NEW**: Added ECGDSA framework tests (`test_ecgdsa.py`) - ECGDSA implementation framework and requirements documentation
 - **NEW**: Added RFC test vector parsers (`test_rfc_vectors.py`) - Framework for parsing RFC test vectors
