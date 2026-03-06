@@ -1359,6 +1359,12 @@ plaintext = ecies.verify_and_decrypt(
 
 **Brainpool key agreement (ECKA-EG):** For BSI-style key derivation from ECDH, use `CryptoHelpers.brainpool_ecka_eg(private_key, peer_public_key, info=..., key_length=32)`. See `docs/multi_recipient_ecies_implementation.md`.
 
+**HPKE-style API:** For a single entry point (seal/open), use `HPKEBrainpool` from `gr_linux_crypto`: `seal(plaintext, recipient_callsigns)` and `open(ciphertext, my_callsign, my_private_key_pem)`. Optional `seal_with_auth` / `open_with_auth` add sender ECDSA authentication.
+
+**Shamir secret sharing (K-of-N quorum):** To require K recipients to combine shares to decrypt, use `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)`. Each recipient gets one share in the block; use `get_share_from_shamir_block(block, callsign)` to extract it. Any K recipients pass their shares to `decrypt_shamir(block, collected_shares)`. All Brainpool curve sizes are supported (P256r1, P384r1, P512r1; BSI TR 03111 / RFC 5639). Low-level helpers: `create_shamir_backed_key`, `reconstruct_session_key`, `split`, `reconstruct`, `get_curve_prime`, `get_max_secret_bytes`, `get_share_value_bytes`, `SUPPORTED_CURVES` in `gr_linux_crypto` (see `python/shamir_secret_sharing.py`).
+
+**Nitrokey / OpenPGP Card decrypt:** For on-card decryption (private key never leaves the device), use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`). Python helper `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip. `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions to use the block.
+
 **Key Store Path (key_store_path) and Recipient Callsigns (callsigns)**
 
 The **Brainpool ECIES Multi-Recipient Encrypt** block needs a mapping from recipient callsigns to their Brainpool public keys so it can encrypt for up to 25 recipients. **callsigns** is a comma-separated list of those recipients (e.g. `W1ABC,K2XYZ`). **key_store_path** is optional: you can use **only the kernel keyring** and leave the file empty or omit it.

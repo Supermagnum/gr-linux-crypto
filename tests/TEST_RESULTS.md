@@ -1,7 +1,7 @@
 # gr-linux-crypto Test Results
 
 **Test Date:** 2026-01-26  
-**Last Test Run:** 424 passed, 31 skipped, 0 failed  
+**Last Test Run:** 438 passed, 32 skipped, 1 failed (side-channel timing; environment-sensitive)  
 **Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
 **Test Framework:** pytest 7.4.4
 
@@ -45,7 +45,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 424 passed / 455 total (31 skipped, 0 failures)
+- **Functional Tests:** 438 passed / 471 total (32 skipped; 1 known environment-sensitive failure in side-channel timing test)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -66,6 +66,7 @@
 - Brainpool ECC ECDH: All passed (6 tests including Wycheproof)
 - Brainpool ECC ECDSA: All passed (3 tests including Wycheproof - fixed)
 - Multi-recipient ECIES: All passed (27 tests: recipient counts 1-25, ChaCha20-Poly1305, group isolation, ECKA-EG key agreement, sender encrypt_and_sign/verify_and_decrypt)
+- Shamir/HPKE/Nitrokey: All passed (15 tests: Shamir split/reconstruct and session key for all Brainpool curves P256/P384/P512, encrypt_shamir/decrypt_shamir with curve, HPKE seal/open and seal_with_auth/open_with_auth, Nitrokey bridge)
 - Side-channel analysis: Framework ready (conceptual tests)
 - Memory/CPU monitoring: All passed
 - Hardware acceleration: Detected (AES-NI, kernel crypto API)

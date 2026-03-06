@@ -76,7 +76,40 @@ encrypted, sig = ecies.encrypt_and_sign(plaintext, ["W1ABC"], sender_private_key
 plaintext = ecies.verify_and_decrypt(encrypted, "W1ABC", rec_private_key_pem, sig, sender_public_key_pem)
 ```
 
-### 5. Tests
+### 5. Shamir Secret Sharing (K-of-N quorum)
+
+**File:** `python/shamir_secret_sharing.py`
+
+Shamir's secret sharing over a prime field; the prime is the curve order of the chosen Brainpool curve (BSI TR 03111, RFC 5639). **All three Brainpool curve sizes are supported:** brainpoolP256r1 (31-byte max secret, 32-byte share encoding), brainpoolP384r1 (47-byte max secret, 48-byte share encoding), brainpoolP512r1 (63-byte max secret, 64-byte share encoding). Used for K-of-N quorum decryption of the session key.
+
+- `split(secret, threshold_k, num_shares_n, curve=...)` / `reconstruct(shares, curve=..., secret_length=...)` for arbitrary secrets; use `curve="brainpoolP256r1"` (default), `"brainpoolP384r1"`, or `"brainpoolP512r1"`.
+- `create_shamir_backed_key(threshold_k, num_shares_n, curve=...)` returns `(shares, session_key_32)` for 32-byte session keys; curve selects the prime field.
+- `reconstruct_session_key(shares, curve=...)` recovers the 32-byte key from at least K shares.
+- Helpers: `get_curve_prime(curve)`, `get_max_secret_bytes(curve=...)`, `get_share_value_bytes(curve)`, `SUPPORTED_CURVES`.
+
+**Multi-recipient Shamir mode:** `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)` produces a block (format version 0x02, 9-byte header with curve_id) where each recipient gets one share; any K recipients can combine shares and decrypt with `decrypt_shamir(block, collected_shares)`. Use `get_share_from_shamir_block(block, callsign)` to extract a recipient's share. Curve can be any of the three Brainpool curves (defaults to the instance curve).
+
+### 6. HPKE-style wrapper
+
+**File:** `python/hpke_brainpool.py`
+
+`HPKEBrainpool` provides a single entry point to reduce misuse and simplify flowgraph design:
+
+- `seal(plaintext, recipient_callsigns)` / `open(ciphertext, my_callsign, my_private_key_pem)` for unauthenticated encryption.
+- `seal_with_auth(...)` / `open_with_auth(...)` for sender-authenticated encryption (ECDSA over the ciphertext).
+
+Uses `MultiRecipientECIES` under the hood with configurable curve and symmetric cipher.
+
+### 7. Nitrokey / OpenPGP Card bridge
+
+**File:** `python/nitrokey_bridge.py`
+
+When the recipient's private key is on an OpenPGP Card (e.g. Nitrokey), decryption can be performed with the key never leaving the device. The C++ block `brainpool_ecies_multi_decrypt` supports this: set `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`).
+
+- `decrypt_with_card(encrypted_block, recipient_callsign, keygrip)` raises `NotImplementedError` in standalone Python with instructions to use the C++ block.
+- `get_keygrip_from_key_id(key_identifier)` resolves a GnuPG key ID or fingerprint to a keygrip via `gpg`.
+
+### 8. Tests
 
 **Unit Tests:** `tests/test_multi_recipient_ecies.py`
 - Single recipient encryption/decryption
@@ -90,11 +123,24 @@ plaintext = ecies.verify_and_decrypt(encrypted, "W1ABC", rec_private_key_pem, si
 - Brainpool ECKA-EG (`TestBrainpoolEckaEg`: same key both sides, domain separation, key length)
 - Sender-authenticated multi-recipient (`encrypt_and_sign` / `verify_and_decrypt`, reject bad signature)
 
+**Unit Tests:** `tests/test_shamir_hpke_nitrokey.py`
+- Shamir split/reconstruct for P256, P384, P512 (curve parameter); 32-byte session key create/reconstruct for all curves
+- get_curve_prime, get_max_secret_bytes, get_share_value_bytes
+- Multi-recipient Shamir encrypt/decrypt (K-of-N) for P256, P384, P512 and get_share_from_shamir_block
+- HPKEBrainpool seal/open and seal_with_auth/open_with_auth
+- Nitrokey bridge decrypt_with_card (NotImplementedError), get_keygrip_from_key_id (optional, with gpg)
+
 **Integration Tests:** `tests/integration_test_multi_recipient.py`
 - Comprehensive round-trip tests
 - All recipient counts (1-25)
 - All supported curves
 - Validates each recipient can decrypt
+
+## Standards compatibility
+
+- **BSI TR 03111:** Brainpool curves (P256r1, P384r1, P512r1) and ECKA-EG style key derivation.
+- **RFC 5639:** Brainpool curve orders used as Shamir prime field (same as curve scalar field).
+- **NIST:** Underlying symmetric primitives (AES-GCM, ChaCha20-Poly1305) and test vectors where applicable.
 
 ## Security Properties
 
@@ -129,7 +175,6 @@ python3 tests/integration_test_multi_recipient.py
 - Message port support for dynamic recipient lists
 - Key rotation support
 - Compression support
-- Nitrokey/OpenPGP Card bridge for decrypt (private key operations on-card)
-- Shamir's Secret Sharing for session key (K-of-N quorum decryption)
-- HPKE-style high-level wrapper API
+- Standalone Python helper for on-card decryption (optional; currently use C++ block with key_source=opgp_card)
+- HPKE-style API in C++ or GRC (Python API implemented in `hpke_brainpool.py`)
 

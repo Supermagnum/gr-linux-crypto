@@ -1039,6 +1039,12 @@ if __name__ == "__main__":
 
 Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each recipient receives an encrypted copy of the symmetric key, while the payload is encrypted once. Optional **sender authentication** is available via `encrypt_and_sign()` and `verify_and_decrypt()` (sign the ciphertext with the sender's Brainpool ECDSA key; recipients verify before decrypt). For BSI-style key agreement, use `CryptoHelpers.brainpool_ecka_eg()` (ECDH + HKDF).
 
+**HPKE-style API:** Use `HPKEBrainpool` (from `gr_linux_crypto`) for a single entry point: `seal(plaintext, recipient_callsigns)` and `open(ciphertext, my_callsign, my_private_key_pem)`. Optional `seal_with_auth` / `open_with_auth` add sender ECDSA.
+
+**Shamir (K-of-N quorum):** Use `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)` so that any K of N recipients can combine shares to decrypt. All Brainpool curve sizes (P256r1, P384r1, P512r1) are supported; curve selects the prime field (BSI/RFC 5639). Extract a share with `get_share_from_shamir_block(block, callsign)`; decrypt with `decrypt_shamir(block, collected_shares)` when you have at least K shares.
+
+**Nitrokey / OpenPGP Card decrypt:** Use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>`. Python: `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip; `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions.
+
 ### Key Store Path (key_store_path) and callsigns
 
 The multi-recipient encrypt block needs a mapping from recipient callsigns to their Brainpool public keys. **callsigns** is the comma-separated list of recipients (e.g. `W1ABC,K2XYZ`) and must be set; if empty, the block does not encrypt for any recipients. **Key Store Path** is **optional**: you do not need a JSON file. Add keys to the kernel keyring with `keyctl add user "callsign:W1ABC" "$(cat pubkey.pem)"` or `CallsignKeyStore(...).add_public_key(callsign, public_key_pem)`, leave Key Store Path empty, and the block will look up keys from the keyring.

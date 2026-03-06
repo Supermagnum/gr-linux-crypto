@@ -14,9 +14,19 @@ from typing import List, Optional, Tuple
 try:
     from .callsign_key_store import CallsignKeyStore
     from .crypto_helpers import CryptoHelpers
+    from .shamir_secret_sharing import (
+        create_shamir_backed_key,
+        reconstruct_session_key,
+        get_share_value_bytes,
+    )
 except ImportError:
     from callsign_key_store import CallsignKeyStore
     from crypto_helpers import CryptoHelpers
+    from shamir_secret_sharing import (
+        create_shamir_backed_key,
+        reconstruct_session_key,
+        get_share_value_bytes,
+    )
 
 
 class MultiRecipientECIES:
@@ -29,7 +39,11 @@ class MultiRecipientECIES:
     """
 
     FORMAT_VERSION = 0x01
+    SHAMIR_FORMAT_VERSION = 0x02
+    SHAMIR_HEADER_SIZE = 9  # version(1) + curve_id(1) + threshold(1) + recipient_count(1) + cipher_id(1) + data_length(4)
     MAX_RECIPIENTS = 25
+    # Share value byte length by curve_id (1=P256, 2=P384, 3=P512); BSI TR 03111 / RFC 5639
+    SHAMIR_SHARE_VALUE_BYTES_BY_CURVE = {0x01: 32, 0x02: 48, 0x03: 64}
     MAX_CALLSIGN_LEN = 14
     AES_KEY_SIZE = 32
     AES_IV_SIZE = 12
@@ -282,6 +296,209 @@ class MultiRecipientECIES:
             raise ValueError(f"Unsupported cipher: {block_cipher}")
 
         return plaintext
+
+    def encrypt_shamir(
+        self,
+        plaintext: bytes,
+        callsigns: List[str],
+        threshold_k: int,
+        curve: Optional[str] = None,
+    ) -> bytes:
+        """
+        Encrypt using Shamir secret sharing for the session key (K-of-N quorum).
+
+        The session key is split into N shares with threshold K; each recipient
+        gets one share. Any K recipients can combine shares to reconstruct the
+        key and decrypt. Supports all Brainpool curve sizes (P256r1, P384r1,
+        P512r1); BSI TR 03111 / RFC 5639. Uses the same payload format
+        (AES-GCM or ChaCha20-Poly1305) as standard multi-recipient ECIES.
+
+        Args:
+            plaintext: Data to encrypt
+            callsigns: List of recipient callsigns (N recipients, 1-25)
+            threshold_k: Minimum number of shares required to decrypt (K)
+            curve: Brainpool curve for Shamir field (default: self.curve)
+
+        Returns:
+            Encrypted block in Shamir format (version 0x02, 9-byte header with curve_id)
+        """
+        if not callsigns or len(callsigns) > self.MAX_RECIPIENTS:
+            raise ValueError(f"Must have 1-{self.MAX_RECIPIENTS} recipients")
+        if threshold_k > len(callsigns) or threshold_k < 1:
+            raise ValueError("threshold_k must be between 1 and len(callsigns)")
+        callsigns = [c.upper().strip() for c in callsigns]
+        if len(callsigns) != len(set(callsigns)):
+            raise ValueError("Duplicate callsigns not allowed")
+        curve = curve or self.curve
+        if curve not in self.CURVE_IDS:
+            raise ValueError(f"Unsupported curve: {curve}. Use {list(self.CURVE_IDS.keys())}")
+        curve_id = self.CURVE_IDS[curve]
+        share_value_bytes = get_share_value_bytes(curve)
+
+        shares, symmetric_key = create_shamir_backed_key(
+            threshold_k, len(callsigns), curve=curve
+        )
+        iv = secrets.token_bytes(self.AES_IV_SIZE)
+
+        if self.symmetric_cipher == "aes-gcm":
+            ciphertext, tag = self._encrypt_aes_gcm(plaintext, symmetric_key, iv)
+        else:
+            ciphertext, tag = self._encrypt_chacha20_poly1305(
+                plaintext, symmetric_key, iv
+            )
+
+        data_length = len(ciphertext) + self.AES_IV_SIZE
+        header = struct.pack(
+            ">BBBBB I",
+            self.SHAMIR_FORMAT_VERSION,
+            curve_id,
+            threshold_k,
+            len(callsigns),
+            self.cipher_id,
+            data_length,
+        )
+        result = bytearray(header)
+        for i, callsign in enumerate(callsigns):
+            idx, val = shares[i]
+            callsign_bytes = callsign.encode("ascii") + b"\x00"
+            result.append(len(callsign_bytes) - 1)
+            result.extend(callsign_bytes)
+            result.extend(struct.pack(">H", idx))
+            result.extend(val.to_bytes(share_value_bytes, "big"))
+        result.extend(iv)
+        result.extend(ciphertext)
+        result.extend(tag)
+        return bytes(result)
+
+    def _shamir_header_info(self, encrypted_block: bytes) -> Tuple[int, int, int]:
+        """Return (offset_after_header, share_value_bytes, recipient_count) for Shamir block."""
+        if len(encrypted_block) < self.HEADER_SIZE:
+            raise ValueError("Encrypted block too short")
+        if encrypted_block[0] != self.SHAMIR_FORMAT_VERSION:
+            raise ValueError("Not a Shamir format block")
+        # 9-byte header: version(1), curve_id(1), threshold(1), recipient_count(1), cipher_id(1), data_length(4)
+        # 8-byte legacy: version(1), threshold(1), recipient_count(1), cipher_id(1), data_length(4)
+        if len(encrypted_block) >= self.SHAMIR_HEADER_SIZE:
+            curve_id = encrypted_block[1]
+            offset_after = self.SHAMIR_HEADER_SIZE
+            recipient_count = encrypted_block[3]
+        else:
+            curve_id = 0x01
+            offset_after = self.HEADER_SIZE
+            recipient_count = encrypted_block[2]
+        share_value_bytes = self.SHAMIR_SHARE_VALUE_BYTES_BY_CURVE.get(
+            curve_id, 32
+        )
+        return offset_after, share_value_bytes, recipient_count
+
+    def get_share_from_shamir_block(
+        self, encrypted_block: bytes, callsign: str
+    ) -> Tuple[int, int]:
+        """
+        Extract one recipient's share from a Shamir-format block (version 0x02).
+
+        Use this to get your share, then pass it with other collected shares
+        to decrypt_shamir when you have at least K shares. Supports all
+        Brainpool curve sizes (header curve_id selects share value length).
+
+        Args:
+            encrypted_block: Block produced by encrypt_shamir
+            callsign: Recipient callsign (e.g. your callsign)
+
+        Returns:
+            (share_index, share_value) for that recipient
+
+        Raises:
+            ValueError: If not a Shamir block or callsign not found
+        """
+        offset, share_value_bytes, recipient_count = self._shamir_header_info(
+            encrypted_block
+        )
+        want = callsign.upper().strip()
+        for _ in range(recipient_count):
+            if offset >= len(encrypted_block):
+                raise ValueError("Invalid Shamir block: premature end")
+            callsign_len = encrypted_block[offset]
+            offset += 1
+            if offset + callsign_len + 1 + 2 + share_value_bytes > len(encrypted_block):
+                raise ValueError("Invalid Shamir block: share out of bounds")
+            cs = encrypted_block[offset : offset + callsign_len].decode("ascii")
+            offset += callsign_len + 1
+            share_index = struct.unpack(">H", encrypted_block[offset : offset + 2])[0]
+            offset += 2
+            share_value = int.from_bytes(
+                encrypted_block[offset : offset + share_value_bytes], "big"
+            )
+            offset += share_value_bytes
+            if cs == want:
+                return (share_index, share_value)
+        raise ValueError(f"Callsign not found in Shamir block: {callsign}")
+
+    def decrypt_shamir(
+        self,
+        encrypted_block: bytes,
+        collected_shares: List[Tuple[int, int]],
+    ) -> bytes:
+        """
+        Decrypt a Shamir-format block (version 0x02) using at least K collected shares.
+
+        Each recipient has one share (in the block under their callsign). Use
+        get_share_from_shamir_block(block, your_callsign) to get your share, then
+        gather at least K shares (yours plus others from different recipients)
+        and pass them as collected_shares. Supports all Brainpool curve sizes
+        (curve_id in block header).
+
+        Args:
+            encrypted_block: Block produced by encrypt_shamir
+            collected_shares: List of (index, value) shares (at least K required)
+
+        Returns:
+            Decrypted plaintext
+        """
+        offset_after, share_value_bytes, recipient_count = self._shamir_header_info(
+            encrypted_block
+        )
+        if len(encrypted_block) >= self.SHAMIR_HEADER_SIZE:
+            cipher_id = encrypted_block[4]
+            data_length = struct.unpack(">I", encrypted_block[5:9])[0]
+        else:
+            cipher_id = encrypted_block[3]
+            data_length = struct.unpack(">I", encrypted_block[4:8])[0]
+        if cipher_id not in self.CIPHER_NAMES:
+            raise ValueError(f"Unsupported cipher ID: {cipher_id}")
+        block_cipher = self.CIPHER_NAMES[cipher_id]
+        curve_id = encrypted_block[1] if len(encrypted_block) >= self.SHAMIR_HEADER_SIZE else 0x01
+        curve = self.CURVE_NAMES.get(curve_id, "brainpoolP256r1")
+
+        offset = offset_after
+        for _ in range(recipient_count):
+            if offset >= len(encrypted_block):
+                raise ValueError("Invalid Shamir block: premature end")
+            callsign_len = encrypted_block[offset]
+            offset += 1
+            offset += callsign_len + 1 + 2 + share_value_bytes
+
+        if (
+            offset
+            + self.AES_IV_SIZE
+            + (data_length - self.AES_IV_SIZE)
+            + self.AES_TAG_SIZE
+            > len(encrypted_block)
+        ):
+            raise ValueError("Invalid Shamir block: data out of bounds")
+        iv = encrypted_block[offset : offset + self.AES_IV_SIZE]
+        offset += self.AES_IV_SIZE
+        ciphertext_len = data_length - self.AES_IV_SIZE
+        ciphertext = encrypted_block[offset : offset + ciphertext_len]
+        offset += ciphertext_len
+        tag = encrypted_block[offset : offset + self.AES_TAG_SIZE]
+
+        symmetric_key = reconstruct_session_key(collected_shares, curve=curve)
+        if block_cipher == "aes-gcm":
+            return self._decrypt_aes_gcm(ciphertext, symmetric_key, iv, tag)
+        return self._decrypt_chacha20_poly1305(
+            ciphertext, symmetric_key, iv, tag
+        )
 
     def encrypt_and_sign(
         self,
