@@ -159,6 +159,70 @@ class TestMultiRecipientECIES(unittest.TestCase):
                 encrypted, excluded_callsign, excluded_private_key_pem.decode("ascii")
             )
 
+    def test_no_cross_group_decryption(self):
+        """
+        Test that callsign groups remain isolated: recipients in one group
+        cannot decrypt messages encrypted for a different, disjoint group.
+
+        This uses the CallsignKeyStore group API to define two non-overlapping
+        groups, then verifies that each group can decrypt only its own traffic.
+        """
+        # Create four recipients and two disjoint groups
+        self._generate_test_recipients(4)
+
+        group1_callsigns = self.test_callsigns[:2]
+        group2_callsigns = self.test_callsigns[2:]
+
+        # Store group definitions using the callsign group API
+        self.key_store.add_group("group1", group1_callsigns)
+        self.key_store.add_group("group2", group2_callsigns)
+
+        # Encrypt for group1 only
+        plaintext_g1 = b"Message for group1 only"
+        recipients_g1 = self.key_store.get_group("group1")
+        encrypted_g1 = self.ecies.encrypt(plaintext_g1, recipients_g1)
+
+        # Group1 members can decrypt
+        for callsign, private_key_pem, _ in self.test_keypairs[:2]:
+            decrypted = self.ecies.decrypt(
+                encrypted_g1, callsign, private_key_pem.decode("ascii")
+            )
+            self.assertEqual(
+                plaintext_g1,
+                decrypted,
+                f"Group1 member {callsign} failed to decrypt group1 message",
+            )
+
+        # Group2 members must NOT be able to decrypt group1 traffic
+        for callsign, private_key_pem, _ in self.test_keypairs[2:]:
+            with self.assertRaises(ValueError):
+                self.ecies.decrypt(
+                    encrypted_g1, callsign, private_key_pem.decode("ascii")
+                )
+
+        # Encrypt for group2 only
+        plaintext_g2 = b"Message for group2 only"
+        recipients_g2 = self.key_store.get_group("group2")
+        encrypted_g2 = self.ecies.encrypt(plaintext_g2, recipients_g2)
+
+        # Group2 members can decrypt
+        for callsign, private_key_pem, _ in self.test_keypairs[2:]:
+            decrypted = self.ecies.decrypt(
+                encrypted_g2, callsign, private_key_pem.decode("ascii")
+            )
+            self.assertEqual(
+                plaintext_g2,
+                decrypted,
+                f"Group2 member {callsign} failed to decrypt group2 message",
+            )
+
+        # Group1 members must NOT be able to decrypt group2 traffic
+        for callsign, private_key_pem, _ in self.test_keypairs[:2]:
+            with self.assertRaises(ValueError):
+                self.ecies.decrypt(
+                    encrypted_g2, callsign, private_key_pem.decode("ascii")
+                )
+
     def test_different_plaintext_sizes(self):
         """Test with different plaintext sizes."""
         self._generate_test_recipients(3)
