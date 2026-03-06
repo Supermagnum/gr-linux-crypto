@@ -1041,7 +1041,29 @@ Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each 
 
 ### Key Store Path (key_store_path) and callsigns
 
-The multi-recipient encrypt block needs a mapping from recipient callsigns to their Brainpool public keys. **callsigns** is the comma-separated list of recipients (e.g. `W1ABC,K2XYZ`) and must be set; if empty, the block does not encrypt for any recipients. **Key Store Path** is **optional**: you do not need a JSON file. Add keys to the kernel keyring with `keyctl add user "callsign:W1ABC" "$(cat pubkey.pem)"` or `CallsignKeyStore(...).add_public_key(callsign, public_key_pem)`, leave Key Store Path empty, and the block will look up keys from the keyring. **Key groups (JSON file):** you can define groups in the JSON file, e.g. `"group1": ["W1ABC", "K2XYZ", "N3DEF"]`, `"group2": ["KEY4", "KEY5", "KEY6"]`. Use a group name in **callsigns** (e.g. `group1` or `group1,group2`) and the block expands it to all members and encrypts for each (max 25 after expansion). **Hardware devices with multiple keys:** store a **keygrip** (40 hex) instead of PEM; the block fetches the public key from the OpenPGP Card/Nitrokey. Use `CallsignKeyStore(...).add_keygrip(callsign, keygrip)` or put the keygrip in the keyring/file. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment**. Empty path uses default `~/.gnuradio/callsign_keys.json` when a file is used; the file can be missing and keyring-only is fine.
+The multi-recipient encrypt block needs a mapping from recipient callsigns to their Brainpool public keys. **callsigns** is the comma-separated list of recipients (e.g. `W1ABC,K2XYZ`) and must be set; if empty, the block does not encrypt for any recipients. **Key Store Path** is **optional**: you do not need a JSON file. Add keys to the kernel keyring with `keyctl add user "callsign:W1ABC" "$(cat pubkey.pem)"` or `CallsignKeyStore(...).add_public_key(callsign, public_key_pem)`, leave Key Store Path empty, and the block will look up keys from the keyring.
+
+**Key groups (JSON file):** you can define groups in the JSON file, e.g. as in `examples/callsign_groups_example.json`:
+
+```json
+{
+  "W1ABC": "-----BEGIN PUBLIC KEY-----
+MIIB...BASE64-DATA...
+-----END PUBLIC KEY-----
+",
+  "K2XYZ": "A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2",
+  "N3DEF": "-----BEGIN PUBLIC KEY-----
+MIIC...BASE64-DATA...
+-----END PUBLIC KEY-----
+",
+
+  "net_control": ["W1ABC", "K2XYZ", "N3DEF"],
+  "region_east": ["KEY4", "KEY5", "KEY6"],
+  "emergency_all": ["W1ABC", "K2XYZ", "N3DEF", "KEY4", "KEY5", "KEY6"]
+}
+```
+
+Use a group name in **callsigns** (e.g. `net_control` or `net_control,region_east`) and the block expands it to all members and encrypts for each (max 25 after expansion). **Hardware devices with multiple keys:** store a **keygrip** (40 hex) instead of PEM; the block fetches the public key from the OpenPGP Card/Nitrokey. Use `CallsignKeyStore(...).add_keygrip(callsign, keygrip)` or put the keygrip in the keyring/file. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment**. Empty path uses default `~/.gnuradio/callsign_keys.json` when a file is used; the file can be missing and keyring-only is fine.
 
 ```python
 #!/usr/bin/env python3

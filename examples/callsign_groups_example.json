@@ -1,0 +1,9 @@
+{
+  "W1ABC": "-----BEGIN PUBLIC KEY-----\nMIIB...BASE64-DATA...\n-----END PUBLIC KEY-----\n",
+  "K2XYZ": "A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2",
+  "N3DEF": "-----BEGIN PUBLIC KEY-----\nMIIC...BASE64-DATA...\n-----END PUBLIC KEY-----\n",
+
+  "net_control": ["W1ABC", "K2XYZ", "N3DEF"],
+  "region_east": ["KEY4", "KEY5", "KEY6"],
+  "emergency_all": ["W1ABC", "K2XYZ", "N3DEF", "KEY4", "KEY5", "KEY6"]
+}

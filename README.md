@@ -1358,12 +1358,16 @@ The **Brainpool ECIES Multi-Recipient Encrypt** block needs a mapping from recip
 - **File format (when used):** One JSON object. Each key is either a callsign or a **group name**. Values can be: (a) public key in PEM (string), (b) keygrip (40 hex), or (c) a **key group**: an array of callsigns. When you set **callsigns** to a group name (e.g. `net1`), the block expands it to all members of that group (e.g. `key1`, `key2`, `key3`) and encrypts for each. Groups allow one label to refer to multiple recipients; total recipients after expansion must not exceed 25.
   ```json
   {
-    "W1ABC": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
+    "W1ABC": "-----BEGIN PUBLIC KEY-----\nMIIB...BASE64-DATA...\n-----END PUBLIC KEY-----\n",
     "K2XYZ": "A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2",
-    "group1": ["W1ABC", "K2XYZ", "N3DEF"],
-    "group2": ["KEY4", "KEY5", "KEY6"]
+    "N3DEF": "-----BEGIN PUBLIC KEY-----\nMIIC...BASE64-DATA...\n-----END PUBLIC KEY-----\n",
+
+    "net_control": ["W1ABC", "K2XYZ", "N3DEF"],
+    "region_east": ["KEY4", "KEY5", "KEY6"],
+    "emergency_all": ["W1ABC", "K2XYZ", "N3DEF", "KEY4", "KEY5", "KEY6"]
   }
   ```
+  This matches the example file `examples/callsign_groups_example.json`.
   Here `group1` and `group2` are key groups. Set **callsigns** to `group1` or `group1,group2,W1ABC` etc.; the block expands groups to their members and looks up each member's key (PEM or keygrip). The second entry is a keygrip; the block fetches that key from the OpenPGP Card when encrypting.
 - **callsigns required:** The list of recipient callsigns must be set; if **callsigns** is empty, the block does not encrypt for any recipients. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment** so the same callsign is used in the keyring and in **callsigns**.
 
