@@ -77,6 +77,9 @@ The generated API documentation includes:
 6. **Glossary** ([GLOSSARY.md](GLOSSARY.md))
    - Technical terms used in the module (ECIES, Brainpool, keygrip, Shamir, HPKE, etc.)
 
+7. **Key Lifecycle** ([key_lifecycle.md](key_lifecycle.md))
+   - Key generation, usage, storage, and destruction per block (BSZ AIS-B2)
+
 ## Documentation Standards
 
 This documentation follows GNU Radio standards:

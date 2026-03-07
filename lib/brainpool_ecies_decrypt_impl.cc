@@ -28,6 +28,10 @@
 
 #include <gnuradio/io_signature.h>
 #include "brainpool_ecies_decrypt_impl.h"
+#include <gnuradio/linux_crypto/secure_buffer.h>
+#ifdef GR_LINUX_CRYPTO_STRICT_BSI
+#include <gnuradio/linux_crypto/bsi_boundary.h>
+#endif
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/pem.h>
@@ -66,6 +70,9 @@ brainpool_ecies_decrypt_impl::brainpool_ecies_decrypt_impl(
       d_ephemeral_public_key_size(0),
       d_use_key_input_port(false)
 {
+#ifdef GR_LINUX_CRYPTO_STRICT_BSI
+    bsi_require_curve(d_curve_name);
+#endif
     // Key will be loaded on-demand during decryption
 }
 
@@ -382,7 +389,7 @@ brainpool_ecies_decrypt_impl::work(int noutput_items,
                             if (EVP_PKEY_derive(ctx, nullptr, &secret_len) > 0) {
                                 shared_secret.resize(secret_len);
                                 if (EVP_PKEY_derive(ctx, shared_secret.data(), &secret_len) <= 0) {
-                                    shared_secret.clear();
+                                    secure_clear(shared_secret);
                                 }
                             }
                         }
@@ -409,10 +416,11 @@ brainpool_ecies_decrypt_impl::work(int noutput_items,
         
         std::vector<uint8_t> key, derived_iv;
         if (!derive_key_hkdf(shared_secret, key, derived_iv)) {
+            secure_clear(shared_secret);
             memset(out + output_pos, 0, noutput_items - output_pos);
             continue;
         }
-        
+        secure_clear(shared_secret);
         if (derived_iv != iv) {
             memset(out + output_pos, 0, noutput_items - output_pos);
             continue;

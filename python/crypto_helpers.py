@@ -7,6 +7,7 @@ Provides utilities for GNU Radio crypto operations.
 """
 
 import base64
+import ctypes
 import hashlib
 import hmac
 import secrets
@@ -21,6 +22,41 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+
+def secure_zero(buf: bytearray) -> None:
+    """
+    Securely zero a mutable buffer in place (BSZ AIS-B2 key lifecycle).
+
+    Uses OPENSSL_cleanse via ctypes when available, otherwise overwrites
+    with zeros. Only bytearray is supported (mutable); bytes objects
+    cannot be zeroed in place.
+
+    Args:
+        buf: Mutable bytearray to zero. Length must be > 0.
+    """
+    if not isinstance(buf, bytearray):
+        raise TypeError("secure_zero requires a bytearray (mutable buffer)")
+    n = len(buf)
+    if n == 0:
+        return
+    try:
+        libcrypto = ctypes.CDLL("libcrypto.so.3")  # OpenSSL 3
+    except OSError:
+        try:
+            libcrypto = ctypes.CDLL("libcrypto.so.1.1")
+        except OSError:
+            libcrypto = None
+    if libcrypto is not None:
+        OPENSSL_cleanse = getattr(libcrypto, "OPENSSL_cleanse", None)
+        if OPENSSL_cleanse is not None:
+            OPENSSL_cleanse.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+            OPENSSL_cleanse.restype = None
+            arr = (ctypes.c_char * n).from_buffer(buf)
+            OPENSSL_cleanse(ctypes.addressof(arr), n)
+            return
+    for i in range(n):
+        buf[i] = 0
 
 
 class CryptoHelpers:
@@ -505,6 +541,46 @@ class CryptoHelpers:
             info=info,
             length=key_length,
             algorithm=hash_algorithm,
+        )
+
+    @staticmethod
+    def hybrid_kem_encapsulate(
+        recipient_public_key_pem: Union[str, bytes],
+        curve: str = "brainpoolP384r1",
+    ) -> Tuple[bytes, bytes]:
+        """
+        Hybrid KEM encapsulate (Brainpool ECDH + FrodoKEM). BSI TR-02102 style.
+
+        Requires build with GR_LINUX_CRYPTO_PQ_KEM=ON and oqs-provider. Pairings:
+        brainpoolP256r1+FrodoKEM-640, brainpoolP384r1+FrodoKEM-976 (default),
+        brainpoolP512r1+FrodoKEM-1344. Returns (ciphertext, shared_secret).
+
+        Raises:
+            NotImplementedError: If module was not built with post-quantum KEM support.
+        """
+        raise NotImplementedError(
+            "hybrid_kem_encapsulate requires gr-linux-crypto built with "
+            "GR_LINUX_CRYPTO_PQ_KEM=ON and oqs-provider (FrodoKEM)."
+        )
+
+    @staticmethod
+    def hybrid_kem_decapsulate(
+        ciphertext: bytes,
+        private_key_pem: Union[str, bytes],
+        curve: str = "brainpoolP384r1",
+    ) -> bytes:
+        """
+        Hybrid KEM decapsulate (Brainpool ECDH + FrodoKEM). BSI TR-02102 style.
+
+        Requires build with GR_LINUX_CRYPTO_PQ_KEM=ON and oqs-provider.
+        Returns shared_secret.
+
+        Raises:
+            NotImplementedError: If module was not built with post-quantum KEM support.
+        """
+        raise NotImplementedError(
+            "hybrid_kem_decapsulate requires gr-linux-crypto built with "
+            "GR_LINUX_CRYPTO_PQ_KEM=ON and oqs-provider (FrodoKEM)."
         )
 
     @staticmethod

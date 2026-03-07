@@ -1,7 +1,7 @@
 # gr-linux-crypto Test Results
 
 **Test Date:** 2026-01-26  
-**Last Test Run:** 438 passed, 32 skipped, 1 failed (side-channel timing; environment-sensitive)  
+**Last Test Run:** 478 passed, 33 skipped (side-channel timing test can be environment-sensitive)  
 **Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
 **Test Framework:** pytest 7.4.4
 
@@ -45,7 +45,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 438 passed / 471 total (32 skipped; 1 known environment-sensitive failure in side-channel timing test)
+- **Functional Tests:** 478 passed / 511 total (33 skipped; side-channel timing test may be environment-sensitive)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -67,6 +67,11 @@
 - Brainpool ECC ECDSA: All passed (3 tests including Wycheproof - fixed)
 - Multi-recipient ECIES: All passed (27 tests: recipient counts 1-25, ChaCha20-Poly1305, group isolation, ECKA-EG key agreement, sender encrypt_and_sign/verify_and_decrypt)
 - Shamir/HPKE/Nitrokey: All passed (15 tests: Shamir split/reconstruct and session key for all Brainpool curves P256/P384/P512, encrypt_shamir/decrypt_shamir with curve, HPKE seal/open and seal_with_auth/open_with_auth, Nitrokey bridge)
+- **FIPS provider (Component 1):** test_fips.py verifies fips_status() returns dict with fips_active, provider_loaded, openssl_version; FIPS provider loads at init when GR_LINUX_CRYPTO_FIPS=ON
+- **Post-quantum hybrid KEM (Component 2):** test_pq_kem.py verifies hybrid_kem_encapsulate/decapsulate raise NotImplementedError when not built with GR_LINUX_CRYPTO_PQ_KEM
+- **SBOM (Component 3):** test_sbom.py verifies CycloneDX 1.6 and SPDX 2.3 files when built with GR_LINUX_CRYPTO_SBOM=ON; verify_sbom.py validates structure and required fields
+- **Key zeroization (Component 4):** test_zeroization.py verifies secure_zero() clears bytearray; C++ SecureBuffer and secure_clear() used for key material; docs/key_lifecycle.md documents key lifecycle per block
+- **Algorithm boundary (Component 5):** test_algorithm_boundary.py verifies check_algorithm_compliance/require_bsi_approved; all BSI TR-02102 approved algorithms accepted; MD5, SHA-1, NIST P-256, RC4, DES rejected with correct exception and BSI reference; pinned approved list matches BSI TR-02102
 - Side-channel analysis: Framework ready (conceptual tests)
 - Memory/CPU monitoring: All passed
 - Hardware acceleration: Detected (AES-NI, kernel crypto API)
@@ -91,8 +96,8 @@
 ## Test Coverage Summary
 
 ### Functional Tests
-- **Total Tests:** 455 collected (with NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy attack-vector tests, and Multi-Recipient ECIES with ChaCha20-Poly1305, ECKA-EG, sender authentication)
-- **Passed:** 424 functional tests (~93.2% of collected)
+- **Total Tests:** 511 collected (including NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy, Multi-Recipient ECIES, FIPS, zeroization, SBOM, algorithm boundary, Shamir/HPKE/Nitrokey)
+- **Passed:** 478 functional tests (33 skipped)
 - **Skipped:** 31 (optional features, external dependencies)
 - **Failed:** 0
 
@@ -112,6 +117,7 @@
 - `test_rfc_compliance.py`: 12 passed, 3 skipped (RFC 7027/6954/8734 compliance tests)
 - `test_ecgdsa.py`: 12 passed (ECGDSA framework tests - implementation framework ready)
 - `test_multi_recipient_ecies.py`: 27 passed (Multi-recipient ECIES; recipient counts 1-25; ChaCha20-Poly1305; callsign group isolation; Brainpool ECKA-EG; sender encrypt_and_sign/verify_and_decrypt)
+- `test_algorithm_boundary.py`: 16 passed, 1 skipped (BSI TR-02102 algorithm boundary; approved algorithms accepted; MD5, SHA-1, NIST P-256, RC4, DES rejected with correct exception)
 - Other tests: Various framework and integration tests
 
 #### Scapy Attack Vector Tests

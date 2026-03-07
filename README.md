@@ -1185,6 +1185,7 @@ See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing 
 - [Usage Flowchart](docs/USAGE_FLOWCHART.md) - Integration patterns and workflows
 - [GnuPG Integration Guide](docs/gnupg_integration.md) - GnuPG setup, PIN handling, and examples
 - [Architecture Documentation](docs/architecture.md) - Module architecture and design
+- [Key Lifecycle](docs/key_lifecycle.md) - Key generation, usage, storage, and destruction (BSZ AIS-B2)
 - [Examples](docs/examples.md) - Code examples and tutorials
 
 
@@ -1365,7 +1366,7 @@ plaintext = ecies.verify_and_decrypt(
 
 **HPKE-style API:** For a single entry point (seal/open), use `HPKEBrainpool` from `gr_linux_crypto`: `seal(plaintext, recipient_callsigns)` and `open(ciphertext, my_callsign, my_private_key_pem)`. Optional `seal_with_auth` / `open_with_auth` add sender ECDSA authentication.
 
-**Shamir secret sharing (K-of-N quorum):** To require K recipients to combine shares to decrypt, use `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)`. Each recipient gets one share in the block; use `get_share_from_shamir_block(block, callsign)` to extract it. Any K recipients pass their shares to `decrypt_shamir(block, collected_shares)`. All Brainpool curve sizes are supported (P256r1, P384r1, P512r1; BSI TR 03111 / RFC 5639). Low-level helpers: `create_shamir_backed_key`, `reconstruct_session_key`, `split`, `reconstruct`, `get_curve_prime`, `get_max_secret_bytes`, `get_share_value_bytes`, `SUPPORTED_CURVES` in `gr_linux_crypto` (see `python/shamir_secret_sharing.py`).
+**Shamir secret sharing (K-of-N quorum):** With Shamir over a session key, you can encrypt a transmission so that the content is only recoverable when K of N designated operators each contribute their share. No single operator, and no coalition smaller than K, can read it alone. This is qualitatively different from the pairwise model: it enforces collective decision-making cryptographically rather than just socially. To use it, call `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)`. Each recipient gets one share in the block; use `get_share_from_shamir_block(block, callsign)` to extract it. Any K recipients pass their shares to `decrypt_shamir(block, collected_shares)`. All Brainpool curve sizes are supported (P256r1, P384r1, P512r1; BSI TR 03111 / RFC 5639). Low-level helpers: `create_shamir_backed_key`, `reconstruct_session_key`, `split`, `reconstruct`, `get_curve_prime`, `get_max_secret_bytes`, `get_share_value_bytes`, `SUPPORTED_CURVES` in `gr_linux_crypto` (see `python/shamir_secret_sharing.py`).
 
 **Nitrokey / OpenPGP Card decrypt:** For on-card decryption (private key never leaves the device), use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`). Python helper `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip. `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions to use the block.
 
@@ -1585,6 +1586,12 @@ cd build
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local
+
+# Optional components (each independent, default OFF):
+# -DGR_LINUX_CRYPTO_FIPS=ON   - OpenSSL FIPS 140-3 provider mode
+# -DGR_LINUX_CRYPTO_PQ_KEM=ON      - Post-quantum hybrid KEM (Brainpool + FrodoKEM; requires oqs-provider)
+# -DGR_LINUX_CRYPTO_SBOM=ON        - Generate SBOM (build/sbom.cdx.json, build/sbom.spdx.json)
+# -DGR_LINUX_CRYPTO_STRICT_BSI=ON  - Enforce BSI TR-02102 algorithm boundary (EUCC/BSZ)
 
 # Build (use all CPU cores)
 make -j$(nproc)

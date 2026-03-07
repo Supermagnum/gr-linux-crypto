@@ -81,7 +81,7 @@ class gdss_set_key_source_block(gr.basic_block):
         if secret is None or len(secret) < 32:
             self._msg = None
             return
-        secret = secret[:32]
+        # Use full shared secret for HKDF (match gr-k-gdss derive_session_keys; supports P256/32, P384/48, P512/64 bytes)
         gdss_key = _derive_gdss_key(secret)
         nonce = _gdss_nonce(session_id, tx_seq)
         self._msg = pmt.dict_add(

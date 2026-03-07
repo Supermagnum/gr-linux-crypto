@@ -12,6 +12,7 @@ This document provides comprehensive examples for using the GNU Radio Linux Cryp
 6. [Advanced Usage Patterns](#advanced-usage-patterns)
 7. [Brainpool ECIES Encryption](#brainpool-ecies-encryption)
 8. [Multi-Recipient ECIES](#multi-recipient-ecies)
+9. [Algorithm Boundary Enforcement (BSI TR-02102)](#algorithm-boundary-enforcement-bsi-tr-02102)
 
 ### GRC blocks reference
 
@@ -1041,9 +1042,29 @@ Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each 
 
 **HPKE-style API:** Use `HPKEBrainpool` (from `gr_linux_crypto`) for a single entry point: `seal(plaintext, recipient_callsigns)` and `open(ciphertext, my_callsign, my_private_key_pem)`. Optional `seal_with_auth` / `open_with_auth` add sender ECDSA.
 
-**Shamir (K-of-N quorum):** Use `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)` so that any K of N recipients can combine shares to decrypt. All Brainpool curve sizes (P256r1, P384r1, P512r1) are supported; curve selects the prime field (BSI/RFC 5639). Extract a share with `get_share_from_shamir_block(block, callsign)`; decrypt with `decrypt_shamir(block, collected_shares)` when you have at least K shares.
+**Shamir (K-of-N quorum):** With Shamir over a session key, you encrypt so that the content is only recoverable when K of N designated operators each contribute their share. No single operator, and no coalition smaller than K, can read it alone. This is qualitatively different from the pairwise model: it enforces collective decision-making cryptographically rather than just socially. Use `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)` so that any K of N recipients can combine shares to decrypt. All Brainpool curve sizes (P256r1, P384r1, P512r1) are supported; curve selects the prime field (BSI/RFC 5639). Extract a share with `get_share_from_shamir_block(block, callsign)`; decrypt with `decrypt_shamir(block, collected_shares)` when you have at least K shares.
 
 **Nitrokey / OpenPGP Card decrypt:** Use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>`. Python: `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip; `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions.
+
+### Available APIs
+
+**Shamir low-level:** `split(secret, threshold_k, num_shares_n, prime, curve)` (max secret: 31 / 47 / 63 bytes for P256 / P384 / P512), `reconstruct(shares, prime, secret_length, curve)`, `create_shamir_backed_key(threshold_k, num_shares_n, prime, curve)` (returns 32-byte session key), `reconstruct_session_key(shares, prime, curve)`, `get_curve_prime(curve)`, `get_max_secret_bytes(curve)`, `get_share_value_bytes(curve)`, `SUPPORTED_CURVES`.
+
+**MultiRecipientECIES:** `encrypt(plaintext, recipients)` / `decrypt(ciphertext, callsign, private_key_pem)`, `encrypt_and_sign(...)` / `verify_and_decrypt(...)`, `encrypt_shamir(plaintext, callsigns, threshold_k, curve)` / `decrypt_shamir(...)` / `get_share_from_shamir_block(...)`.
+
+**HPKE-style:** `HPKEBrainpool.seal(...)` / `open(...)` / `seal_with_auth(...)` / `open_with_auth(...)`.
+
+**Nitrokey / card:** `get_keygrip_from_key_id(...)`, `decrypt_with_card(...)` (documented stub), C++ block with `key_source="opgp_card"`.
+
+### Independent use — mix and match freely
+
+| You want | Use |
+|----------|-----|
+| ECIES only | `MultiRecipientECIES.encrypt` / `decrypt` |
+| Shamir only | `split` / `reconstruct` or `create_shamir_backed_key` / `reconstruct_session_key` |
+| ECIES + Shamir (K-of-N quorum) | `encrypt_shamir` / `decrypt_shamir` |
+| Clean high-level API | `HPKEBrainpool.seal` / `open` |
+| Hardware-backed keys | Nitrokey C++ block or `decrypt_with_card` |
 
 ### Key Store Path (key_store_path) and callsigns
 
@@ -1244,6 +1265,66 @@ if __name__ == "__main__":
 ```
 
 **Format Documentation:** The complete multi-recipient ECIES format specification is available in `docs/multi_recipient_ecies_format.md`.
+
+## Algorithm Boundary Enforcement (BSI TR-02102)
+
+When building with `-DGR_LINUX_CRYPTO_STRICT_BSI=ON`, only BSI TR-02102 approved algorithms are allowed at runtime (EUCC/BSZ evaluation). The Python API lets you check or enforce the approved list regardless of build options.
+
+### Check and enforce approved algorithms
+
+```python
+#!/usr/bin/env python3
+from gr_linux_crypto import check_algorithm_compliance, require_bsi_approved, list_approved_algorithms
+
+# Check if an algorithm is approved (returns bool and BSI section reference)
+approved, section = check_algorithm_compliance("brainpoolP384r1")
+if approved:
+    print(f"Approved: {section}")
+
+approved, section = check_algorithm_compliance("SHA-256")
+assert approved and section is not None
+
+# Reject non-approved algorithms before use (raises ValueError with BSI reference)
+require_bsi_approved("AES-256-GCM")   # OK
+try:
+    require_bsi_approved("MD5")
+except ValueError as e:
+    print(e)  # "Algorithm not approved for use: 'MD5'. BSI TR-02102-1 ..."
+
+# List all approved algorithms by category
+algorithms = list_approved_algorithms()
+print("ECC curves:", algorithms["ecc_curves"])
+print("Symmetric:", algorithms["symmetric"])
+print("Hash:", algorithms["hash"])
+print("KDF:", algorithms["kdf"])
+```
+
+### Using compliance check before crypto operations
+
+```python
+from gr_linux_crypto import CryptoHelpers, check_algorithm_compliance, require_bsi_approved
+
+def hash_if_approved(data: bytes, algorithm: str) -> bytes:
+    require_bsi_approved(algorithm)  # Raises if not BSI-approved
+    return CryptoHelpers.hash_data(data, algorithm=algorithm.replace("-", "").lower())
+
+# Only SHA-256, SHA-384, SHA-512 are approved
+hash_if_approved(b"data", "sha256")   # OK
+# hash_if_approved(b"data", "md5")    # Raises ValueError
+```
+
+### Approved list (BSI TR-02102)
+
+| Category | Approved algorithms |
+|----------|----------------------|
+| ECC curves | brainpoolP256r1, brainpoolP384r1, brainpoolP512r1 |
+| Symmetric | AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305 |
+| Hash | SHA-256, SHA-384, SHA-512 |
+| KDF | HKDF, PBKDF2 |
+| Signatures | ECDSA over Brainpool only |
+| PQ KEM (if Component 2 enabled) | FrodoKEM-640/976/1344, ML-KEM-768/1024 |
+
+Non-approved algorithms (e.g. MD5, SHA-1, NIST P-256, RC4, DES) raise a clear exception citing BSI TR-02102.
 
 ## Best Practices
 

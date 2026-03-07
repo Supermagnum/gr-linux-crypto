@@ -80,6 +80,8 @@ plaintext = ecies.verify_and_decrypt(encrypted, "W1ABC", rec_private_key_pem, si
 
 **File:** `python/shamir_secret_sharing.py`
 
+With Shamir over a session key, you can encrypt a transmission so that the content is only recoverable when K of N designated operators each contribute their share. No single operator, and no coalition smaller than K, can read it alone. This is qualitatively different from the pairwise model: it enforces collective decision-making cryptographically rather than just socially.
+
 Shamir's secret sharing over a prime field; the prime is the curve order of the chosen Brainpool curve (BSI TR 03111, RFC 5639). **All three Brainpool curve sizes are supported:** brainpoolP256r1 (31-byte max secret, 32-byte share encoding), brainpoolP384r1 (47-byte max secret, 48-byte share encoding), brainpoolP512r1 (63-byte max secret, 64-byte share encoding). Used for K-of-N quorum decryption of the session key.
 
 - `split(secret, threshold_k, num_shares_n, curve=...)` / `reconstruct(shares, curve=..., secret_length=...)` for arbitrary secrets; use `curve="brainpoolP256r1"` (default), `"brainpoolP384r1"`, or `"brainpoolP512r1"`.
@@ -141,6 +143,40 @@ When the recipient's private key is on an OpenPGP Card (e.g. Nitrokey), decrypti
 - **BSI TR 03111:** Brainpool curves (P256r1, P384r1, P512r1) and ECKA-EG style key derivation.
 - **RFC 5639:** Brainpool curve orders used as Shamir prime field (same as curve scalar field).
 - **NIST:** Underlying symmetric primitives (AES-GCM, ChaCha20-Poly1305) and test vectors where applicable.
+
+## Available APIs
+
+**Shamir low-level**
+
+- `split(secret, threshold_k, num_shares_n, prime, curve)` — max secret: 31 / 47 / 63 bytes for P256 / P384 / P512
+- `reconstruct(shares, prime, secret_length, curve)`
+- `create_shamir_backed_key(threshold_k, num_shares_n, prime, curve)` — returns a 32-byte session key
+- `reconstruct_session_key(shares, prime, curve)`
+- `get_curve_prime(curve)`, `get_max_secret_bytes(curve)`, `get_share_value_bytes(curve)`, `SUPPORTED_CURVES`
+
+**MultiRecipientECIES**
+
+- `encrypt(plaintext, recipients)` / `decrypt(ciphertext, callsign, private_key_pem)`
+- `encrypt_and_sign(...)` / `verify_and_decrypt(...)`
+- `encrypt_shamir(plaintext, callsigns, threshold_k, curve)` / `decrypt_shamir(...)` / `get_share_from_shamir_block(...)`
+
+**HPKE-style**
+
+- `HPKEBrainpool.seal(...)` / `open(...)` / `seal_with_auth(...)` / `open_with_auth(...)`
+
+**Nitrokey / card**
+
+- `get_keygrip_from_key_id(...)`, `decrypt_with_card(...)` (documented stub), C++ block with `key_source="opgp_card"`
+
+## Independent use — mix and match freely
+
+| You want | Use |
+|----------|-----|
+| ECIES only | `MultiRecipientECIES.encrypt` / `decrypt` |
+| Shamir only | `split` / `reconstruct` or `create_shamir_backed_key` / `reconstruct_session_key` |
+| ECIES + Shamir (K-of-N quorum) | `encrypt_shamir` / `decrypt_shamir` |
+| Clean high-level API | `HPKEBrainpool.seal` / `open` |
+| Hardware-backed keys | Nitrokey C++ block or `decrypt_with_card` |
 
 ## Security Properties
 

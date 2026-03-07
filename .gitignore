@@ -29,6 +29,9 @@ dist/
 .cursor/
 .cursorrules
 
+# Test symlink (conftest.py may create gr_linux_crypto -> python for local test runs)
+/gr_linux_crypto
+
 # Test artifacts
 .pytest_cache/
 .coverage

@@ -26,6 +26,7 @@
 
 #include <gnuradio/io_signature.h>
 #include "kernel_keyring_source_impl.h"
+#include <gnuradio/linux_crypto/secure_buffer.h>
 #include <cstring>
 #include <stdexcept>
 
@@ -66,10 +67,7 @@ kernel_keyring_source_impl::kernel_keyring_source_impl(key_serial_t key_id, bool
 
 kernel_keyring_source_impl::~kernel_keyring_source_impl()
 {
-    // Clear key data from memory
-    if (!d_key_data.empty()) {
-        memset(d_key_data.data(), 0, d_key_data.size());
-    }
+    secure_clear(d_key_data);
 }
 
 /**
@@ -85,7 +83,7 @@ kernel_keyring_source_impl::load_key_from_keyring()
     if (key_size < 0) {
         d_key_loaded = false;
         d_key_size = 0;
-        d_key_data.clear();
+        secure_clear(d_key_data);
         d_key_offset = 0;
         return;
     }
@@ -98,7 +96,7 @@ kernel_keyring_source_impl::load_key_from_keyring()
     if (bytes_read < 0 || static_cast<size_t>(bytes_read) != d_key_size) {
         d_key_loaded = false;
         d_key_size = 0;
-        d_key_data.clear();
+        secure_clear(d_key_data);
         d_key_offset = 0;
         return;
     }
@@ -154,11 +152,7 @@ void
 kernel_keyring_source_impl::clear_key_data_unlocked()
 {
     // Note: This function assumes d_mutex is already locked by caller
-    // Securely clear key data from memory
-    if (!d_key_data.empty()) {
-        memset(d_key_data.data(), 0, d_key_data.size());
-    }
-    d_key_data.clear();
+    secure_clear(d_key_data);
     d_key_size = 0;
     d_key_loaded = false;
     d_key_offset = 0;

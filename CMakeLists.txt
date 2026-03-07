@@ -75,6 +75,16 @@ option(ENABLE_DOXYGEN "Build Doxygen documentation" OFF)
 option(ENABLE_TESTING "Enable testing" OFF)
 option(ENABLE_FUZZING "Enable fuzzing targets" OFF)
 
+# Optional components (each independent, default OFF)
+option(GR_LINUX_CRYPTO_FIPS "Enable OpenSSL FIPS 140-3 provider mode" OFF)
+option(GR_LINUX_CRYPTO_PQ_KEM "Enable post-quantum hybrid KEM (Brainpool + FrodoKEM)" OFF)
+option(GR_LINUX_CRYPTO_SBOM "Enable SBOM generation (CycloneDX + SPDX)" OFF)
+option(GR_LINUX_CRYPTO_STRICT_BSI "Enforce BSI TR-02102 algorithm boundary (EUCC/BSZ)" OFF)
+
+if(GR_LINUX_CRYPTO_FIPS AND NOT OPENSSL_FOUND)
+    message(FATAL_ERROR "GR_LINUX_CRYPTO_FIPS requires OpenSSL. Enable OpenSSL or set GR_LINUX_CRYPTO_FIPS=OFF.")
+endif()
+
 ########################################################################
 # Begin conditional configuration
 ########################################################################
@@ -107,6 +117,8 @@ set(gr_linux_crypto_sources
     lib/nitrokey_interface_impl.cc
     lib/kernel_crypto_aes_impl.cc
     lib/openpgp_card_helper.cc
+    lib/fips_guard.cc
+    lib/bsi_boundary.cc
 )
 
 if(OPENSSL_FOUND)
@@ -173,6 +185,12 @@ target_link_libraries(gnuradio-linux-crypto
 if(OPENSSL_FOUND)
     target_link_libraries(gnuradio-linux-crypto ${OPENSSL_LIBRARIES})
     target_compile_definitions(gnuradio-linux-crypto PRIVATE HAVE_OPENSSL)
+endif()
+if(GR_LINUX_CRYPTO_FIPS)
+    target_compile_definitions(gnuradio-linux-crypto PRIVATE GR_LINUX_CRYPTO_FIPS)
+endif()
+if(GR_LINUX_CRYPTO_STRICT_BSI)
+    target_compile_definitions(gnuradio-linux-crypto PRIVATE GR_LINUX_CRYPTO_STRICT_BSI)
 endif()
 
 if(SODIUM_FOUND)
@@ -259,6 +277,11 @@ if(ENABLE_PYTHON)
         python/linux_crypto_integration.py
         python/linux_crypto.py
         python/gdss_set_key_source.py
+        python/hpke_brainpool.py
+        python/shamir_secret_sharing.py
+        python/nitrokey_bridge.py
+        python/fips_status.py
+        python/bsi_algorithm_boundary.py
         DESTINATION ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}/gr_linux_crypto
     )
 endif()
@@ -373,6 +396,38 @@ add_custom_target(uninstall
 )
 
 ########################################################################
+# SBOM generation (optional)
+########################################################################
+if(GR_LINUX_CRYPTO_SBOM)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_FOUND)
+        set(SBOM_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/generate_sbom.py")
+        set(SBOM_ARGS
+            --build-dir "${CMAKE_BINARY_DIR}"
+            --source-dir "${CMAKE_SOURCE_DIR}"
+            --version "1.0.0"
+        )
+        if(GR_LINUX_CRYPTO_FIPS)
+            list(APPEND SBOM_ARGS --fips)
+        endif()
+        if(GR_LINUX_CRYPTO_PQ_KEM)
+            list(APPEND SBOM_ARGS --pq-kem)
+        endif()
+        if(NITROKEY_FOUND)
+            list(APPEND SBOM_ARGS --nitrokey)
+        endif()
+        add_custom_target(sbom ALL
+            COMMAND ${Python3_EXECUTABLE} ${SBOM_SCRIPT} ${SBOM_ARGS}
+            COMMENT "Generating SBOM (CycloneDX + SPDX)"
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+        message(STATUS "  SBOM generation: ON (build/sbom.cdx.json, build/sbom.spdx.json)")
+    else()
+        message(WARNING "GR_LINUX_CRYPTO_SBOM=ON but Python3 not found; SBOM generation disabled")
+    endif()
+endif()
+
+########################################################################
 # Configuration summary
 ########################################################################
 message(STATUS "gr-linux-crypto configuration:")
@@ -389,6 +444,10 @@ message(STATUS "  Nitrokey support: ${NITROKEY_FOUND}")
 message(STATUS "  Python bindings: ${ENABLE_PYTHON}")
 message(STATUS "  GRC blocks: ${ENABLE_GRC}")
 message(STATUS "  Examples: ${ENABLE_EXAMPLES}")
+message(STATUS "  FIPS mode: ${GR_LINUX_CRYPTO_FIPS}")
+message(STATUS "  PQ KEM: ${GR_LINUX_CRYPTO_PQ_KEM}")
+message(STATUS "  SBOM: ${GR_LINUX_CRYPTO_SBOM}")
+message(STATUS "  Strict BSI (algorithm boundary): ${GR_LINUX_CRYPTO_STRICT_BSI}")
 message(STATUS "  Documentation: ${ENABLE_DOXYGEN}")
 message(STATUS "  Testing: ${ENABLE_TESTING}")
 message(STATUS "  Fuzzing: ${ENABLE_FUZZING}")

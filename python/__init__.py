@@ -6,7 +6,7 @@ This module provides GNU Radio blocks for Linux kernel crypto infrastructure
 integration, hardware security modules, and cryptographic operations.
 """
 
-from .crypto_helpers import CryptoHelpers, GNURadioCryptoUtils
+from .crypto_helpers import CryptoHelpers, GNURadioCryptoUtils, secure_zero
 from .keyring_helper import KeyringHelper
 from .callsign_key_store import CallsignKeyStore
 from .multi_recipient_ecies import MultiRecipientECIES
@@ -25,6 +25,12 @@ from .shamir_secret_sharing import (
     SUPPORTED_CURVES,
 )
 from .nitrokey_bridge import decrypt_with_card, get_keygrip_from_key_id
+from .fips_status import fips_status
+from .bsi_algorithm_boundary import (
+    check_algorithm_compliance,
+    require_bsi_approved,
+    list_approved_algorithms,
+)
 
 try:
     from .gdss_set_key_source import gdss_set_key_source_block
@@ -52,5 +58,10 @@ __all__ = [
     "SUPPORTED_CURVES",
     "decrypt_with_card",
     "get_keygrip_from_key_id",
+    "fips_status",
     "gdss_set_key_source_block",
+    "secure_zero",
+    "check_algorithm_compliance",
+    "require_bsi_approved",
+    "list_approved_algorithms",
 ]
