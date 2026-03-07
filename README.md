@@ -1896,6 +1896,8 @@ encryption_key = crypto.derive_key_hkdf(
 
 **Comprehensive Security Testing Completed:**
 
+**Unit Tests (latest run):** 478 passed, 33 skipped, 0 failed (511 collected). See [TEST_RESULTS.md](tests/TEST_RESULTS.md) for full breakdown.
+
 **Coverage Testing (LibFuzzer):**
 - **805+ million test executions** exploring code paths
 - **374 total edges covered, 403 features** with 100% stability

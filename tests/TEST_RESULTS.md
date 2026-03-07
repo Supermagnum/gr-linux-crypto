@@ -98,7 +98,7 @@
 ### Functional Tests
 - **Total Tests:** 511 collected (including NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy, Multi-Recipient ECIES, FIPS, zeroization, SBOM, algorithm boundary, Shamir/HPKE/Nitrokey)
 - **Passed:** 478 functional tests (33 skipped)
-- **Skipped:** 31 (optional features, external dependencies)
+- **Skipped:** 33 (optional features, external dependencies)
 - **Failed:** 0
 
 **Detailed Breakdown:**
@@ -142,7 +142,7 @@ None on this run.
 - **NEW**: Added RFC 7027/6954/8734 compliance tests (`test_rfc_compliance.py`) - Protocol-specific Brainpool curve validation (test vectors programmatically generated)
 - **NEW**: Added ECGDSA framework tests (`test_ecgdsa.py`) - ECGDSA implementation framework and requirements documentation
 - **NEW**: Added RFC test vector parsers (`test_rfc_vectors.py`) - Framework for parsing RFC test vectors
-- **NEW**: Added Multi-Recipient ECIES tests (`test_multi_recipient_ecies.py`) - Comprehensive validation of multi-recipient encryption (20 tests, all recipient counts 1-25 validated)
+- **NEW**: Added Multi-Recipient ECIES tests (`test_multi_recipient_ecies.py`) - Comprehensive validation of multi-recipient encryption (27 tests, all recipient counts 1-25 validated)
 - **UPDATED**: Added ChaCha20-Poly1305 cipher support to ECIES blocks (4 new tests added, cipher interoperability validated)
 - **NEW**: Brainpool ECKA-EG key agreement (`CryptoHelpers.brainpool_ecka_eg`) and sender-authenticated multi-recipient (`encrypt_and_sign` / `verify_and_decrypt`); 6 new unit tests in `test_multi_recipient_ecies.py` (TestBrainpoolEckaEg, encrypt_and_sign/verify_and_decrypt roundtrip and rejection of bad signature)
 
@@ -1156,7 +1156,28 @@ pytest tests/test_side_channel.py -v -s
    - Edge cases: Validated (empty plaintext, invalid inputs, missing keys)
    - Callsign handling: Validated (case insensitivity, duplicate rejection)
    - Known test vectors: Validated
-   - Status: 16/16 tests passing (100% pass rate)
+   - Status: 27/27 tests passing (100% pass rate)
+
+7. **Shamir / HPKE / Nitrokey Tests** (`test_shamir_hpke_nitrokey.py`)
+   - Shamir split/reconstruct and session key (P256, P384, P512)
+   - Multi-recipient Shamir encrypt/decrypt (K-of-N), get_share_from_shamir_block
+   - HPKE seal/open and seal_with_auth/open_with_auth
+   - Nitrokey bridge (decrypt_with_card stub, get_keygrip_from_key_id)
+
+8. **FIPS Provider Tests** (`test_fips.py`)
+   - fips_status() returns dict with fips_active, provider_loaded, openssl_version
+
+9. **Zeroization Tests** (`test_zeroization.py`)
+   - secure_zero() clears bytearray; rejects bytes and non-buffer types
+
+10. **SBOM Tests** (`test_sbom.py`)
+    - CycloneDX 1.6 and SPDX 2.3 structure and content; verify_sbom.py validation
+
+11. **Post-Quantum KEM Tests** (`test_pq_kem.py`)
+    - hybrid_kem_encapsulate/decapsulate raise NotImplementedError when not built with PQ_KEM
+
+12. **Algorithm Boundary Tests** (`test_algorithm_boundary.py`)
+    - check_algorithm_compliance/require_bsi_approved; BSI TR-02102 approved/rejected lists
 
 ### Running All Tests
 
@@ -1282,7 +1303,7 @@ The gr-linux-crypto module demonstrates:
 3. **Solid Implementation:**
    - Cross-implementation compatibility verified (OpenSSL, Python cryptography)
    - Memory safety confirmed (fuzzing + performance tests)
-   - Comprehensive test coverage (317 passed, 34 skipped, 1 non-critical failure)
+   - Comprehensive test coverage (478 passed, 33 skipped, 0 failed)
    - Well-documented codebase
 
 4. **Appropriate Use Cases (High Confidence):**
@@ -1323,10 +1344,10 @@ The gr-linux-crypto module demonstrates:
 
 **Test Status:** **READY FOR USE** (Amateur Radio, Experimental, Research)
 
-**Test Results (Latest Run - 2025-11-16):**
-- 413 tests passed, 31 skipped, 0 failures
+**Test Results (Latest Run - 2026-01-26):**
+- 478 tests passed, 33 skipped, 0 failures
 - Core functionality: 100% passing (248/248 core crypto tests, 19/19 performance tests)
-- Multi-recipient ECIES: 100% passing (16/16 tests, all recipient counts 1-25 validated)
+- Multi-recipient ECIES: 100% passing (27/27 tests, all recipient counts 1-25 validated)
 - Performance: All benchmarks exceeded (mean latency 8.7-11.5μs, target <100μs)
 - Security: 
   - Coverage testing: 805+ million executions, 374 edges, 403 features, 0 crashes (memory safety validated)
@@ -1352,8 +1373,8 @@ None - All tests passing
 
 ---
 
-*Last Updated: 2025-11-16*  
-*Test Framework: pytest 8.4.2*  
+*Last Updated: 2026-01-26*  
+*Test Framework: pytest 7.4.4*  
 *Fuzzing: LibFuzzer (805+ million executions, 374 edges covered)*  
-*Test Execution: 444 tests collected, 413 passed, 31 skipped, 0 failed*
+*Test Execution: 511 tests collected, 478 passed, 33 skipped, 0 failed*
 

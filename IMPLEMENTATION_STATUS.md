@@ -1,6 +1,6 @@
 # Multi-Recipient ECIES Implementation Status
 
-**Date:** 2025-11-16 (Updated: 2025-11-16)  
+**Date:** 2026-01-26 (Updated: 2026-01-26)  
 **Status:** FULLY IMPLEMENTED - All components complete and tested
 
 ## Summary
@@ -250,7 +250,7 @@ The multi-recipient ECIES feature is **FULLY IMPLEMENTED AND TESTED** at both Py
 
 The implementation is production-ready and fully integrated into the GNU Radio Linux Crypto module.
 
-## ChaCha20-Poly1305 Support (Added 2025-11-16)
+## ChaCha20-Poly1305 Support (Added 2025-11-16, doc updated 2026-01-26)
 
 **Status:** FULLY IMPLEMENTED AND TESTED
 
@@ -558,7 +558,7 @@ decrypt_block = linux_crypto.brainpool_ecies_decrypt(
 - [COMPLETE] CMakeLists.txt updated
 - [COMPLETE] Build successful
 - [COMPLETE] Documentation updated
-- [COMPLETE] Unit tests passing (417 passed, 31 skipped)
+- [COMPLETE] Unit tests passing (478 passed, 33 skipped)
 
 ### Security Benefits
 
@@ -605,7 +605,7 @@ decrypt_block = linux_crypto.brainpool_ecies_decrypt(
 
 ### Testing
 
-- All unit tests passing: 417 passed, 31 skipped
+- All unit tests passing: 478 passed, 33 skipped
 - Build successful with and without GPGME
 - Graceful fallback when GPGME is not available
 - Code compiles and links correctly
