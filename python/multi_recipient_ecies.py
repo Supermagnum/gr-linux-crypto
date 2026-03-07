@@ -70,6 +70,7 @@ class MultiRecipientECIES:
         curve: str = "brainpoolP256r1",
         key_store_path: Optional[str] = None,
         symmetric_cipher: str = "aes-gcm",
+        use_keyring: bool = True,
     ):
         """
         Initialize multi-recipient ECIES.
@@ -79,6 +80,7 @@ class MultiRecipientECIES:
             key_store_path: Path to key store (None for default)
             symmetric_cipher: Symmetric cipher for payload encryption
                              ("aes-gcm" or "chacha20-poly1305")
+            use_keyring: Whether to resolve keys from the kernel keyring (default True)
         """
         self.curve = curve
         self.curve_id = self.CURVE_IDS.get(curve, 0x01)
@@ -90,23 +92,35 @@ class MultiRecipientECIES:
             )
         self.cipher_id = self.CIPHER_IDS[self.symmetric_cipher]
         self.crypto = CryptoHelpers()
-        self.key_store = CallsignKeyStore(store_path=key_store_path)
+        self.key_store = CallsignKeyStore(
+            store_path=key_store_path, use_keyring=use_keyring
+        )
 
-    def encrypt(self, plaintext: bytes, callsigns: List[str]) -> bytes:
+    def encrypt(self, plaintext: bytes, callsigns: Optional[List[str]] = None) -> bytes:
         """
         Encrypt data for multiple recipients.
 
         Args:
             plaintext: Data to encrypt
-            callsigns: List of recipient callsigns (1-25)
+            callsigns: List of recipient callsigns (1-25). If None or empty,
+                encrypts to all public keys in the key store (file + keyring).
 
         Returns:
             Encrypted block in multi-recipient format
 
         Raises:
-            ValueError: If invalid number of recipients or missing keys
+            ValueError: If invalid number of recipients, missing keys, or no
+                recipients when callsigns is empty and key store has no keys
         """
-        if not callsigns or len(callsigns) > self.MAX_RECIPIENTS:
+        if callsigns is None:
+            callsigns = []
+        if not callsigns:
+            callsigns = self.key_store.list_callsigns()[: self.MAX_RECIPIENTS]
+        if not callsigns:
+            raise ValueError(
+                "No recipients: provide a non-empty callsign list or add keys to the key store."
+            )
+        if len(callsigns) > self.MAX_RECIPIENTS:
             raise ValueError(f"Must have 1-{self.MAX_RECIPIENTS} recipients")
 
         if len(callsigns) != len(set(callsigns)):
@@ -322,7 +336,13 @@ class MultiRecipientECIES:
         Returns:
             Encrypted block in Shamir format (version 0x02, 9-byte header with curve_id)
         """
-        if not callsigns or len(callsigns) > self.MAX_RECIPIENTS:
+        if not callsigns:
+            callsigns = self.key_store.list_callsigns()[: self.MAX_RECIPIENTS]
+        if not callsigns:
+            raise ValueError(
+                "No recipients: provide a non-empty callsign list or add keys to the key store."
+            )
+        if len(callsigns) > self.MAX_RECIPIENTS:
             raise ValueError(f"Must have 1-{self.MAX_RECIPIENTS} recipients")
         if threshold_k > len(callsigns) or threshold_k < 1:
             raise ValueError("threshold_k must be between 1 and len(callsigns)")

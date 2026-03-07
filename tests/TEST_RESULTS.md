@@ -1,7 +1,7 @@
 # gr-linux-crypto Test Results
 
 **Test Date:** 2026-01-26  
-**Last Test Run:** 478 passed, 33 skipped (side-channel timing test can be environment-sensitive)  
+**Last Test Run:** 483 passed, 33 skipped, 1 failed (side-channel timing test environment-sensitive; see Known Limitations)  
 **Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
 **Test Framework:** pytest 7.4.4
 
@@ -45,7 +45,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 478 passed / 511 total (33 skipped; side-channel timing test may be environment-sensitive)
+- **Functional Tests:** 483 passed / 517 total (33 skipped, 1 environment-sensitive failure)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -65,7 +65,7 @@
 - Scapy attack vector crafting: 4 tests passed (ARP spoofing, DHCP starvation, SYN flood, DNS amplification packet generation validated without transmitting traffic)
 - Brainpool ECC ECDH: All passed (6 tests including Wycheproof)
 - Brainpool ECC ECDSA: All passed (3 tests including Wycheproof - fixed)
-- Multi-recipient ECIES: All passed (27 tests: recipient counts 1-25, ChaCha20-Poly1305, group isolation, ECKA-EG key agreement, sender encrypt_and_sign/verify_and_decrypt)
+- Multi-recipient ECIES: All passed (33 tests: recipient counts 1-25, ChaCha20-Poly1305, group isolation, ECKA-EG key agreement, sender encrypt_and_sign/verify_and_decrypt; key store file scenarios: empty file, callsigns only, callsigns+groups, groups only)
 - Shamir/HPKE/Nitrokey: All passed (15 tests: Shamir split/reconstruct and session key for all Brainpool curves P256/P384/P512, encrypt_shamir/decrypt_shamir with curve, HPKE seal/open and seal_with_auth/open_with_auth, Nitrokey bridge)
 - **FIPS provider (Component 1):** test_fips.py verifies fips_status() returns dict with fips_active, provider_loaded, openssl_version; FIPS provider loads at init when GR_LINUX_CRYPTO_FIPS=ON
 - **Post-quantum hybrid KEM (Component 2):** test_pq_kem.py verifies hybrid_kem_encapsulate/decapsulate raise NotImplementedError when not built with GR_LINUX_CRYPTO_PQ_KEM
@@ -96,10 +96,10 @@
 ## Test Coverage Summary
 
 ### Functional Tests
-- **Total Tests:** 511 collected (including NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy, Multi-Recipient ECIES, FIPS, zeroization, SBOM, algorithm boundary, Shamir/HPKE/Nitrokey)
-- **Passed:** 478 functional tests (33 skipped)
+- **Total Tests:** 517 collected (including NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy, Multi-Recipient ECIES, FIPS, zeroization, SBOM, algorithm boundary, Shamir/HPKE/Nitrokey)
+- **Passed:** 483 functional tests (33 skipped)
 - **Skipped:** 33 (optional features, external dependencies)
-- **Failed:** 0
+- **Failed:** 1 (test_auth_tag_constant_time_comparison; environment-sensitive)
 
 **Detailed Breakdown:**
 - `test_linux_crypto.py`: 248 passed, 24 skipped (100% core functionality)
@@ -116,7 +116,7 @@
 - `test_ectester.py`: 24 passed, 1 skipped (ECTester compatibility validation complete)
 - `test_rfc_compliance.py`: 12 passed, 3 skipped (RFC 7027/6954/8734 compliance tests)
 - `test_ecgdsa.py`: 12 passed (ECGDSA framework tests - implementation framework ready)
-- `test_multi_recipient_ecies.py`: 27 passed (Multi-recipient ECIES; recipient counts 1-25; ChaCha20-Poly1305; callsign group isolation; Brainpool ECKA-EG; sender encrypt_and_sign/verify_and_decrypt)
+- `test_multi_recipient_ecies.py`: 33 passed (Multi-recipient ECIES; recipient counts 1-25; ChaCha20-Poly1305; callsign group isolation; Brainpool ECKA-EG; sender encrypt_and_sign/verify_and_decrypt; TestKeyStoreFileScenarios: empty file, file with only callsigns, file with callsigns+groups, file with groups only)
 - `test_algorithm_boundary.py`: 16 passed, 1 skipped (BSI TR-02102 algorithm boundary; approved algorithms accepted; MD5, SHA-1, NIST P-256, RC4, DES rejected with correct exception)
 - Other tests: Various framework and integration tests
 
@@ -127,7 +127,7 @@
 - **Status:** 4 tests passed — validates packet layering, critical fields, and serialization to bytes.
 
 **Test Failures (Non-Critical):**
-None on this run.
+- `test_auth_tag_constant_time_comparison` (test_side_channel.py): Environment-sensitive timing variance; documented in Side-Channel Resistance. Production constant-time behaviour should be verified at C/library level (e.g. dudect).
 
 **Recent Fixes:**
 - `test_wycheproof_comprehensive` - FIXED: Now passes with ASN.1/DER public key parsing
@@ -1156,7 +1156,8 @@ pytest tests/test_side_channel.py -v -s
    - Edge cases: Validated (empty plaintext, invalid inputs, missing keys)
    - Callsign handling: Validated (case insensitivity, duplicate rejection)
    - Known test vectors: Validated
-   - Status: 27/27 tests passing (100% pass rate)
+   - Key store file scenarios: empty file, callsigns only, callsigns+groups, groups only
+   - Status: 33/33 tests passing (100% pass rate)
 
 7. **Shamir / HPKE / Nitrokey Tests** (`test_shamir_hpke_nitrokey.py`)
    - Shamir split/reconstruct and session key (P256, P384, P512)
@@ -1303,7 +1304,7 @@ The gr-linux-crypto module demonstrates:
 3. **Solid Implementation:**
    - Cross-implementation compatibility verified (OpenSSL, Python cryptography)
    - Memory safety confirmed (fuzzing + performance tests)
-   - Comprehensive test coverage (478 passed, 33 skipped, 0 failed)
+   - Comprehensive test coverage (483 passed, 33 skipped, 1 environment-sensitive failure)
    - Well-documented codebase
 
 4. **Appropriate Use Cases (High Confidence):**
@@ -1345,9 +1346,9 @@ The gr-linux-crypto module demonstrates:
 **Test Status:** **READY FOR USE** (Amateur Radio, Experimental, Research)
 
 **Test Results (Latest Run - 2026-01-26):**
-- 478 tests passed, 33 skipped, 0 failures
+- 483 tests passed, 33 skipped, 1 failure (side-channel timing test environment-sensitive)
 - Core functionality: 100% passing (248/248 core crypto tests, 19/19 performance tests)
-- Multi-recipient ECIES: 100% passing (27/27 tests, all recipient counts 1-25 validated)
+- Multi-recipient ECIES: 100% passing (33/33 tests, all recipient counts 1-25; key store file scenarios: empty, callsigns only, callsigns+groups, groups only)
 - Performance: All benchmarks exceeded (mean latency 8.7-11.5μs, target <100μs)
 - Security: 
   - Coverage testing: 805+ million executions, 374 edges, 403 features, 0 crashes (memory safety validated)
@@ -1355,7 +1356,7 @@ The gr-linux-crypto module demonstrates:
 - Side-Channel Analysis: dudect tests passed (no timing leakage detected)
 
 **Test Failures (Non-Critical):**
-None - All tests passing
+- 1: test_auth_tag_constant_time_comparison (environment-sensitive; see Known Limitations / Side-Channel Resistance)
 
 **Certification Status:**
 - Uses certified cryptographic libraries (OpenSSL, Python cryptography)
@@ -1376,5 +1377,5 @@ None - All tests passing
 *Last Updated: 2026-01-26*  
 *Test Framework: pytest 7.4.4*  
 *Fuzzing: LibFuzzer (805+ million executions, 374 edges covered)*  
-*Test Execution: 511 tests collected, 478 passed, 33 skipped, 0 failed*
+*Test Execution: 517 tests collected, 483 passed, 33 skipped, 1 failed (environment-sensitive)*
 

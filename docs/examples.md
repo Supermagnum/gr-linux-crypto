@@ -1070,7 +1070,7 @@ Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each 
 
 ### Key Store Path (key_store_path) and callsigns
 
-The multi-recipient encrypt block needs a mapping from recipient callsigns to their Brainpool public keys. **callsigns** is the comma-separated list of recipients (e.g. `W1ABC,K2XYZ`) and must be set; if empty, the block does not encrypt for any recipients. **Key Store Path** is **optional**: you do not need a JSON file. Add keys to the kernel keyring with `keyctl add user "callsign:W1ABC" "$(cat pubkey.pem)"` or `CallsignKeyStore(...).add_public_key(callsign, public_key_pem)`, leave Key Store Path empty, and the block will look up keys from the keyring.
+The multi-recipient encrypt block needs a mapping from recipient callsigns to their Brainpool public keys. **callsigns** is the comma-separated list of recipients (e.g. `W1ABC,K2XYZ`). If **callsigns** is left empty, the block and Python API **encrypt to all public keys** in the key store (file plus keyring); if there are no keys, the block produces no output or the Python API raises. **Key Store Path** is **optional**: you do not need a JSON file. Add keys to the kernel keyring with `keyctl add user "callsign:W1ABC" "$(cat pubkey.pem)"` or `CallsignKeyStore(...).add_public_key(callsign, public_key_pem)`, leave Key Store Path empty, and the block will look up keys from the keyring.
 
 **Key groups (JSON file):** you can define groups in the JSON file, e.g. as in `examples/callsign_groups_example.json`. The JSON file may contain **only groups** (no PEM or keygrip entries); in that case, each member callsign is still looked up via the kernel keyring or hardware device, exactly as it would be without a file.
 

@@ -79,6 +79,8 @@ private:
     bool get_public_key_from_keyring(const std::string& callsign, std::string& public_key_pem);
     bool get_public_key_from_store(const std::string& callsign, std::string& public_key_pem);
     std::vector<std::string> expand_callsigns() const;
+    /** When callsign list is empty: collect all recipients from key store file and keyring (fallback). */
+    std::vector<std::string> get_all_recipient_callsigns() const;
     uint8_t get_curve_id() const;
     
     bool derive_key_hkdf(const std::vector<uint8_t>& shared_secret,

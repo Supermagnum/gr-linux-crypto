@@ -8,8 +8,11 @@ Tests include:
 - Encrypt/decrypt round-trips
 - All recipient counts from 1 to 25
 - Verification that each recipient can decrypt
+- Key store file scenarios (TestKeyStoreFileScenarios): empty file, file with
+  only callsigns, file with callsigns and groups, file with groups only
 """
 
+import json
 import os
 import sys
 import tempfile
@@ -331,18 +334,40 @@ class TestMultiRecipientECIES(unittest.TestCase):
 
     def test_invalid_recipient_count(self):
         """Test that invalid recipient counts are rejected."""
-        self._generate_test_recipients(1)
-
-        plaintext = b"Test"
-
-        with self.assertRaises(ValueError):
-            self.ecies.encrypt(plaintext, [])
-
         self._generate_test_recipients(26)
+        plaintext = b"Test"
         callsigns = self.test_callsigns
 
         with self.assertRaises(ValueError):
             self.ecies.encrypt(plaintext, callsigns)
+
+    def test_empty_callsigns_encrypts_to_all(self):
+        """When callsigns is empty or None, encrypt to all keys in the key store."""
+        self._generate_test_recipients(2)
+        plaintext = b"secret"
+        encrypted = self.ecies.encrypt(plaintext, [])
+        self.assertIsInstance(encrypted, bytes)
+        self.assertGreater(len(encrypted), 0)
+        for callsign, private_key_pem, _ in self.test_keypairs:
+            decrypted = self.ecies.decrypt(
+                encrypted, callsign, private_key_pem.decode("ascii")
+            )
+            self.assertEqual(decrypted, plaintext)
+
+    def test_empty_callsigns_and_empty_store_raises(self):
+        """When callsigns is empty and key store has no keys, encrypt raises."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as f:
+            path = f.name
+        try:
+            ecies = MultiRecipientECIES(
+                key_store_path=path, use_keyring=False
+            )
+            with self.assertRaises(ValueError) as ctx:
+                ecies.encrypt(b"data", [])
+            self.assertIn("No recipients", str(ctx.exception))
+        finally:
+            os.unlink(path)
 
     def test_missing_public_key(self):
         """Test that missing public keys are detected."""
@@ -446,6 +471,116 @@ class TestMultiRecipientECIES(unittest.TestCase):
         )
 
         self.assertEqual(plaintext, decrypted)
+
+
+class TestKeyStoreFileScenarios(unittest.TestCase):
+    """Test behaviour with different key store file contents: empty, callsigns only, callsigns+groups, groups only."""
+
+    def _write_json(self, path: str, data: dict) -> None:
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+
+    def test_empty_file(self):
+        """Empty key store file: encrypt with [] raises No recipients."""
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as f:
+            path = f.name
+        try:
+            self._write_json(path, {})
+            ecies = MultiRecipientECIES(
+                key_store_path=path, use_keyring=False
+            )
+            self.assertEqual(ecies.key_store.list_callsigns(), [])
+            with self.assertRaises(ValueError) as ctx:
+                ecies.encrypt(b"data", [])
+            self.assertIn("No recipients", str(ctx.exception))
+        finally:
+            os.unlink(path)
+
+    def test_file_with_only_callsigns(self):
+        """Key store file with only callsign->PEM entries (no groups): encrypt([]) encrypts to all."""
+        crypto = CryptoHelpers()
+        keypairs = []
+        store = {}
+        for i, callsign in enumerate(["W1ABC", "W2ABC"]):
+            priv, pub = crypto.generate_brainpool_keypair("brainpoolP256r1")
+            pub_pem = crypto.serialize_brainpool_public_key(pub).decode("ascii")
+            priv_pem = crypto.serialize_brainpool_private_key(priv).decode("ascii")
+            store[callsign] = pub_pem
+            keypairs.append((callsign, priv_pem, pub_pem))
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as f:
+            path = f.name
+        try:
+            self._write_json(path, store)
+            ecies = MultiRecipientECIES(
+                key_store_path=path, use_keyring=False
+            )
+            self.assertEqual(sorted(ecies.key_store.list_callsigns()), ["W1ABC", "W2ABC"])
+            plaintext = b"secret for all"
+            encrypted = ecies.encrypt(plaintext, [])
+            self.assertIsInstance(encrypted, bytes)
+            self.assertGreater(len(encrypted), 0)
+            for callsign, priv_pem, _ in keypairs:
+                decrypted = ecies.decrypt(encrypted, callsign, priv_pem)
+                self.assertEqual(decrypted, plaintext)
+        finally:
+            os.unlink(path)
+
+    def test_file_with_callsigns_and_groups(self):
+        """Key store file with both callsign->PEM and group->[callsigns]: encrypt([]) encrypts to all listed callsigns; both can decrypt."""
+        crypto = CryptoHelpers()
+        keypairs = []
+        store = {}
+        for i, callsign in enumerate(["W1ABC", "W2ABC"]):
+            priv, pub = crypto.generate_brainpool_keypair("brainpoolP256r1")
+            pub_pem = crypto.serialize_brainpool_public_key(pub).decode("ascii")
+            priv_pem = crypto.serialize_brainpool_private_key(priv).decode("ascii")
+            store[callsign] = pub_pem
+            keypairs.append((callsign, priv_pem, pub_pem))
+        store["net1"] = ["W1ABC", "W2ABC"]
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as f:
+            path = f.name
+        try:
+            self._write_json(path, store)
+            ecies = MultiRecipientECIES(
+                key_store_path=path, use_keyring=False
+            )
+            plaintext = b"secret"
+            encrypted_all = ecies.encrypt(plaintext, [])
+            self.assertGreater(len(encrypted_all), 0)
+            for callsign, priv_pem, _ in keypairs:
+                self.assertEqual(
+                    ecies.decrypt(encrypted_all, callsign, priv_pem), plaintext
+                )
+            encrypted_explicit = ecies.encrypt(plaintext, ["W1ABC", "W2ABC"])
+            for callsign, priv_pem, _ in keypairs:
+                self.assertEqual(
+                    ecies.decrypt(encrypted_explicit, callsign, priv_pem), plaintext
+                )
+        finally:
+            os.unlink(path)
+
+    def test_file_with_groups_only(self):
+        """Key store file with only group->[callsigns] (no PEM entries): list_callsigns() is empty; encrypt([]) raises; encrypt([group]) raises for missing keys."""
+        store = {"net1": ["W1ABC", "W2ABC"]}
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as f:
+            path = f.name
+        try:
+            self._write_json(path, store)
+            ecies = MultiRecipientECIES(
+                key_store_path=path, use_keyring=False
+            )
+            self.assertEqual(ecies.key_store.list_callsigns(), [])
+            with self.assertRaises(ValueError) as ctx:
+                ecies.encrypt(b"data", [])
+            self.assertIn("No recipients", str(ctx.exception))
+            with self.assertRaises(ValueError) as ctx:
+                ecies.encrypt(b"data", ["net1"])
+            self.assertIn("Public key not found", str(ctx.exception))
+        finally:
+            os.unlink(path)
 
 
 class TestKnownTestVectors(unittest.TestCase):

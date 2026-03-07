@@ -1426,7 +1426,7 @@ The **Brainpool ECIES Multi-Recipient Encrypt** block needs a mapping from recip
   ```
   This matches the example file `examples/callsign_groups_example.json`.
   Here `group1` and `group2` are key groups. Set **callsigns** to `group1` or `group1,group2,W1ABC` etc.; the block expands groups to their members and looks up each member's key (PEM or keygrip). The second entry is a keygrip; the block fetches that key from the OpenPGP Card when encrypting.
-- **callsigns required:** The list of recipient callsigns must be set; if **callsigns** is empty, the block does not encrypt for any recipients. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment** so the same callsign is used in the keyring and in **callsigns**.
+- **callsigns and fallback:** Set **callsigns** to the comma-separated list of recipients (e.g. `W1ABC,K2XYZ`). If **callsigns** is left empty, the block (and the Python API) **encrypts to all public keys** in the key store: keys from the JSON file (including group members) and, when no file keys are present, all keys in the kernel keyring with description `callsign:CALLSIGN`. If there are no keys at all, the block produces no output (C++) or the Python API raises `ValueError`. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment** so the same callsign is used in the keyring and in **callsigns**.
 
 ### CallsignKeyStore and key groups API
 
@@ -1964,7 +1964,7 @@ For more detail on APIs and options, see [Available APIs](#available-apis) and [
 
 **Comprehensive Security Testing Completed:**
 
-**Unit Tests (latest run):** 478 passed, 33 skipped, 0 failed (511 collected). See [TEST_RESULTS.md](tests/TEST_RESULTS.md) for full breakdown.
+**Unit Tests (latest run):** 483 passed, 33 skipped, 1 failed (517 collected; 1 failure is environment-sensitive side-channel test). See [TEST_RESULTS.md](tests/TEST_RESULTS.md) for full breakdown.
 
 **Coverage Testing (LibFuzzer):**
 - **805+ million test executions** exploring code paths

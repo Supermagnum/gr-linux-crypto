@@ -330,6 +330,81 @@ brainpool_ecies_multi_encrypt_impl::expand_callsigns() const
     return out;
 }
 
+std::vector<std::string>
+brainpool_ecies_multi_encrypt_impl::get_all_recipient_callsigns() const
+{
+    std::set<std::string> seen;
+    {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        for (const auto& p : d_recipient_keys) {
+            if (p.first.length() > 0 && p.first.length() <= MAX_CALLSIGN_LEN) {
+                seen.insert(p.first);
+            }
+        }
+        for (const auto& p : d_recipient_keygrips) {
+            if (p.first.length() > 0 && p.first.length() <= MAX_CALLSIGN_LEN) {
+                seen.insert(p.first);
+            }
+        }
+        for (const auto& g : d_groups) {
+            for (const auto& member : g.second) {
+                if (member.length() > 0 && member.length() <= MAX_CALLSIGN_LEN) {
+                    seen.insert(member);
+                }
+            }
+        }
+    }
+    if (!seen.empty()) {
+        std::vector<std::string> out(seen.begin(), seen.end());
+        if (out.size() > MAX_RECIPIENTS) {
+            out.resize(MAX_RECIPIENTS);
+        }
+        return out;
+    }
+
+    /* Fallback: list keys from keyring with description "callsign:..." */
+    const key_serial_t keyrings[] = { KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_USER_KEYRING };
+    const size_t max_keys = 128;
+    std::vector<key_serial_t> key_ids(max_keys, 0);
+    for (key_serial_t ring_id : keyrings) {
+        long nread = keyctl(KEYCTL_READ, ring_id, key_ids.data(), max_keys * sizeof(key_serial_t));
+        if (nread <= 0) {
+            continue;
+        }
+        size_t n_keys = static_cast<size_t>(nread) / sizeof(key_serial_t);
+        char desc_buf[256];
+        for (size_t i = 0; i < n_keys && seen.size() < MAX_RECIPIENTS; i++) {
+            key_serial_t kid = key_ids[i];
+            if (kid == 0) {
+                continue;
+            }
+            long dlen = keyctl(KEYCTL_DESCRIBE, kid, desc_buf, sizeof(desc_buf));
+            if (dlen <= 0) {
+                continue;
+            }
+            desc_buf[sizeof(desc_buf) - 1] = '\0';
+            std::string desc(desc_buf);
+            size_t pos = desc.find("callsign:");
+            if (pos != std::string::npos) {
+                std::string cs = desc.substr(pos + 9);
+                size_t semi = cs.find(';');
+                if (semi != std::string::npos) {
+                    cs = cs.substr(0, semi);
+                }
+                cs = trim_upper(cs);
+                if (cs.length() > 0 && cs.length() <= MAX_CALLSIGN_LEN) {
+                    seen.insert(cs);
+                }
+            }
+        }
+    }
+    std::vector<std::string> out(seen.begin(), seen.end());
+    if (out.size() > MAX_RECIPIENTS) {
+        out.resize(MAX_RECIPIENTS);
+    }
+    return out;
+}
+
 bool
 brainpool_ecies_multi_encrypt_impl::get_public_key_from_keyring(const std::string& callsign,
                                                                std::string& public_key_pem)
@@ -861,6 +936,9 @@ brainpool_ecies_multi_encrypt_impl::work(int noutput_items,
     }
     
     std::vector<std::string> expanded = expand_callsigns();
+    if (expanded.empty()) {
+        expanded = get_all_recipient_callsigns();
+    }
     if (expanded.empty()) {
         memset(out, 0, noutput_items);
         return 0;
