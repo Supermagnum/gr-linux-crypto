@@ -14,6 +14,8 @@ This document provides comprehensive examples for using the GNU Radio Linux Cryp
 8. [Multi-Recipient ECIES](#multi-recipient-ecies)
 9. [Algorithm Boundary Enforcement (BSI TR-02102)](#algorithm-boundary-enforcement-bsi-tr-02102)
 
+For benefits and drawbacks of ciphers, curve sizes, multi-recipient vs Shamir, and common combinations, see the main [README: Benefits and Drawbacks of Ciphers and Methods](../README.md#benefits-and-drawbacks-of-ciphers-and-methods).
+
 ### GRC blocks reference
 
 | Block | Category in GRC | Documented in |
@@ -1327,6 +1329,8 @@ hash_if_approved(b"data", "sha256")   # OK
 Non-approved algorithms (e.g. MD5, SHA-1, NIST P-256, RC4, DES) raise a clear exception citing BSI TR-02102.
 
 ## Best Practices
+
+For a comparison of ciphers, key agreement methods, Shamir vs per-recipient, and when to use each combination, see the main [README: Benefits and Drawbacks of Ciphers and Methods](../README.md#benefits-and-drawbacks-of-ciphers-and-methods).
 
 1. **Key Management**: Always use secure random number generation for keys
 2. **Error Handling**: Implement proper exception handling for crypto operations
