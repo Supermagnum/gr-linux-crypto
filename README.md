@@ -9,8 +9,12 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
 
 ## Table of Contents
 
-0. [What does this module do?](#what-does-this-module-do)
-0.1. [Getting Started for Beginners](#getting-started-for-beginners)
+1. [Legal Considerations](#legal-considerations)
+   - [Legal and Appropriate Uses for Amateur Radio](#legal-and-appropriate-uses-for-amateur-radio)
+   - [Experimental and Research Uses](#experimental-and-research-uses)
+   - [User Responsibility and Disclaimer](#user-responsibility-and-disclaimer)
+2. [What does this module do?](#what-does-this-module-do)
+3. [Getting Started for Beginners](#getting-started-for-beginners)
    - [What Are GnuPG Keys?](#what-are-gnupg-keys)
    - [What is "Session Key Exchange"?](#what-is-session-key-exchange)
    - [What is a "GnuPG Agent"?](#what-is-a-gnupg-agent)
@@ -26,26 +30,24 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
        - [Real-World Use Cases](#real-world-use-cases)
    - [GnuPG vs Brainpool ECC: When to Use Which?](#gnupg-vs-brainpool-ecc-when-to-use-which)
    - [How It Fits Into Your SDR Workflow](#how-it-fits-into-your-sdr-workflow)
-1. [What This Module Provides (Unique Features)](#what-this-module-provides-unique-features)
+4. [What This Module Provides (Unique Features)](#what-this-module-provides-unique-features)
    - [Kernel Keyring Integration](#1-kernel-keyring-integration)
    - [Hardware Security Module Integration](#2-hardware-security-module-integration)
    - [Kernel Crypto API Integration](#3-kernel-crypto-api-integration)
-2. [What This Module Does NOT Provide (Avoiding Duplication)](#what-this-module-does-not-provide-avoiding-duplication)
+5. [What This Module Does NOT Provide (Avoiding Duplication)](#what-this-module-does-not-provide-avoiding-duplication)
    - [Basic OpenSSL Operations (Use gr-openssl)](#basic-openssl-operations-use-gr-openssl)
    - [Modern Crypto (NaCl/libsodium) - Use gr-nacl](#modern-crypto-nacllibsodium---use-gr-nacl)
    - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
-3. [Legal Considerations](#legal-considerations)
-   - [Legal and Appropriate Uses for Amateur Radio](#legal-and-appropriate-uses-for-amateur-radio)
-   - [Experimental and Research Uses](#experimental-and-research-uses)
-   - [User Responsibility and Disclaimer](#user-responsibility-and-disclaimer)
-4. [What happens if I remove my Nitrokey or GnuPG card?](#what-happens-if-i-remove-my-nitrokey-or-gnupg-card)
-5. [Why Nitrokey?](#why-nitrokey)
-6. [Integration Architecture](#integration-architecture)
-7. [Key Design Principles](#key-design-principles)
-8. [Usage Flowchart](#usage-flowchart)
-9. [Documentation](#documentation)
+6. [Documentation](#documentation)
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
-10. [Usage Examples](#usage-examples)
+7. [Dependencies](#dependencies)
+   - [Required](#required)
+   - [Python Dependencies](#python-dependencies)
+   - [Optional](#optional)
+8. [Installation](#installation)
+9. [Important Note](#important-note)
+10. [Usage Flowchart](#usage-flowchart)
+11. [Usage Examples](#usage-examples)
    - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
    - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
    - [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss)
@@ -55,12 +57,8 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
    - [Independent use — mix and match freely](#independent-use--mix-and-match-freely)
    - [CallsignKeyStore and key groups API](#callsignkeystore-and-key-groups-api)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
-11. [Dependencies](#dependencies)
-   - [Required](#required)
-   - [Python Dependencies](#python-dependencies)
-   - [Optional](#optional)
-12. [Installation](#installation)
-13. [Important Note](#important-note)
+12. [Integration Architecture](#integration-architecture)
+13. [Key Design Principles](#key-design-principles)
 14. [Cryptographic Operations Overview](#cryptographic-operations-overview)
     - [Encryption (AES block)](#1-encryption-aes-block)
     - [Signing & Key Exchange (Brainpool ECC block)](#2-signing--key-exchange-brainpool-ecc-block)
@@ -71,15 +69,18 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
     - [Key Management](#key-management)
     - [Authentication Modes](#authentication-modes)
     - [Battery-Friendly Cryptography](#battery-friendly-cryptography)
-16. [Security & Testing](#security--testing)
-17. [Performance & Overhead](#performance--overhead)
-18. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
+    - [Benefits and Drawbacks of Ciphers and Methods](#benefits-and-drawbacks-of-ciphers-and-methods)
+16. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
     - [Native C++ Blocks (Implemented)](#1-native-c-blocks-implemented)
     - [Integration Helpers (Implemented)](#2-integration-helpers-implemented)
     - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
-19. [Why This Approach?](#why-this-approach)
-20. [Comparison with Existing Modules](#comparison-with-existing-modules)
-21. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
+17. [What happens if I remove my Nitrokey or GnuPG card?](#what-happens-if-i-remove-my-nitrokey-or-gnupg-card)
+18. [Why Nitrokey?](#why-nitrokey)
+19. [Security & Testing](#security--testing)
+20. [Performance & Overhead](#performance--overhead)
+21. [Why This Approach?](#why-this-approach)
+22. [Comparison with Existing Modules](#comparison-with-existing-modules)
+23. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
     - [Cryptographic Ciphers Influenced by the NSA](#cryptographic-ciphers-influenced-by-the-nsa)
     - [Cryptographic Ciphers NOT Influenced by the NSA](#cryptographic-ciphers-not-influenced-by-the-nsa)
     - [Known Scandals Involving NSA and Cryptography](#known-scandals-involving-nsa-and-cryptography)
@@ -1735,18 +1736,18 @@ This module provides two distinct types of cryptographic operations:
 
 ### Symmetric Encryption
 
-**AES (Advanced Encryption Standard)**
+**AES (Advanced Encryption Standard)** (Kernel Crypto AES block and Python helpers)
 - **AES-128** (128-bit keys)
   - CBC mode (Cipher Block Chaining)
+  - CTR mode (Counter mode)
   - GCM mode (Galois/Counter Mode with authentication)
   - ECB mode (Electronic Codebook)
 - **AES-192** (192-bit keys)
-  - CBC mode
-  - ECB mode
+  - CBC, CTR, ECB modes
 - **AES-256** (256-bit keys)
-  - CBC mode
-  - GCM mode (Galois/Counter Mode with authentication)
-  - ECB mode
+  - CBC, CTR, GCM (with authentication), ECB modes
+
+**ECIES blocks** use AES-256-GCM or ChaCha20-Poly1305 only for payload encryption (no AES-128/192 or CBC/ECB in ECIES).
 
 **ChaCha20**
 - **ChaCha20-Poly1305** (256-bit keys, 96-bit nonce)
@@ -1774,7 +1775,7 @@ This module provides two distinct types of cryptographic operations:
 
 ### Key Management
 - Kernel keyring integration (secure key storage)
-- Hardware security modules (Nitrokey, TPM)
+- Hardware security modules (Nitrokey; TPM not yet implemented)
 - Key serialization (PEM format)
 - PKCS#7 padding for block ciphers
 - Key derivation: PBKDF2 (password-based), HKDF (RFC 5869 for shared secrets)
@@ -1783,7 +1784,9 @@ This module provides two distinct types of cryptographic operations:
 ### Authentication Modes
 - **GCM** (Galois/Counter Mode) - for AES
 - **Poly1305** - for ChaCha20
-- HMAC (SHA-1, SHA-256, SHA-512)
+- HMAC (SHA-256, SHA-512; SHA-1 available for legacy compatibility only)
+
+When **GR_LINUX_CRYPTO_STRICT_BSI=ON**, only BSI TR-02102 approved algorithms are allowed (e.g. AES-128-GCM, AES-256-GCM, ChaCha20-Poly1305; SHA-256, SHA-384, SHA-512; HKDF, PBKDF2). See [Algorithm Boundary Enforcement](docs/examples.md#algorithm-boundary-enforcement-bsi-tr-02102).
 
 **Note:** For additional algorithms (RSA, more ECC curves, etc.), use **gr-openssl** which provides comprehensive OpenSSL support.
 
@@ -1891,6 +1894,71 @@ encryption_key = crypto.derive_key_hkdf(
 - Power consumption is less of a concern (desktop/server applications)
 
 **Note**: This combination requires both `gr-linux-crypto` (for Brainpool ECDH) and `gr-nacl` (for ChaCha20Poly1305). Both modules work together seamlessly for battery-efficient cryptography.
+
+### Benefits and Drawbacks of Ciphers and Methods
+
+This section summarizes trade-offs for ciphers, key agreement, multi-recipient options, and authentication so you can choose the right combination for your use case.
+
+#### Symmetric ciphers (payload encryption)
+
+| Cipher | Benefits | Drawbacks |
+|--------|----------|-----------|
+| **AES-128-GCM** | Fast with AES-NI; NIST/BSI approved; lower key size. | Weaker security margin than AES-256; still requires AES-NI for best speed. |
+| **AES-256-GCM** | Strong security margin; NIST/BSI approved; very fast with AES-NI; default in ECIES blocks. | Slower in pure software; benefits from hardware acceleration. |
+| **ChaCha20-Poly1305** | No hardware dependency; efficient on ARM and in software; BSI approved; battery-friendly; good when AES-NI is absent. | Lower throughput than AES-GCM on x86 with AES-NI; slightly larger overhead per frame in some benchmarks. |
+
+#### Brainpool curve sizes (ECC)
+
+| Curve | Benefits | Drawbacks |
+|-------|----------|-----------|
+| **brainpoolP256r1** | Fastest; smallest keys and signatures; BSI approved; good for constrained or battery-powered devices. | Lower security level than P384/P512 (still strong for most use cases). |
+| **brainpoolP384r1** | Balanced security and performance; BSI primary recommendation; matches common TLS/BSI profiles. | Slower and larger than P256. |
+| **brainpoolP512r1** | Highest security level; BSI approved for long-term security. | Slowest; largest keys and signatures; more CPU and bandwidth. |
+
+#### Key agreement and derivation
+
+| Method | Benefits | Drawbacks |
+|--------|----------|-----------|
+| **ECDH (plain)** | Standard; simple; interoperable; minimal code. | Raw shared secret often needs a KDF before use. |
+| **ECKA-EG (ECDH + HKDF)** | BSI-style; single derived key with domain separation; avoids ad-hoc KDF usage. | Slightly more API surface; need to agree on info string. |
+| **HKDF** | RFC 5869; good for deriving keys from ECDH output; supports salt and context. | Must be used correctly (e.g. fixed info) for domain separation. |
+| **Post-quantum hybrid KEM (Brainpool + FrodoKEM)** | Resistant to Shor's algorithm; BSI-recommended pairing (e.g. P384 + FrodoKEM-976); combined key with HKDF. | Requires build with GR_LINUX_CRYPTO_PQ_KEM=ON and oqs-provider; large ciphertext (~15 KB) and key material, paid once at session start. |
+
+#### Multi-recipient and key-sharing models
+
+| Model | Benefits | Drawbacks |
+|-------|----------|-----------|
+| **Per-recipient encryption (standard multi-recipient)** | Each recipient decrypts alone; no coordination; up to 25 recipients; flexible. | Any one recipient can decrypt; no threshold or quorum. |
+| **Shamir K-of-N (session key in shares)** | Recovery only when K of N operators contribute; enforces collective decision-making cryptographically; no single point of decryption. | Requires collecting K shares and one decrypt step; more operational process; share distribution and storage. Losing shares below the threshold permanently locks the secret (no recovery). |
+| **Key groups (callsign groups)** | One logical “recipient” (e.g. net) expands to many; simpler configuration. | Still per-recipient decryption; not threshold. |
+
+#### Authentication and integrity
+
+| Method | Benefits | Drawbacks |
+|--------|----------|-----------|
+| **AES-GCM / ChaCha20-Poly1305 (AEAD)** | Integrity and confidentiality in one; no separate MAC step. | Nonce reuse is catastrophic; must be unique per key. With both AES-GCM and ChaCha20-Poly1305, reusing a nonce under the same key leaks the authentication key entirely, not just the plaintext. |
+| **ECDSA (Brainpool)** | Public-key signatures; recipient can verify sender; BSI approved. | Larger signature; need to distribute sender public key; slower than symmetric MAC. |
+| **HMAC (e.g. SHA-256)** | Fast; symmetric; no key distribution for verifier. | Verifier must share the key; not non-repudiation. |
+
+#### Common combinations
+
+| Combination | Typical use | Benefits | Drawbacks |
+|-------------|-------------|----------|-----------|
+| **BrainpoolP256r1 + ChaCha20-Poly1305** | Battery or ARM; no AES-NI. | Algorithm diversity; software-friendly; good battery life. | Lower throughput than AES-GCM on x86 with AES-NI. |
+| **BrainpoolP384r1 + AES-256-GCM** | Default balance; servers/desktops with AES-NI. | BSI-aligned; high throughput; strong security. | Needs AES-NI for best performance. |
+| **Multi-recipient ECIES (per-recipient)** | Broadcast to several known recipients. | Each recipient decrypts independently; simple ops. | Any one recipient can decrypt. |
+| **Multi-recipient ECIES + Shamir (K-of-N)** | Require quorum (e.g. 2-of-3) to decrypt. | Cryptographically enforced quorum; no single operator can read. | Requires K parties to collaborate; share handling. |
+| **Brainpool ECKA-EG + FrodoKEM-976 hybrid** | Post-quantum session establishment. | Secure against Shor's algorithm; harvest-now-decrypt-later protection; BSI recommended pairing; cost paid once at session start. | Requires oqs-provider; large key/ciphertext (~15 KB) paid once; not per-frame overhead. |
+| **encrypt_and_sign / verify_and_decrypt** | Authenticated multi-recipient. | Recipients verify sender; integrity and non-repudiation. | Need to distribute sender public key; slightly more complexity. |
+
+**Harvest-now, decrypt-later:** Traffic encrypted today with classical ECC (e.g. ECDH alone) could be recorded and decrypted in the future by an adversary with a large-scale quantum computer. Post-quantum hybrid KEM protects session establishment so that even if the ciphertext is stored, the session key cannot be recovered later by a quantum attack. That is why quantum resistance matters today even though practical quantum computers do not yet break ECC.
+
+#### When to use Shamir K-of-N
+
+- **Use Shamir** when you need a real quorum (e.g. recovery only with K of N operators), compliance or policy requires shared control, or you want to avoid a single point of decryption.
+- **Use standard multi-recipient** when each recipient should be able to decrypt on their own (e.g. team members, multiple stations) without collecting shares.
+
+For more detail on APIs and options, see [Available APIs](#available-apis) and [Examples](docs/examples.md).
 
 ## Security & Testing
 
