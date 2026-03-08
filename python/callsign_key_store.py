@@ -280,6 +280,9 @@ class CallsignKeyStore:
     def list_callsigns(self) -> list:
         """
         List all callsigns in the store (keys and keygrips, not group names).
+        Includes group members that have a resolvable key (from file or keyring),
+        so that when callsigns are empty the encrypt block can fall back to
+        "encrypt to all available" including recipients defined only via groups.
 
         Returns:
             List of callsigns
@@ -296,6 +299,11 @@ class CallsignKeyStore:
                         callsigns.add(callsign.upper())
             except Exception:
                 pass
+
+        for members in self._groups.values():
+            for c in members:
+                if self.get_public_key(c) is not None:
+                    callsigns.add(c.upper())
 
         return sorted(list(callsigns))
 
