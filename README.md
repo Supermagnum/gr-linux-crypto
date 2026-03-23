@@ -7,6 +7,20 @@ Please review the test data before usage.
 
 A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptographic infrastructure integration**, focusing on what's missing from existing crypto modules (gr-openssl, gr-nacl).
 
+## Publication
+
+This project is documented in the following preprint:
+
+> Cryptographically Keyed Gaussian-Distributed Spread-Spectrum
+> for Enhanced Covert Communications: Design, Implementation,
+> and Simulated Performance in ITU Channel Models  
+> IACR Cryptology ePrint Archive, Paper 2025/108456  
+> https://eprint.iacr.org/2025/108456
+
+Archive record timestamp: **21 March 2026**.
+
+---
+
 ## Table of Contents
 
 1. [Legal Considerations](#legal-considerations)
@@ -76,11 +90,12 @@ A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptograph
     - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
 17. [What happens if I remove my Nitrokey or GnuPG card?](#what-happens-if-i-remove-my-nitrokey-or-gnupg-card)
 18. [Why Nitrokey?](#why-nitrokey)
-19. [Security & Testing](#security--testing)
-20. [Performance & Overhead](#performance--overhead)
-21. [Why This Approach?](#why-this-approach)
-22. [Comparison with Existing Modules](#comparison-with-existing-modules)
-23. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
+19. [Where Key Functions Are Implemented (Quick Code Map)](#where-key-functions-are-implemented-quick-code-map)
+20. [Security & Testing](#security--testing)
+21. [Performance & Overhead](#performance--overhead)
+22. [Why This Approach?](#why-this-approach)
+23. [Comparison with Existing Modules](#comparison-with-existing-modules)
+24. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
     - [Cryptographic Ciphers Influenced by the NSA](#cryptographic-ciphers-influenced-by-the-nsa)
     - [Cryptographic Ciphers NOT Influenced by the NSA](#cryptographic-ciphers-not-influenced-by-the-nsa)
     - [Known Scandals Involving NSA and Cryptography](#known-scandals-involving-nsa-and-cryptography)
@@ -1959,6 +1974,53 @@ This section summarizes trade-offs for ciphers, key agreement, multi-recipient o
 - **Use standard multi-recipient** when each recipient should be able to decrypt on their own (e.g. team members, multiple stations) without collecting shares.
 
 For more detail on APIs and options, see [Available APIs](#available-apis) and [Examples](docs/examples.md).
+
+## Where Key Functions Are Implemented (Quick Code Map)
+
+If you want to inspect specific behavior in code, start with these files and functions:
+
+- **Multi-recipient recipient resolution and fallback ("encrypt to all when callsigns are empty")**
+  - Runtime code (actual processing path):
+    - `lib/brainpool_ecies_multi_encrypt_impl.cc`: `expand_callsigns()`, `get_all_recipient_callsigns()`, `get_public_key_from_store(...)`, `set_callsigns(...)`, `work(...)`
+    - `python/multi_recipient_ecies.py`: `encrypt(...)`, `encrypt_shamir(...)` (empty callsign fallback)
+    - `python/callsign_key_store.py`: `list_callsigns()` (includes resolvable group members)
+  - Tests / docs:
+    - `tests/test_multi_recipient_ecies.py`: `TestKeyStoreFileScenarios` (empty file, callsigns-only, callsigns+groups, groups-only)
+    - `docs/examples.md`: key store path and callsign fallback notes
+
+- **Brainpool ECKA-EG key agreement and sender-authenticated multi-recipient flow**
+  - Runtime code:
+    - `python/crypto_helpers.py`: `brainpool_ecka_eg(...)`
+    - `python/multi_recipient_ecies.py`: `encrypt_and_sign(...)`, `verify_and_decrypt(...)`
+  - Tests / docs:
+    - `tests/test_multi_recipient_ecies.py`: `TestBrainpoolEckaEg` + sender-signature roundtrip/rejection tests
+    - `docs/multi_recipient_ecies_implementation.md`: ECKA-EG + authenticated flow description
+
+- **Shamir K-of-N session key sharing for multi-recipient ECIES**
+  - Runtime code:
+    - `python/shamir_secret_sharing.py`: `split(...)`, `reconstruct(...)`, `create_shamir_backed_key(...)`, `reconstruct_session_key(...)`
+    - `python/multi_recipient_ecies.py`: `encrypt_shamir(...)`, `get_share_from_shamir_block(...)`, `decrypt_shamir(...)`
+  - Tests / docs:
+    - `tests/test_shamir_hpke_nitrokey.py`: Shamir split/reconstruct and Shamir ECIES tests
+    - `docs/multi_recipient_ecies_implementation.md`: Shamir format and flow
+
+- **HPKE-style wrapper on top of Brainpool ECIES**
+  - Runtime code:
+    - `python/hpke_brainpool.py`: `seal(...)`, `open(...)`, `seal_with_auth(...)`, `open_with_auth(...)`
+  - Tests / docs:
+    - `tests/test_shamir_hpke_nitrokey.py`: `TestHPKEBrainpool`
+    - `docs/examples.md`: HPKE-style usage examples
+
+- **Compliance, zeroization, and optional advanced components**
+  - Runtime code:
+    - `python/fips_status.py`: `fips_status()`
+    - `python/bsi_algorithm_boundary.py`: `check_algorithm_compliance(...)`, `require_bsi_approved(...)`, `list_approved_algorithms()`
+    - `python/crypto_helpers.py`: `secure_zero(...)`, `hybrid_kem_encapsulate(...)`, `hybrid_kem_decapsulate(...)`
+    - `lib/fips_guard.cc`: FIPS provider initialization when `GR_LINUX_CRYPTO_FIPS=ON`
+    - `lib/bsi_boundary.cc`: strict BSI runtime checks when `GR_LINUX_CRYPTO_STRICT_BSI=ON`
+  - Tests / docs:
+    - `tests/test_fips.py`, `tests/test_algorithm_boundary.py`, `tests/test_zeroization.py`, `tests/test_pq_kem.py`
+    - `docs/key_lifecycle.md` and `tests/TEST_RESULTS.md`
 
 ## Security & Testing
 
