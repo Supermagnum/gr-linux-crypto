@@ -1979,30 +1979,6 @@ For more detail on APIs and options, see [Available APIs](#available-apis) and [
 
 If you want to inspect specific behavior in code, start with these files and functions:
 
-- **HKDF key derivation (RFC 5869)**
-  - Runtime code (actual processing path):
-    - [`python/crypto_helpers.py`](python/crypto_helpers.py): `derive_key_hkdf(...)` (Python `cryptography` HKDF); `brainpool_ecka_eg(...)` (Brainpool ECDH output then HKDF with domain-separated `info`)
-    - [`lib/brainpool_ecies_encrypt_impl.cc`](lib/brainpool_ecies_encrypt_impl.cc), [`lib/brainpool_ecies_decrypt_impl.cc`](lib/brainpool_ecies_decrypt_impl.cc): `derive_key_hkdf(...)` (OpenSSL `EVP_PKEY_HKDF`, SHA-256, `kdf_info` as HKDF info)
-    - [`lib/brainpool_ecies_multi_encrypt_impl.cc`](lib/brainpool_ecies_multi_encrypt_impl.cc), [`lib/brainpool_ecies_multi_decrypt_impl.cc`](lib/brainpool_ecies_multi_decrypt_impl.cc): `derive_key_hkdf(...)` (same pattern for multi-recipient ECIES)
-    - [`python/shamir_secret_sharing.py`](python/shamir_secret_sharing.py): `_hkdf_32(...)` and callers (`create_shamir_backed_key`, `reconstruct_session_key`) for Shamir-backed session keys
-    - [`python/gdss_set_key_source.py`](python/gdss_set_key_source.py): HKDF helper for GDSS/ChaCha masking key derivation when integrating with gr-k-gdss (domain-separated `info`; see file docstring)
-  - Tests / docs:
-    - [`tests/test_multi_recipient_ecies.py`](tests/test_multi_recipient_ecies.py): `TestBrainpoolEckaEg` (ECDH + HKDF agreement and domain separation)
-    - [`docs/multi_recipient_ecies_implementation.md`](docs/multi_recipient_ecies_implementation.md): ECIES and ECKA-EG context
-
-- **ChaCha20 keystream (inside ChaCha20-Poly1305 AEAD)**
-  - This module does not expose a raw ChaCha20 keystream API. The ChaCha20 stream is used **inside** RFC 8439-style ChaCha20-Poly1305; auditors should trace `EVP_chacha20_poly1305` / `ChaCha20Poly1305` and nonce/tag handling.
-  - Runtime code (actual processing path):
-    - [`lib/brainpool_ecies_multi_encrypt_impl.cc`](lib/brainpool_ecies_multi_encrypt_impl.cc): `encrypt_chacha20_poly1305(...)` — OpenSSL `EVP_chacha20_poly1305()`
-    - [`lib/brainpool_ecies_multi_decrypt_impl.cc`](lib/brainpool_ecies_multi_decrypt_impl.cc): `decrypt_chacha20_poly1305(...)` — must use same key, nonce, and ciphertext/tag as encrypt
-    - [`python/multi_recipient_ecies.py`](python/multi_recipient_ecies.py): `_encrypt_chacha20_poly1305(...)`, `_decrypt_chacha20_poly1305(...)` — `cryptography` `ChaCha20Poly1305`
-    - [`python/linux_crypto.py`](python/linux_crypto.py): `_chacha20_poly1305_encrypt(...)`, `_chacha20_poly1305_decrypt(...)` — integration `encrypt`/`decrypt` entry points for `chacha20` + Poly1305
-    - [`python/m17_frame.py`](python/m17_frame.py): M17 payload encryption path using ChaCha20-Poly1305 via the integration layer
-  - Tests / docs:
-    - [`tests/test_nist_vectors.py`](tests/test_nist_vectors.py): `test_rfc8439_chacha20_poly1305_vectors` (RFC 8439 vectors)
-    - [`tests/test_linux_crypto.py`](tests/test_linux_crypto.py): ChaCha20-Poly1305 round-trip, determinism, error handling
-    - [`tests/test_multi_recipient_ecies.py`](tests/test_multi_recipient_ecies.py): `TestChaCha20Poly1305` (multi-recipient ECIES + cipher interoperability with AES-GCM)
-
 - **Multi-recipient recipient resolution and fallback ("encrypt to all when callsigns are empty")**
   - Runtime code (actual processing path):
     - `lib/brainpool_ecies_multi_encrypt_impl.cc`: `expand_callsigns()`, `get_all_recipient_callsigns()`, `get_public_key_from_store(...)`, `set_callsigns(...)`, `work(...)`
