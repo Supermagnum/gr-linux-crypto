@@ -1977,7 +1977,7 @@ For more detail on APIs and options, see [Available APIs](#available-apis) and [
 
 ## Where Key Functions Are Implemented (Quick Code Map)
 
-If you want to inspect specific behavior in code, start with these files and functions. Paths below are for **this repository** (`gr-linux-crypto`). Example layouts from other GNU Radio modules (e.g. kgdss spreader/despreader, `session_key_derivation.py`, `sync_burst_utils.py`) are **not** present here; use the entries below for auditing this module.
+If you want to inspect specific behavior in code, start with these files and functions. Paths below are for **this repository** (`gr-linux-crypto`).
 
 - **HKDF key derivation (ECIES symmetric key and IV material)**
   - Runtime code (actual processing path):
@@ -2048,8 +2048,6 @@ If you want to inspect specific behavior in code, start with these files and fun
 - **Python bindings (C++ to Python exposure)**
   - Runtime bindings (loaded as `gnuradio.linux_crypto`):
     - [`python/linux_crypto_python.cc`](python/linux_crypto_python.cc): pybind11 module; `bind_kernel_keyring_source`, `bind_nitrokey_interface`, `bind_kernel_crypto_aes`, Brainpool ECIES / multi-ECIES / ECDSA blocks when OpenSSL is enabled
-
-**Not in this repository:** Spreader/despreader chip masking (`kgdss_spreader_cc_impl`, `fill_keystream`), Box-Muller Gaussian masking, PN `sync_pn`, sync-burst timing schedules, and `gaussian_envelope` live in other projects (e.g. kgdss / gr-k-gdss). Audit those repositories if your stack includes them next to `gr-linux-crypto`.
 
 ## Security & Testing
 
