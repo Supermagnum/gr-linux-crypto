@@ -1977,50 +1977,79 @@ For more detail on APIs and options, see [Available APIs](#available-apis) and [
 
 ## Where Key Functions Are Implemented (Quick Code Map)
 
-If you want to inspect specific behavior in code, start with these files and functions:
+If you want to inspect specific behavior in code, start with these files and functions. Paths below are for **this repository** (`gr-linux-crypto`). Example layouts from other GNU Radio modules (e.g. kgdss spreader/despreader, `session_key_derivation.py`, `sync_burst_utils.py`) are **not** present here; use the entries below for auditing this module.
 
-- **Multi-recipient recipient resolution and fallback ("encrypt to all when callsigns are empty")**
+- **HKDF key derivation (ECIES symmetric key and IV material)**
   - Runtime code (actual processing path):
-    - `lib/brainpool_ecies_multi_encrypt_impl.cc`: `expand_callsigns()`, `get_all_recipient_callsigns()`, `get_public_key_from_store(...)`, `set_callsigns(...)`, `work(...)`
-    - `python/multi_recipient_ecies.py`: `encrypt(...)`, `encrypt_shamir(...)` (empty callsign fallback)
-    - `python/callsign_key_store.py`: `list_callsigns()` (includes resolvable group members)
-  - Tests / docs:
-    - `tests/test_multi_recipient_ecies.py`: `TestKeyStoreFileScenarios` (empty file, callsigns-only, callsigns+groups, groups-only)
-    - `docs/examples.md`: key store path and callsign fallback notes
+    - [`python/crypto_helpers.py`](python/crypto_helpers.py): `derive_key_hkdf(...)` (RFC 5869 via Python `cryptography`); `brainpool_ecka_eg(...)` (Brainpool ECDH shared secret then HKDF with domain-separated `info`)
+    - [`lib/brainpool_ecies_encrypt_impl.cc`](lib/brainpool_ecies_encrypt_impl.cc), [`lib/brainpool_ecies_decrypt_impl.cc`](lib/brainpool_ecies_decrypt_impl.cc): `derive_key_hkdf(...)` (OpenSSL `EVP_PKEY_HKDF`, SHA-256, optional `kdf_info` as HKDF info)
+    - [`lib/brainpool_ecies_multi_encrypt_impl.cc`](lib/brainpool_ecies_multi_encrypt_impl.cc), [`lib/brainpool_ecies_multi_decrypt_impl.cc`](lib/brainpool_ecies_multi_decrypt_impl.cc): `derive_key_hkdf(...)` (same pattern for multi-recipient ECIES)
+    - [`python/shamir_secret_sharing.py`](python/shamir_secret_sharing.py): `_hkdf_32(...)` used by Shamir-backed session key helpers (`create_shamir_backed_key`, `reconstruct_session_key`)
+    - [`python/gdss_set_key_source.py`](python/gdss_set_key_source.py): optional HKDF helper when integrating masking keys with **gr-k-gdss** (domain-separated `info`; see file docstring)
+  - Tests:
+    - [`tests/test_multi_recipient_ecies.py`](tests/test_multi_recipient_ecies.py): `TestBrainpoolEckaEg` (ECDH + HKDF agreement, domain separation, key length)
+    - Multi-recipient round-trips exercise HKDF on the encrypt/decrypt path (`test_multi_recipient_ecies.py`)
 
-- **Brainpool ECKA-EG key agreement and sender-authenticated multi-recipient flow**
-  - Runtime code:
-    - `python/crypto_helpers.py`: `brainpool_ecka_eg(...)`
-    - `python/multi_recipient_ecies.py`: `encrypt_and_sign(...)`, `verify_and_decrypt(...)`
-  - Tests / docs:
-    - `tests/test_multi_recipient_ecies.py`: `TestBrainpoolEckaEg` + sender-signature roundtrip/rejection tests
-    - `docs/multi_recipient_ecies_implementation.md`: ECKA-EG + authenticated flow description
+- **ChaCha20 (inside ChaCha20-Poly1305 AEAD; not a standalone keystream API)**
+  - Runtime code (actual processing path):
+    - [`lib/brainpool_ecies_multi_encrypt_impl.cc`](lib/brainpool_ecies_multi_encrypt_impl.cc): `encrypt_chacha20_poly1305(...)` — OpenSSL `EVP_chacha20_poly1305()`
+    - [`lib/brainpool_ecies_multi_decrypt_impl.cc`](lib/brainpool_ecies_multi_decrypt_impl.cc): `decrypt_chacha20_poly1305(...)` — must match encrypt (key, nonce, ciphertext, tag)
+    - [`python/multi_recipient_ecies.py`](python/multi_recipient_ecies.py): `_encrypt_chacha20_poly1305(...)`, `_decrypt_chacha20_poly1305(...)` — `cryptography` `ChaCha20Poly1305`
+    - [`python/linux_crypto.py`](python/linux_crypto.py): `_chacha20_poly1305_encrypt(...)`, `_chacha20_poly1305_decrypt(...)` — `encrypt`/`decrypt(..., algorithm="chacha20", auth="poly1305")`
+    - [`python/m17_frame.py`](python/m17_frame.py): M17 payload path using ChaCha20-Poly1305 via the integration layer
+  - Tests:
+    - [`tests/test_nist_vectors.py`](tests/test_nist_vectors.py): `test_rfc8439_chacha20_poly1305_vectors`
+    - [`tests/test_linux_crypto.py`](tests/test_linux_crypto.py): ChaCha20-Poly1305 round-trip, determinism, invalid key/tag handling
+    - [`tests/test_multi_recipient_ecies.py`](tests/test_multi_recipient_ecies.py): `TestChaCha20Poly1305`, cipher interoperability with AES-GCM
 
-- **Shamir K-of-N session key sharing for multi-recipient ECIES**
-  - Runtime code:
-    - `python/shamir_secret_sharing.py`: `split(...)`, `reconstruct(...)`, `create_shamir_backed_key(...)`, `reconstruct_session_key(...)`
-    - `python/multi_recipient_ecies.py`: `encrypt_shamir(...)`, `get_share_from_shamir_block(...)`, `decrypt_shamir(...)`
-  - Tests / docs:
-    - `tests/test_shamir_hpke_nitrokey.py`: Shamir split/reconstruct and Shamir ECIES tests
-    - `docs/multi_recipient_ecies_implementation.md`: Shamir format and flow
+- **AES-GCM (kernel crypto block and Brainpool ECIES payload option)**
+  - Runtime code (actual processing path):
+    - [`lib/kernel_crypto_aes_impl.cc`](lib/kernel_crypto_aes_impl.cc): Linux kernel crypto API for AES (modes per block configuration; used for streaming AES operations)
+    - [`lib/brainpool_ecies_multi_encrypt_impl.cc`](lib/brainpool_ecies_multi_encrypt_impl.cc), [`lib/brainpool_ecies_multi_decrypt_impl.cc`](lib/brainpool_ecies_multi_decrypt_impl.cc): AES-GCM branch for multi-recipient payload encryption/decryption
+    - [`lib/brainpool_ecies_encrypt_impl.cc`](lib/brainpool_ecies_encrypt_impl.cc), [`lib/brainpool_ecies_decrypt_impl.cc`](lib/brainpool_ecies_decrypt_impl.cc): single-recipient ECIES AES-GCM path
+  - Tests:
+    - [`tests/test_nist_vectors.py`](tests/test_nist_vectors.py): NIST CAVP AES-GCM vectors
+    - [`tests/test_linux_crypto.py`](tests/test_linux_crypto.py): AES-GCM round-trips and cross-checks
+    - [`tests/test_multi_recipient_ecies.py`](tests/test_multi_recipient_ecies.py): default AES-GCM multi-recipient tests
 
-- **HPKE-style wrapper on top of Brainpool ECIES**
-  - Runtime code:
-    - `python/hpke_brainpool.py`: `seal(...)`, `open(...)`, `seal_with_auth(...)`, `open_with_auth(...)`
-  - Tests / docs:
-    - `tests/test_shamir_hpke_nitrokey.py`: `TestHPKEBrainpool`
-    - `docs/examples.md`: HPKE-style usage examples
+- **Brainpool ECC (ECDH / ECDSA used by ECIES and signing blocks)**
+  - Runtime code (actual processing path):
+    - [`lib/brainpool_ec_impl.cc`](lib/brainpool_ec_impl.cc): curve operations and key material used by ECIES and ECDSA blocks
+    - [`include/gnuradio/linux_crypto/brainpool_ec.h`](include/gnuradio/linux_crypto/brainpool_ec.h), [`include/gnuradio/linux_crypto/brainpool_ec_impl.h`](include/gnuradio/linux_crypto/brainpool_ec_impl.h): public C++ API for Brainpool helpers
+  - Tests:
+    - [`tests/test_brainpool_comprehensive.py`](tests/test_brainpool_comprehensive.py), [`tests/test_brainpool_all_sources.py`](tests/test_brainpool_all_sources.py), [`tests/test_bsi_tr03111.py`](tests/test_bsi_tr03111.py), [`tests/test_rfc_compliance.py`](tests/test_rfc_compliance.py)
 
-- **Compliance, zeroization, and optional advanced components**
+- **Multi-recipient callsign resolution and "encrypt to all" fallback**
+  - Runtime code (actual processing path):
+    - [`lib/brainpool_ecies_multi_encrypt_impl.cc`](lib/brainpool_ecies_multi_encrypt_impl.cc): `expand_callsigns()`, `get_all_recipient_callsigns()`, `get_public_key_from_store(...)`, `set_callsigns(...)`, `work(...)`
+    - [`python/multi_recipient_ecies.py`](python/multi_recipient_ecies.py): `encrypt(...)`, `encrypt_shamir(...)` when callsign list is empty
+    - [`python/callsign_key_store.py`](python/callsign_key_store.py): `list_callsigns()` (direct keys, keyring, resolvable group members)
+  - Tests:
+    - [`tests/test_multi_recipient_ecies.py`](tests/test_multi_recipient_ecies.py): `TestKeyStoreFileScenarios`, empty-callsign and empty-store cases
+
+- **Shamir K-of-N, HPKE-style wrapper, compliance helpers**
   - Runtime code:
-    - `python/fips_status.py`: `fips_status()`
-    - `python/bsi_algorithm_boundary.py`: `check_algorithm_compliance(...)`, `require_bsi_approved(...)`, `list_approved_algorithms()`
-    - `python/crypto_helpers.py`: `secure_zero(...)`, `hybrid_kem_encapsulate(...)`, `hybrid_kem_decapsulate(...)`
-    - `lib/fips_guard.cc`: FIPS provider initialization when `GR_LINUX_CRYPTO_FIPS=ON`
-    - `lib/bsi_boundary.cc`: strict BSI runtime checks when `GR_LINUX_CRYPTO_STRICT_BSI=ON`
-  - Tests / docs:
-    - `tests/test_fips.py`, `tests/test_algorithm_boundary.py`, `tests/test_zeroization.py`, `tests/test_pq_kem.py`
-    - `docs/key_lifecycle.md` and `tests/TEST_RESULTS.md`
+    - [`python/shamir_secret_sharing.py`](python/shamir_secret_sharing.py), [`python/multi_recipient_ecies.py`](python/multi_recipient_ecies.py): Shamir encrypt/decrypt path
+    - [`python/hpke_brainpool.py`](python/hpke_brainpool.py): `seal` / `open` / `seal_with_auth` / `open_with_auth`
+    - [`python/fips_status.py`](python/fips_status.py), [`python/bsi_algorithm_boundary.py`](python/bsi_algorithm_boundary.py), [`lib/fips_guard.cc`](lib/fips_guard.cc), [`lib/bsi_boundary.cc`](lib/bsi_boundary.cc), [`python/crypto_helpers.py`](python/crypto_helpers.py): `secure_zero`, optional PQ KEM stubs
+  - Tests:
+    - [`tests/test_shamir_hpke_nitrokey.py`](tests/test_shamir_hpke_nitrokey.py), [`tests/test_fips.py`](tests/test_fips.py), [`tests/test_algorithm_boundary.py`](tests/test_algorithm_boundary.py), [`tests/test_zeroization.py`](tests/test_zeroization.py), [`tests/test_pq_kem.py`](tests/test_pq_kem.py)
+  - Docs:
+    - [`docs/multi_recipient_ecies_implementation.md`](docs/multi_recipient_ecies_implementation.md), [`docs/key_lifecycle.md`](docs/key_lifecycle.md), [`docs/examples.md`](docs/examples.md)
+
+- **Public C++ block API headers (interface contracts)**
+  - Runtime API (public interfaces under [`include/gnuradio/linux_crypto/`](include/gnuradio/linux_crypto/)):
+    - [`kernel_keyring_source.h`](include/gnuradio/linux_crypto/kernel_keyring_source.h), [`nitrokey_interface.h`](include/gnuradio/linux_crypto/nitrokey_interface.h), [`kernel_crypto_aes.h`](include/gnuradio/linux_crypto/kernel_crypto_aes.h)
+    - [`brainpool_ecies_encrypt.h`](include/gnuradio/linux_crypto/brainpool_ecies_encrypt.h), [`brainpool_ecies_decrypt.h`](include/gnuradio/linux_crypto/brainpool_ecies_decrypt.h)
+    - [`brainpool_ecies_multi_encrypt.h`](include/gnuradio/linux_crypto/brainpool_ecies_multi_encrypt.h), [`brainpool_ecies_multi_decrypt.h`](include/gnuradio/linux_crypto/brainpool_ecies_multi_decrypt.h)
+    - [`brainpool_ecdsa_sign.h`](include/gnuradio/linux_crypto/brainpool_ecdsa_sign.h), [`brainpool_ecdsa_verify.h`](include/gnuradio/linux_crypto/brainpool_ecdsa_verify.h)
+    - [`api.h`](include/gnuradio/linux_crypto/api.h), [`fips_guard.h`](include/gnuradio/linux_crypto/fips_guard.h), [`bsi_boundary.h`](include/gnuradio/linux_crypto/bsi_boundary.h), [`secure_buffer.h`](include/gnuradio/linux_crypto/secure_buffer.h)
+
+- **Python bindings (C++ to Python exposure)**
+  - Runtime bindings (loaded as `gnuradio.linux_crypto`):
+    - [`python/linux_crypto_python.cc`](python/linux_crypto_python.cc): pybind11 module; `bind_kernel_keyring_source`, `bind_nitrokey_interface`, `bind_kernel_crypto_aes`, Brainpool ECIES / multi-ECIES / ECDSA blocks when OpenSSL is enabled
+
+**Not in this repository:** Spreader/despreader chip masking (`kgdss_spreader_cc_impl`, `fill_keystream`), Box-Muller Gaussian masking, PN `sync_pn`, sync-burst timing schedules, and `gaussian_envelope` live in other projects (e.g. kgdss / gr-k-gdss). Audit those repositories if your stack includes them next to `gr-linux-crypto`.
 
 ## Security & Testing
 
