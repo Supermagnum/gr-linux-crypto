@@ -54,6 +54,7 @@ Archive record timestamp: **21 March 2026**.
    - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
 6. [Documentation](#documentation)
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
+   - [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Suggested firmware for an advanced security token (related project)
 7. [Dependencies](#dependencies)
    - [Required](#required)
    - [Python Dependencies](#python-dependencies)
@@ -1203,6 +1204,7 @@ See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing 
 - [Architecture Documentation](docs/architecture.md) - Module architecture and design
 - [Key Lifecycle](docs/key_lifecycle.md) - Key generation, usage, storage, and destruction (BSZ AIS-B2)
 - [Examples](docs/examples.md) - Code examples and tutorials
+- [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Related project: **suggested firmware** (design target) for an **advanced USB hardware security token** on the Baochip-1x platform (OpenPGP-class behavior, extended crypto profile, Shamir, and boot security model; see that repository for current scope and implementation status)
 
 
 ## Usage Examples
