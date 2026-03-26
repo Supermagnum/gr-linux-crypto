@@ -48,6 +48,7 @@ Archive record timestamp: **21 March 2026**.
    - [Kernel Keyring Integration](#1-kernel-keyring-integration)
    - [Hardware Security Module Integration](#2-hardware-security-module-integration)
    - [Kernel Crypto API Integration](#3-kernel-crypto-api-integration)
+   - [Multi-Recipient Encryption (Supported)](#4-multi-recipient-encryption-supported)
 5. [What This Module Does NOT Provide (Avoiding Duplication)](#what-this-module-does-not-provide-avoiding-duplication)
    - [Basic OpenSSL Operations (Use gr-openssl)](#basic-openssl-operations-use-gr-openssl)
    - [Modern Crypto (NaCl/libsodium) - Use gr-nacl](#modern-crypto-nacllibsodium---use-gr-nacl)
@@ -893,6 +894,11 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 - **Performance**: Bypass user-space crypto libraries when possible
 - **No duplication**: This is NOT available in existing modules
 
+### 4. **Multi-Recipient Encryption (Supported)**
+- **What it is:** Multi-recipient encryption is a pattern (not a single algorithm): one message is prepared so multiple intended recipients can each decrypt with their own private key.
+- **How this module supports it:** Brainpool ECIES single- and multi-recipient flows are available in Python and GNU Radio C++ blocks, with support for up to 25 recipients per ciphertext.
+- **Trade-offs:** Different constructions (per-recipient wrapping, sender-authenticated variants, and Shamir K-of-N workflows) have different complexity, bandwidth, and operational/security trade-offs.
+
 ## What This Module Does NOT Provide (Avoiding Duplication)
 
 ### **Basic OpenSSL Operations (Use gr-openssl)**
@@ -1347,6 +1353,9 @@ loaded_private = crypto.load_brainpool_private_key(private_pem)
 
 
 **ECIES Encryption/Decryption:**
+
+**What is multi-recipient encryption?**  
+Multi-recipient encryption is a pattern, not a single algorithm. Several constructions can implement it, each with different trade-offs (for example recipient independence, overhead, and operational complexity). In this module, the supported construction is Brainpool ECIES-based multi-recipient encryption, where one plaintext is encrypted so each intended recipient can decrypt using their own private key.
 
 The module supports ECIES (Elliptic Curve Integrated Encryption Scheme) for both single-recipient and multi-recipient (up to 25 recipients) encryption. All ECIES blocks support secure key sources (OpenPGP Card, kernel keyring) and optional key input ports for dynamic key input from hardware sources:
 
