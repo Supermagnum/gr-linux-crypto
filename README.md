@@ -58,7 +58,7 @@ Archive record timestamp: **21 March 2026**.
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
    - [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) - Keyed GDSS GNU Radio OOT (companion project; uses gr-linux-crypto)
    - [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Baochip-1x token framework and host tools (related project)
-   - [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Suggested firmware design target for an advanced security token (related project)
+   
 7. [Dependencies](#dependencies)
    - [Required](#required)
    - [Python Dependencies](#python-dependencies)
