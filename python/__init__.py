@@ -37,6 +37,15 @@ try:
 except ImportError:
     gdss_set_key_source_block = None
 
+try:
+    from .galdralag_session_kdf import (
+        derive_galdralag_gdss_masking_key,
+        derive_galdralag_session_keys,
+    )
+except ImportError:
+    derive_galdralag_session_keys = None
+    derive_galdralag_gdss_masking_key = None
+
 __version__ = "1.0.0"
 __all__ = [
     "KeyringHelper",
@@ -60,6 +69,8 @@ __all__ = [
     "get_keygrip_from_key_id",
     "fips_status",
     "gdss_set_key_source_block",
+    "derive_galdralag_session_keys",
+    "derive_galdralag_gdss_masking_key",
     "secure_zero",
     "check_algorithm_compliance",
     "require_bsi_approved",

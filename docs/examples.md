@@ -196,6 +196,10 @@ block = gdss_set_key_source_block(
 # port of kgdss_spreader_cc and kgdss_despreader_cc.
 ```
 
+### Galdralag session keys (optional)
+
+If the link was established with a [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) authenticated ephemeral ECDH handshake, derive the same subkeys in Python with `derive_galdralag_session_keys(shared_secret, epk_initiator, epk_responder)` or use `gdss_set_key_source_block(..., key_derivation="galdralag", epk_initiator_hex=..., epk_responder_hex=...)` so the GDSS masking key matches `SessionKeys.gdss_mask_key` on the token side. Default `key_derivation="gr_k_gdss"` is unchanged for existing GR-K-GDSS flows.
+
 ### GRC
 
 In GNU Radio Companion the block appears under category **\[gr-linux-crypto]/GDSS** as **GDSS Set Key Source**. Connect the **set_key** output message port to the **set_key** input of the Keyed GDSS Spreader and Keyed GDSS Despreader blocks.

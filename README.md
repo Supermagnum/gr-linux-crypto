@@ -1285,14 +1285,18 @@ tb.connect(nitrokey_source, encryptor)
 
 The **GDSS Set Key Source** block produces the `set_key` PMT message expected by [gr-k-gdss](https://github.com/gnuradio/gr-k-gdss) Keyed GDSS Spreader and Keyed GDSS Despreader. It derives the 32-byte masking key from a shared secret via HKDF and builds the 12-byte nonce from session ID and TX sequence, so key and nonce are set automatically with no manual entry.
 
+**Key derivation (default unchanged):** `key_derivation=gr_k_gdss` matches [GR-K-GDSS](https://github.com/gnuradio/gr-k-gdss) `session_key_derivation` (32-byte zero salt, info `gdss-chacha20-masking-v1`). **Galdralag:** `key_derivation=galdralag` uses the same KDF as [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `ephemeral-session` (salt = lexicographic order of both ephemeral public keys, info `galdralag/session/gdss-mask/v1`). Pass initiator and responder uncompressed SEC1 EPKs as hex. The 12-byte GDSS nonce format is unchanged so spreader/despreader behaviour stays the same.
+
 **Parameters:**
-- **Shared Secret (64 hex chars)**: 32-byte shared secret as 64 hexadecimal characters. Must match the secret used by the other side.
+- **Shared Secret (hex)**: ECDH shared secret as hex (at least 32 bytes; use 64 / 96 / 128 hex chars for Brainpool P256 / P384 / P512). Must match the other side.
 - **Session ID**: Integer session identifier (used in nonce; default 1).
 - **TX Sequence**: Transmission sequence number (used in nonce; default 0).
+- **Key derivation**: `gr_k_gdss` (default) or `galdralag`.
+- **Galdralag initiator / responder EPK (hex)**: Required when `key_derivation=galdralag` (uncompressed SEC1 public keys, same length).
 
 **Output:** Message port `set_key_out` emitting a PMT dict with `"key"` (u8vector 32 bytes) and `"nonce"` (u8vector 12 bytes). Connect this to the `set_key` input of `kgdss_spreader_cc` and `kgdss_despreader_cc`. The message is sent once when the flowgraph starts.
 
-**Requirements:** `gr_linux_crypto.CryptoHelpers` (OpenSSL/HKDF). For zero manual entry from kernel keyring, use gr-k-gdss key_injector with keyring_id instead.
+**Requirements:** `gr_linux_crypto.CryptoHelpers` (OpenSSL/HKDF). For zero manual entry from kernel keyring, use gr-k-gdss key_injector with keyring_id instead. For Galdralag sync-burst keys (different HKDF labels than GR-K-GDSS), use `derive_galdralag_session_keys` and map `gdss_sync_key` / `gdss_timing_key` per your keyed sync design.
 
 ```python
 from gnuradio import gr
@@ -1306,6 +1310,16 @@ gdss_src = gdss_set_key_source_block(
     session_id=1,
     tx_seq=0,
 )
+# Galdralag token handshake (same masking key as Galdralag SessionKeys.gdss_mask_key):
+# gdss_src = gdss_set_key_source_block(
+#     shared_secret_hex=shared_secret_hex,
+#     session_id=1,
+#     tx_seq=0,
+#     key_derivation="galdralag",
+#     epk_initiator_hex=initiator_epk_sec1_hex,
+#     epk_responder_hex=responder_epk_sec1_hex,
+# )
+# Or derive keys in Python: from gr_linux_crypto import derive_galdralag_session_keys
 # Connect gdss_src.message_port_pub("set_key_out", ...) to set_key port of
 # Keyed GDSS Spreader and Keyed GDSS Despreader in your flowgraph.
 ```
@@ -1996,7 +2010,8 @@ If you want to inspect specific behavior in code, start with these files and fun
     - [`lib/brainpool_ecies_encrypt_impl.cc`](lib/brainpool_ecies_encrypt_impl.cc), [`lib/brainpool_ecies_decrypt_impl.cc`](lib/brainpool_ecies_decrypt_impl.cc): `derive_key_hkdf(...)` (OpenSSL `EVP_PKEY_HKDF`, SHA-256, optional `kdf_info` as HKDF info)
     - [`lib/brainpool_ecies_multi_encrypt_impl.cc`](lib/brainpool_ecies_multi_encrypt_impl.cc), [`lib/brainpool_ecies_multi_decrypt_impl.cc`](lib/brainpool_ecies_multi_decrypt_impl.cc): `derive_key_hkdf(...)` (same pattern for multi-recipient ECIES)
     - [`python/shamir_secret_sharing.py`](python/shamir_secret_sharing.py): `_hkdf_32(...)` used by Shamir-backed session key helpers (`create_shamir_backed_key`, `reconstruct_session_key`)
-    - [`python/gdss_set_key_source.py`](python/gdss_set_key_source.py): optional HKDF helper when integrating masking keys with **gr-k-gdss** (domain-separated `info`; see file docstring)
+    - [`python/gdss_set_key_source.py`](python/gdss_set_key_source.py): `set_key` PMT source for **gr-k-gdss** (default HKDF) or **Galdralag** `ephemeral-session` masking key (see file docstring)
+    - [`python/galdralag_session_kdf.py`](python/galdralag_session_kdf.py): Galdralag-compatible session HKDF (payload, GDSS, sync, timing, MAC keys)
   - Tests:
     - [`tests/test_multi_recipient_ecies.py`](tests/test_multi_recipient_ecies.py): `TestBrainpoolEckaEg` (ECDH + HKDF agreement, domain separation, key length)
     - Multi-recipient round-trips exercise HKDF on the encrypt/decrypt path (`test_multi_recipient_ecies.py`)
@@ -2495,7 +2510,7 @@ All blocks appear under category `[gr-linux-crypto]` in GRC. Each block's YAML i
 | **Kernel Keyring Source** (linux_crypto_kernel_keyring_source) | Reads key bytes from the Linux kernel keyring by key ID; optional auto-repeat. |
 | **Kernel Crypto AES** (linux_crypto_kernel_crypto_aes) | AES encrypt/decrypt via kernel crypto API; modes CBC, ECB, CTR, GCM. |
 | **Nitrokey Interface** (linux_crypto_nitrokey_interface) | Reads key/secret from a Nitrokey password-safe slot; optional auto-repeat. |
-| **GDSS Set Key Source** (linux_crypto_gdss_set_key_source) | Outputs `set_key` PMT for gr-k-gdss spreader/despreader; HKDF + session nonce. |
+| **GDSS Set Key Source** (linux_crypto_gdss_set_key_source) | Outputs `set_key` PMT for gr-k-gdss spreader/despreader; HKDF + session nonce; optional Galdralag KDF mode. |
 | **Brainpool ECIES Encrypt** (brainpool_ecies_encrypt) | Single-recipient ECIES encryption; key from keyring or OpenPGP Card. |
 | **Brainpool ECIES Decrypt** (brainpool_ecies_decrypt) | Single-recipient ECIES decryption; key from keyring or OpenPGP Card. |
 | **Brainpool ECIES Multi-Recipient Encrypt** (brainpool_ecies_multi_encrypt) | Multi-recipient ECIES (up to 25); callsigns + key store path. |

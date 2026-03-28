@@ -277,6 +277,7 @@ if(ENABLE_PYTHON)
         python/linux_crypto_integration.py
         python/linux_crypto.py
         python/gdss_set_key_source.py
+        python/galdralag_session_kdf.py
         python/hpke_brainpool.py
         python/shamir_secret_sharing.py
         python/nitrokey_bridge.py

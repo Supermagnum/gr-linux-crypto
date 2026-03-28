@@ -19,6 +19,22 @@ parameters:
   dtype: int
   default: '0'
   hide: none
+- id: key_derivation
+  label: Key derivation
+  dtype: string
+  default: '"gr_k_gdss"'
+  options: ['"gr_k_gdss"', '"galdralag"']
+  hide: none
+- id: epk_initiator_hex
+  label: Galdralag initiator EPK (hex)
+  dtype: string
+  default: '""'
+  hide: none
+- id: epk_responder_hex
+  label: Galdralag responder EPK (hex)
+  dtype: string
+  default: '""'
+  hide: none
 
 inputs: []
 
@@ -35,14 +51,23 @@ templates:
     gdss_set_key_source_block(
         shared_secret_hex=${shared_secret_hex},
         session_id=${session_id},
-        tx_seq=${tx_seq})
+        tx_seq=${tx_seq},
+        key_derivation=${key_derivation},
+        epk_initiator_hex=${epk_initiator_hex},
+        epk_responder_hex=${epk_responder_hex})
 
 documentation: |-
   Outputs the set_key PMT message for gr-k-gdss spreader/despreader.
   Key and nonce are derived from the shared secret (HKDF) and session_id/tx_seq;
   no manual key entry. Connect set_key_out to the set_key port of
   Keyed GDSS Spreader and Keyed GDSS Despreader.
-  Shared secret: 64 hex chars (32 bytes). For zero manual entry use gr-k-gdss
+  Shared secret: hex-encoded ECDH output (at least 32 bytes; 64 / 96 / 128 hex
+  chars for Brainpool P256 / P384 / P512). For zero manual entry use gr-k-gdss
   key_injector with keyring_id instead.
+  Key derivation gr_k_gdss (default): matches GR-K-GDSS session_key_derivation
+  (32-byte zero salt, info gdss-chacha20-masking-v1).
+  Key derivation galdralag: matches Galdralag ephemeral-session KDF; set
+  initiator and responder ephemeral public keys (uncompressed SEC1) as hex.
+  Nonce format is unchanged (gr-k-gdss compatible).
 
 file_format: 1
