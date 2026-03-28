@@ -56,6 +56,7 @@ Archive record timestamp: **21 March 2026**.
    - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
 6. [Documentation](#documentation)
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
+   - [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) - Keyed GDSS GNU Radio OOT (companion project; uses gr-linux-crypto)
    - [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Baochip-1x token framework and host tools (related project)
    - [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Suggested firmware design target for an advanced security token (related project)
 7. [Dependencies](#dependencies)
@@ -107,6 +108,8 @@ Archive record timestamp: **21 March 2026**.
 ## What does this module do?
 
 **gr-linux-crypto** is a GNU Radio module that connects GNU Radio applications to Linux-specific security features that aren't available in other cryptographic modules.
+
+It is designed to work alongside **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** (Cryptographically Keyed Gaussian-Distributed Spread-Spectrum for GNU Radio): that OOT module’s Python helpers use **gr-linux-crypto** for Brainpool ECDH (`CryptoHelpers`), Linux **kernel keyring** session storage (`KeyringHelper`), optional **Galdralag**-compatible session HKDF (`derive_galdralag_session_keys`), and flowgraphs often combine it with **Brainpool ECIES** blocks from this package. The **GDSS Set Key Source** block here emits the `set_key` PMT expected by GR-K-GDSS spreader/despreader blocks.
 
 ## Getting Started for Beginners
 
@@ -660,6 +663,9 @@ Think of it like this:
 - **gr-nacl** = Modern cryptography (X25519, Ed25519, ChaCha20-Poly1305)
   - GitHub: https://github.com/Supermagnum/gr-nacl
 - **gr-linux-crypto** = Linux-only security infrastructure (kernel keyring, hardware keys, kernel crypto API)
+- **GR-K-GDSS** = Cryptographically keyed GDSS (GNU Radio OOT for keyed spreader/despreader and session helpers)
+  - GitHub: https://github.com/Supermagnum/GR-K-GDSS
+  - **gr-linux-crypto** is the companion module GR-K-GDSS builds on for HKDF session keys, keyring wiring, Brainpool ECDH, optional Galdralag KDF alignment, and ECIES payload encryption in example flowgraphs.
 
 **gr-linux-crypto doesn't duplicate what gr-openssl and gr-nacl already do.** Instead, it provides the "glue" to use Linux-specific security features with those existing modules.
 
@@ -902,8 +908,8 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 - **Trade-offs:** Different constructions (per-recipient wrapping, sender-authenticated variants, and Shamir K-of-N workflows) have different complexity, bandwidth, and operational/security trade-offs.
 
 ### 5. **Galdralag Support (GDSS and session KDF)**
-- **What it is:** Optional interoperability with **[Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware)** — the open-source cryptographic framework and token stack for **Baochip-1x** (authenticated ephemeral ECDH, cipher profiles, host tools such as `galdra`). This module does not ship that firmware; it provides host-side derivation that matches Galdralag’s **`ephemeral-session`** HKDF when you want the same session subkeys on the GNU Radio / **gr-k-gdss** side.
-- **How this module supports it:** Python helpers `derive_galdralag_session_keys` / `derive_galdralag_gdss_masking_key` (`galdralag_session_kdf.py`) implement the same salt (ordered ephemeral public keys) and domain **info** strings as Galdralag’s Rust crate. The **GDSS Set Key Source** block can use `key_derivation=galdralag` plus hex-encoded initiator/responder EPKs so the **32-byte GDSS masking key** matches `SessionKeys.gdss_mask_key` after a Galdralag handshake. Default `key_derivation=gr_k_gdss` is unchanged for existing GR-K-GDSS flows.
+- **What it is:** Optional interoperability with **[Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware)** — the open-source cryptographic framework and token stack for **Baochip-1x** (authenticated ephemeral ECDH, cipher profiles, host tools such as `galdra`). This module does not ship that firmware; it provides host-side derivation that matches Galdralag’s **`ephemeral-session`** HKDF when you want the same session subkeys on the GNU Radio / **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** side.
+- **How this module supports it:** Python helpers `derive_galdralag_session_keys` / `derive_galdralag_gdss_masking_key` (`galdralag_session_kdf.py`) implement the same salt (ordered ephemeral public keys) and domain **info** strings as Galdralag’s Rust crate. The **GDSS Set Key Source** block can use `key_derivation=galdralag` plus hex-encoded initiator/responder EPKs so the **32-byte GDSS masking key** matches `SessionKeys.gdss_mask_key` after a Galdralag handshake. Default `key_derivation=gr_k_gdss` is unchanged for existing [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) flows.
 - **No conflict with Nitrokey / TPM / keyring:** Galdralag support is an **additional** Python/GRC path for session-key alignment with that token project. Kernel keyring, **Nitrokey** (`libnitrokey`), OpenPGP card paths, and other HSM integrations are unchanged and independent.
 
 ## What This Module Does NOT Provide (Avoiding Duplication)
@@ -1192,6 +1198,7 @@ This makes Nitrokey a more flexible and future-proof choice for long-term crypto
 ### 1. **Don't Duplicate - Integrate!**
 - **Use `gr-openssl`** for: AES, SHA, RSA, and other OpenSSL operations
 - **Use `gr-nacl`** for: X25519 (Curve25519 key exchange), Ed25519 signatures, ChaCha20-Poly1305
+- **Use [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** for: keyed GDSS spreader/despreader and related GNU Radio blocks; pair it with gr-linux-crypto for session derivation, keyring, and ECIES as in that project’s docs and examples
 - **Add thin wrappers** in gr-linux-crypto for: kernel keyring, hardware security modules, kernel crypto API
 
 ### 2. **Leverage Existing Tools**
@@ -1217,7 +1224,8 @@ See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing 
 - [Architecture Documentation](docs/architecture.md) - Module architecture and design
 - [Key Lifecycle](docs/key_lifecycle.md) - Key generation, usage, storage, and destruction (BSZ AIS-B2)
 - [Examples](docs/examples.md) - Code examples and tutorials
-- [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Related project: open-source **cryptographic framework and token workspace** for **Baochip-1x** (Xous firmware crates, authenticated ephemeral ECDH, cipher profiles, Shamir, host tools such as `galdra` / `galdrad` / `galdra-gtk`). Use this repository for implementation status, build instructions, and `docs/` (e.g. ephemeral session protocol). This module’s optional **Galdralag session KDF** matches its `ephemeral-session` HKDF labels for **gr-k-gdss** GDSS masking keys.
+- [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) - Companion GNU Radio OOT: **Cryptographically Keyed GDSS** (keyed spreader/despreader, `gnuradio.kgdss` session helpers). Install **gr-linux-crypto first**; GR-K-GDSS imports `CryptoHelpers`, `KeyringHelper`, and optional `derive_galdralag_session_keys` for HKDF, keyring, and Galdralag-aligned session keys. See that repository’s `docs/USAGE.md` and examples.
+- [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Related project: open-source **cryptographic framework and token workspace** for **Baochip-1x** (Xous firmware crates, authenticated ephemeral ECDH, cipher profiles, Shamir, host tools such as `galdra` / `galdrad` / `galdra-gtk`). Use this repository for implementation status, build instructions, and `docs/` (e.g. ephemeral session protocol). This module’s optional **Galdralag session KDF** matches its `ephemeral-session` HKDF labels for **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** GDSS masking keys.
 
 
 
@@ -1291,9 +1299,9 @@ tb.connect(nitrokey_source, encryptor)
 
 ### GDSS Set Key Source (gr-k-gdss)
 
-The **GDSS Set Key Source** block produces the `set_key` PMT message expected by [gr-k-gdss](https://github.com/gnuradio/gr-k-gdss) Keyed GDSS Spreader and Keyed GDSS Despreader. It derives the 32-byte masking key from a shared secret via HKDF and builds the 12-byte nonce from session ID and TX sequence, so key and nonce are set automatically with no manual entry.
+The **GDSS Set Key Source** block produces the `set_key` PMT message expected by **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** (`kgdss_spreader_cc` / `kgdss_despreader_cc`). It derives the 32-byte masking key from a shared secret via HKDF and builds the 12-byte nonce from session ID and TX sequence, so key and nonce are set automatically with no manual entry.
 
-**Key derivation (default unchanged):** `key_derivation=gr_k_gdss` matches [GR-K-GDSS](https://github.com/gnuradio/gr-k-gdss) `session_key_derivation` (32-byte zero salt, info `gdss-chacha20-masking-v1`). **Galdralag:** `key_derivation=galdralag` uses the same KDF as [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `ephemeral-session` (salt = lexicographic order of both ephemeral public keys, info `galdralag/session/gdss-mask/v1`). Pass initiator and responder uncompressed SEC1 EPKs as hex. The 12-byte GDSS nonce format is unchanged so spreader/despreader behaviour stays the same.
+**Key derivation (default unchanged):** `key_derivation=gr_k_gdss` matches [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) `session_key_derivation` (32-byte zero salt, info `gdss-chacha20-masking-v1`). **Galdralag:** `key_derivation=galdralag` uses the same KDF as [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `ephemeral-session` (salt = lexicographic order of both ephemeral public keys, info `galdralag/session/gdss-mask/v1`). Pass initiator and responder uncompressed SEC1 EPKs as hex. The 12-byte GDSS nonce format is unchanged so spreader/despreader behaviour stays the same.
 
 **Parameters:**
 - **Shared Secret (hex)**: ECDH shared secret as hex (at least 32 bytes; use 64 / 96 / 128 hex chars for Brainpool P256 / P384 / P512). Must match the other side.

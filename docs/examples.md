@@ -157,9 +157,11 @@ if __name__ == "__main__":
     gr_keyring_flowgraph()
 ```
 
-## GDSS Set Key Source (gr-k-gdss)
+## GDSS Set Key Source (GR-K-GDSS)
 
-The **GDSS Set Key Source** block provides the `set_key` PMT message required by [gr-k-gdss](https://github.com/gnuradio/gr-k-gdss) Keyed GDSS Spreader (`kgdss_spreader_cc`) and Keyed GDSS Despreader (`kgdss_despreader_cc`). It derives the 32-byte masking key from a shared secret using HKDF (info `gdss-chacha20-masking-v1`) and builds the 12-byte nonce from session ID (4 bytes big-endian) and TX sequence (8 bytes big-endian), matching gr-k-gdss session key derivation so that key and nonce never need manual entry.
+This block integrates with **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** (cryptographically keyed GDSS for GNU Radio). That OOT module depends on **gr-linux-crypto** for `CryptoHelpers`, `KeyringHelper`, and optional Galdralag KDF helpers in its own `session_key_derivation.py`.
+
+The **GDSS Set Key Source** block provides the `set_key` PMT message required by **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** Keyed GDSS Spreader (`kgdss_spreader_cc`) and Keyed GDSS Despreader (`kgdss_despreader_cc`). It derives the 32-byte masking key from a shared secret using HKDF (info `gdss-chacha20-masking-v1`) and builds the 12-byte nonce from session ID (4 bytes big-endian) and TX sequence (8 bytes big-endian), matching GR-K-GDSS `session_key_derivation` so that key and nonce never need manual entry.
 
 ### Parameters
 
