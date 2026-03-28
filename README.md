@@ -1218,7 +1218,7 @@ See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing 
 - [Key Lifecycle](docs/key_lifecycle.md) - Key generation, usage, storage, and destruction (BSZ AIS-B2)
 - [Examples](docs/examples.md) - Code examples and tutorials
 - [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Related project: open-source **cryptographic framework and token workspace** for **Baochip-1x** (Xous firmware crates, authenticated ephemeral ECDH, cipher profiles, Shamir, host tools such as `galdra` / `galdrad` / `galdra-gtk`). Use this repository for implementation status, build instructions, and `docs/` (e.g. ephemeral session protocol). This module’s optional **Galdralag session KDF** matches its `ephemeral-session` HKDF labels for **gr-k-gdss** GDSS masking keys.
-- [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Related project: **suggested firmware** (design target) for an **advanced USB hardware security token** on the Baochip-1x platform (OpenPGP-class behavior, extended crypto profile, Shamir, and boot security model; see that repository for hardware/boot design scope and implementation status)
+
 
 
 ## Usage Examples
