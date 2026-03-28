@@ -49,13 +49,15 @@ Archive record timestamp: **21 March 2026**.
    - [Hardware Security Module Integration](#2-hardware-security-module-integration)
    - [Kernel Crypto API Integration](#3-kernel-crypto-api-integration)
    - [Multi-Recipient Encryption (Supported)](#4-multi-recipient-encryption-supported)
+   - [Galdralag Support (GDSS and session KDF)](#5-galdralag-support-gdss-and-session-kdf)
 5. [What This Module Does NOT Provide (Avoiding Duplication)](#what-this-module-does-not-provide-avoiding-duplication)
    - [Basic OpenSSL Operations (Use gr-openssl)](#basic-openssl-operations-use-gr-openssl)
    - [Modern Crypto (NaCl/libsodium) - Use gr-nacl](#modern-crypto-nacllibsodium---use-gr-nacl)
    - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
 6. [Documentation](#documentation)
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
-   - [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Suggested firmware for an advanced security token (related project)
+   - [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Baochip-1x token framework and host tools (related project)
+   - [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Suggested firmware design target for an advanced security token (related project)
 7. [Dependencies](#dependencies)
    - [Required](#required)
    - [Python Dependencies](#python-dependencies)
@@ -899,6 +901,11 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 - **How this module supports it:** Brainpool ECIES single- and multi-recipient flows are available in Python and GNU Radio C++ blocks, with support for up to 25 recipients per ciphertext.
 - **Trade-offs:** Different constructions (per-recipient wrapping, sender-authenticated variants, and Shamir K-of-N workflows) have different complexity, bandwidth, and operational/security trade-offs.
 
+### 5. **Galdralag Support (GDSS and session KDF)**
+- **What it is:** Optional interoperability with **[Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware)** — the open-source cryptographic framework and token stack for **Baochip-1x** (authenticated ephemeral ECDH, cipher profiles, host tools such as `galdra`). This module does not ship that firmware; it provides host-side derivation that matches Galdralag’s **`ephemeral-session`** HKDF when you want the same session subkeys on the GNU Radio / **gr-k-gdss** side.
+- **How this module supports it:** Python helpers `derive_galdralag_session_keys` / `derive_galdralag_gdss_masking_key` (`galdralag_session_kdf.py`) implement the same salt (ordered ephemeral public keys) and domain **info** strings as Galdralag’s Rust crate. The **GDSS Set Key Source** block can use `key_derivation=galdralag` plus hex-encoded initiator/responder EPKs so the **32-byte GDSS masking key** matches `SessionKeys.gdss_mask_key` after a Galdralag handshake. Default `key_derivation=gr_k_gdss` is unchanged for existing GR-K-GDSS flows.
+- **No conflict with Nitrokey / TPM / keyring:** Galdralag support is an **additional** Python/GRC path for session-key alignment with that token project. Kernel keyring, **Nitrokey** (`libnitrokey`), OpenPGP card paths, and other HSM integrations are unchanged and independent.
+
 ## What This Module Does NOT Provide (Avoiding Duplication)
 
 ### **Basic OpenSSL Operations (Use gr-openssl)**
@@ -1210,7 +1217,8 @@ See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing 
 - [Architecture Documentation](docs/architecture.md) - Module architecture and design
 - [Key Lifecycle](docs/key_lifecycle.md) - Key generation, usage, storage, and destruction (BSZ AIS-B2)
 - [Examples](docs/examples.md) - Code examples and tutorials
-- [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Related project: **suggested firmware** (design target) for an **advanced USB hardware security token** on the Baochip-1x platform (OpenPGP-class behavior, extended crypto profile, Shamir, and boot security model; see that repository for current scope and implementation status)
+- [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Related project: open-source **cryptographic framework and token workspace** for **Baochip-1x** (Xous firmware crates, authenticated ephemeral ECDH, cipher profiles, Shamir, host tools such as `galdra` / `galdrad` / `galdra-gtk`). Use this repository for implementation status, build instructions, and `docs/` (e.g. ephemeral session protocol). This module’s optional **Galdralag session KDF** matches its `ephemeral-session` HKDF labels for **gr-k-gdss** GDSS masking keys.
+- [Baochip-1x firmware](https://github.com/Supermagnum/Baochip-1x-firmware) - Related project: **suggested firmware** (design target) for an **advanced USB hardware security token** on the Baochip-1x platform (OpenPGP-class behavior, extended crypto profile, Shamir, and boot security model; see that repository for hardware/boot design scope and implementation status)
 
 
 ## Usage Examples
