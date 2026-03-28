@@ -58,24 +58,27 @@ def derive_galdralag_session_keys(
     epk_responder: bytes,
 ) -> Dict[str, bytes]:
     """
-    Derive all Galdralag session subkeys (32 bytes each).
+    Derive all Galdralag session subkeys (32 bytes each) plus the HKDF-Extract PRK.
+
+    Parameter order matches Galdralag-firmware ``protocol.rs`` (initiator and responder
+    both call ``derive_session_keys`` with ``InitMessage`` EPK first, then response EPK).
+    Salt is ``min(epk_i, epk_r) || max(...)`` by lexicographic byte order; initiator and
+    responder EPKs need not be the same length (same rule as Rust ``ordered_epk_salt``).
 
     Args:
         ecdh_shared_secret: Raw ECDH output (e.g. 32 / 48 / 64 bytes for Brainpool P256/P384/P512).
-        epk_initiator: Initiator ephemeral public key (uncompressed SEC1).
-        epk_responder: Responder ephemeral public key (same length as initiator).
+        epk_initiator: Initiator ephemeral public key (uncompressed SEC1 from the handshake).
+        epk_responder: Responder ephemeral public key (uncompressed SEC1).
 
     Returns:
-        Dict with keys: payload_key_i2r, payload_key_r2i, gdss_mask_key,
-        gdss_sync_key, gdss_timing_key, mac_key.
+        Dict with keys: ``profile_prk`` (32 bytes, same as ``SessionKeys::profile_prk`` in
+        Rust), ``payload_key_i2r``, ``payload_key_r2i``, ``gdss_mask_key``,
+        ``gdss_sync_key``, ``gdss_timing_key``, ``mac_key``.
     """
-    if len(epk_initiator) != len(epk_responder):
-        raise ValueError(
-            "epk_initiator and epk_responder must have the same length (same curve encoding)"
-        )
     salt = ordered_epk_salt(epk_initiator, epk_responder)
     prk = hkdf_extract_sha256(salt, ecdh_shared_secret)
     return {
+        "profile_prk": prk,
         "payload_key_i2r": _hkdf_expand_sha256(prk, GALDRALAG_PAYLOAD_KEY_I2R),
         "payload_key_r2i": _hkdf_expand_sha256(prk, GALDRALAG_PAYLOAD_KEY_R2I),
         "gdss_mask_key": _hkdf_expand_sha256(prk, GALDRALAG_GDSS_MASK_KEY),

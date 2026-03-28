@@ -39,9 +39,22 @@ class TestGaldralagOrderedSalt(unittest.TestCase):
         self.assertEqual(k1["gdss_mask_key"], k2["gdss_mask_key"])
         self.assertEqual(k1["payload_key_i2r"], k2["payload_key_i2r"])
 
-    def test_epk_length_mismatch_raises(self):
-        with self.assertRaises(ValueError):
-            derive_galdralag_session_keys(b"\x00" * 32, b"\x00" * 10, b"\x00" * 11)
+    def test_epk_different_lengths_allowed(self):
+        """Rust ordered_epk_salt compares slices; lengths need not match."""
+        ikm = b"\xab" * 32
+        short = b"\x01\x02"
+        long_epk = b"\x04" + b"\x03" * 64
+        k = derive_galdralag_session_keys(ikm, short, long_epk)
+        salt = ordered_epk_salt(short, long_epk)
+        self.assertEqual(k["profile_prk"], hkdf_extract_sha256(salt, ikm))
+
+    def test_profile_prk_is_extract_output(self):
+        ikm = bytes(range(32))
+        epk_i = b"\x04" + b"\xaa" * 64
+        epk_r = b"\x04" + b"\x55" * 64
+        salt = ordered_epk_salt(epk_i, epk_r)
+        k = derive_galdralag_session_keys(ikm, epk_i, epk_r)
+        self.assertEqual(k["profile_prk"], hkdf_extract_sha256(salt, ikm))
 
     def test_galdralag_keys_distinct(self):
         ikm = bytes(range(32))
@@ -52,7 +65,7 @@ class TestGaldralagOrderedSalt(unittest.TestCase):
         for name, val in k.items():
             self.assertEqual(len(val), 32, name)
             seen.add(val)
-        self.assertEqual(len(seen), 6)
+        self.assertEqual(len(seen), 7)
 
     def test_galdralag_gdss_mask_differs_from_gr_k_gdss(self):
         ikm = bytes(range(32))

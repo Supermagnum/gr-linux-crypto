@@ -125,12 +125,12 @@ class gdss_set_key_source_block(gr.basic_block):
                 return
             epk_i = _hex_to_bytes(epk_initiator_hex)
             epk_r = _hex_to_bytes(epk_responder_hex)
-            if epk_i is None or epk_r is None or len(epk_i) != len(epk_r):
+            if epk_i is None or epk_r is None or not epk_i or not epk_r:
                 self._msg = None
                 return
             try:
                 gdss_key = derive_galdralag_gdss_masking_key(secret, epk_i, epk_r)
-            except ValueError:
+            except (ValueError, TypeError):
                 self._msg = None
                 return
         else:

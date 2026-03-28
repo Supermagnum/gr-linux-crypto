@@ -909,7 +909,7 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 
 ### 5. **Galdralag Support (GDSS and session KDF)**
 - **What it is:** Optional interoperability with **[Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware)** — the open-source cryptographic framework and token stack for **Baochip-1x** (authenticated ephemeral ECDH, cipher profiles, host tools such as `galdra`). This module does not ship that firmware; it provides host-side derivation that matches Galdralag’s **`ephemeral-session`** HKDF when you want the same session subkeys on the GNU Radio / **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** side.
-- **How this module supports it:** Python helpers `derive_galdralag_session_keys` / `derive_galdralag_gdss_masking_key` (`galdralag_session_kdf.py`) implement the same salt (ordered ephemeral public keys) and domain **info** strings as Galdralag’s Rust crate. The **GDSS Set Key Source** block can use `key_derivation=galdralag` plus hex-encoded initiator/responder EPKs so the **32-byte GDSS masking key** matches `SessionKeys.gdss_mask_key` after a Galdralag handshake. Default `key_derivation=gr_k_gdss` is unchanged for existing [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) flows.
+- **How this module supports it:** Python helpers `derive_galdralag_session_keys` / `derive_galdralag_gdss_masking_key` (`galdralag_session_kdf.py`) implement the same salt (ordered ephemeral public keys) and domain **info** strings as Galdralag’s Rust crate. `derive_galdralag_session_keys` also returns **`profile_prk`** (the HKDF-Extract output), matching `SessionKeys::profile_prk()` for cipher-profile cascades on the host. The **GDSS Set Key Source** block can use `key_derivation=galdralag` plus hex-encoded initiator/responder EPKs so the **32-byte GDSS masking key** matches `SessionKeys.gdss_mask_key` after a Galdralag handshake. Default `key_derivation=gr_k_gdss` is unchanged for existing [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) flows.
 - **No conflict with Nitrokey / TPM / keyring:** Galdralag support is an **additional** Python/GRC path for session-key alignment with that token project. Kernel keyring, **Nitrokey** (`libnitrokey`), OpenPGP card paths, and other HSM integrations are unchanged and independent.
 
 ## What This Module Does NOT Provide (Avoiding Duplication)
@@ -1308,11 +1308,13 @@ The **GDSS Set Key Source** block produces the `set_key` PMT message expected by
 - **Session ID**: Integer session identifier (used in nonce; default 1).
 - **TX Sequence**: Transmission sequence number (used in nonce; default 0).
 - **Key derivation**: `gr_k_gdss` (default) or `galdralag`.
-- **Galdralag initiator / responder EPK (hex)**: Required when `key_derivation=galdralag` (uncompressed SEC1 public keys, same length).
+- **Galdralag initiator / responder EPK (hex)**: Required when `key_derivation=galdralag` (uncompressed SEC1 public keys; lengths need not match, same lexicographic salt rule as Galdralag `ordered_epk_salt`).
 
 **Output:** Message port `set_key_out` emitting a PMT dict with `"key"` (u8vector 32 bytes) and `"nonce"` (u8vector 12 bytes). Connect this to the `set_key` input of `kgdss_spreader_cc` and `kgdss_despreader_cc`. The message is sent once when the flowgraph starts.
 
 **Requirements:** `gr_linux_crypto.CryptoHelpers` (OpenSSL/HKDF). For zero manual entry from kernel keyring, use gr-k-gdss key_injector with keyring_id instead. For Galdralag sync-burst keys (different HKDF labels than GR-K-GDSS), use `derive_galdralag_session_keys` and map `gdss_sync_key` / `gdss_timing_key` per your keyed sync design.
+
+**Python `derive_galdralag_session_keys`:** Returns a dict of seven 32-byte values, matching [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `ephemeral-session` `SessionKeys`: `profile_prk` (HKDF-Extract PRK for cipher-profile cascades on the host), `payload_key_i2r`, `payload_key_r2i`, `gdss_mask_key`, `gdss_sync_key`, `gdss_timing_key`, `mac_key`. Initiator and responder EPK arguments follow the same order as Galdralag `protocol.rs` (`InitMessage` EPK first, then response EPK). Code: `python/galdralag_session_kdf.py`.
 
 ```python
 from gnuradio import gr

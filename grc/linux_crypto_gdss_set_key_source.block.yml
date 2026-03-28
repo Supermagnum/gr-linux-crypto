@@ -67,7 +67,8 @@ documentation: |-
   Key derivation gr_k_gdss (default): matches GR-K-GDSS session_key_derivation
   (32-byte zero salt, info gdss-chacha20-masking-v1).
   Key derivation galdralag: matches Galdralag ephemeral-session KDF; set
-  initiator and responder ephemeral public keys (uncompressed SEC1) as hex.
+  initiator and responder ephemeral public keys (uncompressed SEC1) as hex
+  (lexicographic salt; lengths need not match).
   Nonce format is unchanged (gr-k-gdss compatible).
 
 file_format: 1
