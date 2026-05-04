@@ -212,6 +212,10 @@ masking = keys["gdss_mask_key"]
 profile_prk = keys["profile_prk"]  # for host cipher-profile HKDF-Expand, same as SessionKeys::profile_prk()
 ```
 
+CESS Mode A **K_outer** (HKDF-BLAKE3, `cess-outer-envelope-v1`), matching Galdralag `cess::derive_k_outer`, is available as `derive_galdralag_cess_k_outer_mode_a(classical_ecdh_ikm)` after `pip install blake3`. Use the same Brainpool ECDH raw `x` bytes as for session derivation. Full cipher-profile cascade encrypt/decrypt is implemented on the token in `cipher-profile`; this repo supplies the aligned KDF helpers only.
+
+**gr-openssl / gr-nacl:** Use Brainpool ECDH for Galdralag IKM; do not substitute X25519 from gr-nacl. Pass derived 32-byte keys into other GNU Radio crypto blocks as your protocol requires.
+
 ### GRC
 
 In GNU Radio Companion the block appears under category **\[gr-linux-crypto]/GDSS** as **GDSS Set Key Source**. Connect the **set_key** output message port to the **set_key** input of the Keyed GDSS Spreader and Keyed GDSS Despreader blocks.

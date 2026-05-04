@@ -39,12 +39,16 @@ except ImportError:
 
 try:
     from .galdralag_session_kdf import (
+        derive_galdralag_cess_k_outer_mode_a,
         derive_galdralag_gdss_masking_key,
         derive_galdralag_session_keys,
+        hkdf_blake3_cess,
     )
 except ImportError:
     derive_galdralag_session_keys = None
     derive_galdralag_gdss_masking_key = None
+    derive_galdralag_cess_k_outer_mode_a = None
+    hkdf_blake3_cess = None
 
 __version__ = "1.0.0"
 __all__ = [
@@ -71,6 +75,8 @@ __all__ = [
     "gdss_set_key_source_block",
     "derive_galdralag_session_keys",
     "derive_galdralag_gdss_masking_key",
+    "derive_galdralag_cess_k_outer_mode_a",
+    "hkdf_blake3_cess",
     "secure_zero",
     "check_algorithm_compliance",
     "require_bsi_approved",

@@ -17,10 +17,29 @@ from gr_linux_crypto.galdralag_session_kdf import (
     hkdf_extract_sha256,
     ordered_epk_salt,
 )
-from gr_linux_crypto.gdss_set_key_source import (
-    _derive_gdss_key,
-    gdss_set_key_source_block,
-)
+
+try:
+    import blake3 as _blake3_check  # noqa: F401
+
+    _HAVE_BLAKE3 = True
+except ImportError:
+    _HAVE_BLAKE3 = False
+
+if _HAVE_BLAKE3:
+    from gr_linux_crypto.galdralag_session_kdf import (
+        derive_galdralag_cess_k_outer_mode_a,
+        hkdf_blake3_cess,
+    )
+
+try:
+    from gnuradio import gr as _gr_check  # noqa: F401
+
+    from gr_linux_crypto.gdss_set_key_source import gdss_set_key_source_block
+
+    _HAVE_GDSS_BLOCK = True
+except ImportError:
+    _HAVE_GDSS_BLOCK = False
+    gdss_set_key_source_block = None  # type: ignore[misc,assignment]
 
 
 class TestGaldralagOrderedSalt(unittest.TestCase):
@@ -72,7 +91,12 @@ class TestGaldralagOrderedSalt(unittest.TestCase):
         epk_i = b"\x04" + b"\xaa" * 64
         epk_r = b"\x04" + b"\x55" * 64
         gal = derive_galdralag_gdss_masking_key(ikm, epk_i, epk_r)
-        grk = _derive_gdss_key(ikm)
+        grk = CryptoHelpers.derive_key_hkdf(
+            ikm,
+            salt=bytes(32),
+            info=b"gdss-chacha20-masking-v1",
+            length=32,
+        )
         self.assertNotEqual(gal, grk)
 
     def test_hkdf_extract_empty_salt_uses_zero_key(self):
@@ -83,16 +107,64 @@ class TestGaldralagOrderedSalt(unittest.TestCase):
         self.assertEqual(prk, expect)
 
 
+@unittest.skipUnless(_HAVE_BLAKE3, "blake3 PyPI package not installed")
+class TestGaldralagCessHkdfBlake3(unittest.TestCase):
+    """Vectors from Galdralag-firmware crates/cess/src/hkdf_blake3.rs unit tests."""
+
+    def test_hkdf_blake3_cess_kem_v1_vector(self):
+        ikm = bytes.fromhex(
+            "3df646a590007b20e599678926543bad804f03c4cd15d8122813d97b08b657d9"
+        )
+        okm = hkdf_blake3_cess(ikm, b"", b"cess-kem-v1", 32)
+        self.assertEqual(
+            okm.hex(),
+            "56c614e8527a62ffdf5dcd7e6f11514201a89016f125925019d81f81a9f5225c",
+        )
+
+    def test_hkdf_blake3_cess_pin_v1_vector(self):
+        ikm = bytes.fromhex(
+            "face1bf3a3261bb9ac71ce64c1f9719a70f208496b4acd98ad5955c45fdd6dfc"
+        )
+        okm = hkdf_blake3_cess(ikm, b"", b"cess-pin-v1", 32)
+        self.assertEqual(
+            okm.hex(),
+            "cb3805b81c7be26fe8dcbbb8281b195984e8cd77d9f2f58fa7bd177e93dd4ca5",
+        )
+
+    def test_hkdf_blake3_cess_kem_v1_expand_64(self):
+        ikm = bytes.fromhex(
+            "3df646a590007b20e599678926543bad804f03c4cd15d8122813d97b08b657d9"
+        )
+        okm = hkdf_blake3_cess(ikm, b"", b"cess-kem-v1", 64)
+        self.assertEqual(
+            okm.hex(),
+            "56c614e8527a62ffdf5dcd7e6f11514201a89016f125925019d81f81a9f5225c"
+            "1dd33ac43d0e19a2f5d7e1fd2735c1d2a468be5ed0c63d4ce7a59f4230d1bf16",
+        )
+
+    def test_cess_k_outer_mode_a_zero_ikm_48(self):
+        ikm = bytes(48)
+        k = derive_galdralag_cess_k_outer_mode_a(ikm)
+        self.assertEqual(
+            k.hex(),
+            "b30726d00add0e66d1de6c47b48fc4bd81a91605b2a727ef2b3f121594b79ed4",
+        )
+
+
 def _pmt_u8vector_to_bytes(msg, key_sym: str) -> bytes:
     assert gr_pmt is not None
     v = gr_pmt.dict_ref(msg, gr_pmt.intern(key_sym), gr_pmt.PMT_NIL)
     return bytes(gr_pmt.u8vector_elements(v))
 
 
-@unittest.skipUnless(gr_pmt is not None, "GNU Radio not installed")
+@unittest.skipUnless(
+    gr_pmt is not None and _HAVE_GDSS_BLOCK,
+    "GNU Radio or gdss_set_key_source not available",
+)
 class TestGdssSetKeySourceBlock(unittest.TestCase):
     def test_default_gr_k_gdss_unchanged(self):
         sec = "00" * 32
+        assert gdss_set_key_source_block is not None
         tb = gdss_set_key_source_block(
             shared_secret_hex=sec,
             session_id=1,
