@@ -492,6 +492,30 @@ class CryptoHelpers:
         return private_key, public_key
 
     @staticmethod
+    def brainpool_public_key_from_sec1_uncompressed(
+        sec1: bytes, curve_name: str = "brainpoolP256r1"
+    ) -> EllipticCurvePublicKey:
+        """
+        Load a Brainpool public key from an uncompressed SEC1 / X9.62 point (0x04||X||Y).
+
+        Args:
+            sec1: Uncompressed point bytes (65 bytes for P-256r1, 97 for P-384r1, 129 for P-512r1).
+            curve_name: Brainpool curve name matching the encoding length.
+
+        Returns:
+            EllipticCurvePublicKey on the given curve.
+        """
+        curve = CryptoHelpers._get_brainpool_curve(curve_name)
+        expected = {"brainpoolP256r1": 65, "brainpoolP384r1": 97, "brainpoolP512r1": 129}[
+            curve_name
+        ]
+        if len(sec1) != expected or sec1[0:1] != b"\x04":
+            raise ValueError(
+                "sec1 must be uncompressed SEC1 (leading 0x04) with length matching curve"
+            )
+        return ec.EllipticCurvePublicKey.from_encoded_point(curve, sec1)
+
+    @staticmethod
     def brainpool_ecdh(
         private_key: EllipticCurvePrivateKey, peer_public_key: EllipticCurvePublicKey
     ) -> bytes:

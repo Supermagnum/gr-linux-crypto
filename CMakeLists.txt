@@ -278,12 +278,18 @@ if(ENABLE_PYTHON)
         python/linux_crypto.py
         python/gdss_set_key_source.py
         python/galdralag_session_kdf.py
+        python/ephemeral_key_store.py
+        python/ephemeral_key_import_block.py
         python/hpke_brainpool.py
         python/shamir_secret_sharing.py
         python/nitrokey_bridge.py
         python/fips_status.py
         python/bsi_algorithm_boundary.py
         DESTINATION ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}/gr_linux_crypto
+    )
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/scripts/epk_generate.py"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/share/gr-linux-crypto/scripts"
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
     )
 endif()
 
@@ -296,6 +302,7 @@ if(ENABLE_GRC)
     install(FILES
         grc/gr-linux-crypto.tree.yml
         grc/linux_crypto_gdss_set_key_source.block.yml
+        grc/linux_crypto_ephemeral_key_import.block.yml
         grc/linux_crypto_kernel_keyring_source.block.yml
         grc/linux_crypto_kernel_crypto_aes.block.yml
         grc/linux_crypto_nitrokey_interface.block.yml

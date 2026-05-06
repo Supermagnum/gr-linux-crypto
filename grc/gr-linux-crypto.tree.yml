@@ -20,3 +20,5 @@ description: Linux kernel crypto, keyring, and hardware security integration for
   - nitrokey_sign
 - GDSS:
   - linux_crypto_gdss_set_key_source
+- Galdralag:
+  - linux_crypto_ephemeral_key_import

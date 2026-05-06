@@ -55,6 +55,8 @@ Archive record timestamp: **21 March 2026**.
    - [Modern Crypto (NaCl/libsodium) - Use gr-nacl](#modern-crypto-nacllibsodium---use-gr-nacl)
    - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
 6. [Documentation](#documentation)
+   - [Usage (ephemeral keys, CLI)](docs/USAGE.md) - Task-focused notes and `epk_generate.py`
+   - [Ephemeral key exchange specification](docs/EPHEMERAL_KEY_EXCHANGE.md) - `.epk.gpg` format and threat model
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
    - [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) - Keyed GDSS GNU Radio OOT (companion project; uses gr-linux-crypto)
    - [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Baochip-1x token framework and host tools (related project)

@@ -43,12 +43,21 @@ try:
         derive_galdralag_gdss_masking_key,
         derive_galdralag_session_keys,
         hkdf_blake3_cess,
+        validate_offer_consumed,
+        validate_offer_expiry,
     )
 except ImportError:
     derive_galdralag_session_keys = None
     derive_galdralag_gdss_masking_key = None
     derive_galdralag_cess_k_outer_mode_a = None
     hkdf_blake3_cess = None
+    validate_offer_expiry = None
+    validate_offer_consumed = None
+
+try:
+    from .ephemeral_key_store import EphemeralKeyStore
+except ImportError:
+    EphemeralKeyStore = None
 
 __version__ = "1.0.0"
 __all__ = [
@@ -77,6 +86,9 @@ __all__ = [
     "derive_galdralag_gdss_masking_key",
     "derive_galdralag_cess_k_outer_mode_a",
     "hkdf_blake3_cess",
+    "validate_offer_expiry",
+    "validate_offer_consumed",
+    "EphemeralKeyStore",
     "secure_zero",
     "check_algorithm_compliance",
     "require_bsi_approved",

@@ -32,7 +32,8 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-from typing import Dict
+import time
+from typing import Any, Dict, Mapping, Optional
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
@@ -55,6 +56,27 @@ def hkdf_extract_sha256(salt: bytes, ikm: bytes) -> bytes:
         key = bytes(32)
         return hmac.new(key, ikm, hashlib.sha256).digest()
     return hmac.new(salt, ikm, hashlib.sha256).digest()
+
+
+def validate_offer_expiry(offer: Mapping[str, Any], *, now: Optional[float] = None) -> bool:
+    """
+    True if ``expires_at`` (UTC Unix seconds) is strictly after ``now``.
+
+    Used by :class:`EphemeralKeyStore` for time-bounded offers.
+    """
+    t = time.time() if now is None else float(now)
+    exp = offer.get("expires_at")
+    if exp is None:
+        return False
+    try:
+        return float(exp) > t
+    except (TypeError, ValueError):
+        return False
+
+
+def validate_offer_consumed(offer: Mapping[str, Any]) -> bool:
+    """True if ``consumed`` is false (offer may still be used once)."""
+    return offer.get("consumed") is False
 
 
 def ordered_epk_salt(epk_initiator: bytes, epk_responder: bytes) -> bytes:

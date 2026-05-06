@@ -1,0 +1,69 @@
+id: linux_crypto_ephemeral_key_import
+label: Ephemeral Key Import (Galdralag / GDSS)
+category: '[gr-linux-crypto]/Galdralag'
+flags: [python]
+
+parameters:
+- id: offer_gpg_path
+  label: Offer file (.epk.gpg)
+  dtype: string
+  default: '""'
+  hide: none
+- id: verify_fingerprint
+  label: Issuer fingerprint (hex)
+  dtype: string
+  default: '""'
+  hide: none
+- id: our_epk_private_hex
+  label: Our ephemeral private key (hex PEM or DER); empty = keyring
+  dtype: string
+  default: '""'
+  hide: none
+- id: our_session_id
+  label: Session ID (hex from offer)
+  dtype: string
+  default: '""'
+  hide: none
+- id: session_id
+  label: GDSS session ID (nonce)
+  dtype: int
+  default: '1'
+  hide: none
+- id: tx_seq
+  label: TX sequence (nonce)
+  dtype: int
+  default: '0'
+  hide: none
+- id: peer_was_initiator
+  label: Peer was initiator (true/false)
+  dtype: string
+  default: '"true"'
+  hide: none
+
+inputs: []
+
+outputs:
+- domain: message
+  id: set_key_out
+  label: set_key
+  optional: true
+
+templates:
+  imports: |-
+    from gr_linux_crypto.ephemeral_key_import_block import ephemeral_key_import_block
+  make: |-
+    ephemeral_key_import_block(
+        offer_gpg_path=${offer_gpg_path},
+        verify_fingerprint=${verify_fingerprint},
+        our_epk_private_hex=${our_epk_private_hex},
+        our_session_id=${our_session_id},
+        session_id=${session_id},
+        tx_seq=${tx_seq},
+        peer_was_initiator=${peer_was_initiator})
+
+documentation: |-
+  Imports a GnuPG-encrypted ephemeral key offer and emits the set_key PMT for
+  GR-K-GDSS spreader/despreader (same layout as GDSS Set Key Source). Uses
+  Galdralag session KDF for the 32-byte masking key. See docs/EPHEMERAL_KEY_EXCHANGE.md.
+
+file_format: 1

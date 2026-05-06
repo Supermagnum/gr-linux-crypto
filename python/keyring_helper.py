@@ -76,6 +76,46 @@ class KeyringHelper:
         finally:
             os.unlink(temp_file)
 
+    def store_with_timeout(
+        self,
+        key_description: str,
+        data_bytes: bytes,
+        timeout_seconds: int,
+        keyring: str = "@s",
+    ) -> str:
+        """
+        Store raw key bytes in the kernel keyring and set an automatic expiry.
+
+        Uses ``keyctl padd`` so binary payloads are stored correctly (unlike
+        ``add_key``, which passes a filename string for legacy callers).
+
+        Args:
+            key_description: User key description (must be unique enough for search).
+            data_bytes: Raw payload (e.g. PEM, JSON UTF-8, or symmetric key material).
+            timeout_seconds: ``keyctl timeout`` value: seconds from now until the
+                key is removed (see keyutils man page: "number of seconds into the future").
+            keyring: Destination keyring (default ``@s`` session keyring).
+
+        Returns:
+            Kernel key serial number as string.
+        """
+        if timeout_seconds < 0:
+            raise ValueError("timeout_seconds must be non-negative")
+        cmd = [self.keyctl_path, "padd", "user", key_description, keyring]
+        result = subprocess.run(
+            cmd,
+            input=data_bytes,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        key_id = result.stdout.strip()
+        if not key_id:
+            raise RuntimeError("keyctl padd returned empty key id")
+        if timeout_seconds > 0:
+            self._run_keyctl(["timeout", key_id, str(int(timeout_seconds))])
+        return key_id
+
     def request_key(
         self, key_type: str, key_description: str, keyring: str = "@u"
     ) -> Optional[str]:
@@ -95,6 +135,16 @@ class KeyringHelper:
             return result.stdout.strip()
         except RuntimeError:
             return None
+
+    def read_key_raw(self, key_id: str) -> bytes:
+        """
+        Read key payload as raw bytes (no UTF-8 re-encoding).
+
+        Use for binary payloads created with ``padd`` / ``store_with_timeout``.
+        """
+        cmd = [self.keyctl_path, "read", key_id]
+        result = subprocess.run(cmd, capture_output=True, check=True)
+        return result.stdout
 
     def read_key(self, key_id: str) -> bytes:
         """
