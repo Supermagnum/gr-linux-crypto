@@ -366,6 +366,67 @@ class EphemeralKeyStore:
         self._audit({"event": "derive", "session_id": sid, "consumed": True})
         return keys
 
+    def revoke_offer(self, session_id: str) -> None:
+        """
+        Manually revoke an offer: remove kernel keyring payloads immediately, then drop
+        in-process state.
+
+        Unlinks the offer blob (``gr_linux_crypto:ephemeral_offer:{session_id}``) and
+        the optional local ephemeral private key
+        (``gr_linux_crypto:ephemeral_priv:{session_id}``) using ``keyctl unlink``. This
+        runs **before** clearing ``_offers`` so key material is removed even if later
+        steps fail.
+
+        **Cross-process behaviour:** There is no SQLite DB like Galdra. ``consumed`` is
+        tracked in this process's ``_offers`` and is **not** written back into the
+        keyring JSON on derive; after a restart, only keyring blobs (and the audit log
+        file) survive. A **new** process can still revoke by ``session_id`` if the
+        keyring entries exist. If the importing process exited and ``keyctl`` cleared
+        the session keyring, there may be nothing to unlink; then this raises
+        ``KeyError`` unless this process still holds the offer in ``_offers``.
+
+        **Kernel semantics:** ``keyctl unlink`` removes the key from the keyring
+        immediately; the kernel frees the payload. This is not documented as
+        cryptographic zeroisation of RAM (see ``docs/EPHEMERAL_KEY_EXCHANGE.md``).
+
+        Idempotent for **already-consumed** offers that still have keyring material:
+        unlink and clear state without error. If the offer was never imported here and
+        no keyring keys match, raises ``KeyError``.
+
+        Audit: appends ``{"event": "reject", "reason": "manual_revoke", "session_id": ...}``
+        (aligned with Galdra ``EpkReject`` / ``manual_revoke``).
+        """
+        sid = str(session_id).strip().lower()
+        st = self._offers.get(sid)
+        offer_kid: Optional[str] = None
+        if st and st.get("_keyring_key_id"):
+            offer_kid = str(st["_keyring_key_id"])
+        if not offer_kid:
+            offer_kid = self._kh.search_key(
+                "user", f"{OFFER_KEYRING_PREFIX}{sid}", self._keyring_target
+            )
+        priv_kid = self._kh.search_key(
+            "user", f"{PRIV_KEYRING_PREFIX}{sid}", self._keyring_target
+        )
+        found = bool(offer_kid or priv_kid or st is not None)
+        if not found:
+            raise KeyError(
+                "no offer or private key found for session_id {!r}".format(sid)
+            )
+        if offer_kid:
+            self._kh.unlink_key(offer_kid, self._keyring_target)
+        if priv_kid:
+            self._kh.unlink_key(priv_kid, self._keyring_target)
+        if sid in self._offers:
+            del self._offers[sid]
+        self._audit(
+            {
+                "event": "reject",
+                "reason": "manual_revoke",
+                "session_id": sid,
+            }
+        )
+
     @staticmethod
     def export_offer(offer_gpg_bytes: bytes, output_path: Union[str, Path]) -> None:
         Path(output_path).write_bytes(offer_gpg_bytes)

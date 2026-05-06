@@ -20,6 +20,10 @@ def _prepend_python_path() -> None:
     root = os.environ.get("GR_LINUX_CRYPTO_DIR")
     if not root:
         root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    # Repo root must precede python/: ``gr_linux_crypto`` is a package dir (or symlink to
+    # ``python/``) at the repository root for ``from gr_linux_crypto.ephemeral_key_store``.
+    if root not in sys.path:
+        sys.path.insert(0, root)
     pd = os.path.join(root, "python")
     if os.path.isdir(pd) and pd not in sys.path:
         sys.path.insert(0, pd)
@@ -70,6 +74,23 @@ def cmd_status(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_expire(args: argparse.Namespace) -> int:
+    _prepend_python_path()
+    from gr_linux_crypto.ephemeral_key_store import EphemeralKeyStore
+
+    store = EphemeralKeyStore()
+    try:
+        store.revoke_offer(args.session_id)
+    except KeyError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print("Offer {} revoked.".format(args.session_id.strip().lower()))
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="Ephemeral key offer (.epk.gpg) utilities")
     sub = p.add_subparsers(dest="command", required=True)
@@ -103,6 +124,16 @@ def main() -> int:
 
     s = sub.add_parser("status", help="List in-memory imported offers (this process)")
     s.set_defaults(func=cmd_status)
+
+    x = sub.add_parser(
+        "expire",
+        help="Manually revoke an offer (unlink keyring keys by session_id)",
+    )
+    x.add_argument(
+        "session_id",
+        help="Offer session_id (hex); same id as shown by status / import output",
+    )
+    x.set_defaults(func=cmd_expire)
 
     ns = p.parse_args()
     return int(ns.func(ns))

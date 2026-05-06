@@ -1,16 +1,25 @@
 # -*- coding: utf-8 -*-
 """Tests for ephemeral key offer store and Galdralag offer validation helpers."""
 
+import importlib.util
+import json
 import os
+import subprocess
+import sys
 import unittest
-from unittest.mock import MagicMock
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from cryptography.hazmat.primitives import serialization
 
 from gr_linux_crypto.crypto_helpers import CryptoHelpers
-from gr_linux_crypto.ephemeral_key_store import EphemeralKeyStore, OFFER_SCHEMA_VERSION
+from gr_linux_crypto.ephemeral_key_store import (
+    EphemeralKeyStore,
+    OFFER_SCHEMA_VERSION,
+    PRIV_KEYRING_PREFIX,
+)
 from gr_linux_crypto.galdralag_session_kdf import (
     derive_galdralag_session_keys,
     validate_offer_consumed,
@@ -112,6 +121,226 @@ class TestEphemeralKeyStoreImportMocks(unittest.TestCase):
         kid = store.store_private_in_keyring(priv, "abcd" * 4, 3600)
         self.assertEqual(kid, "12345")
         kh.store_with_timeout.assert_called_once()
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load_epk_generate_script():
+    spec = importlib.util.spec_from_file_location(
+        "epk_generate_cli",
+        REPO_ROOT / "scripts" / "epk_generate.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class TestRevokeOffer(unittest.TestCase):
+    def _minimal_offer(self, sid: str, epk_hex: str) -> dict:
+        return {
+            "schema_version": OFFER_SCHEMA_VERSION,
+            "epk_hex": epk_hex,
+            "long_term_fingerprint": "aa" * 20,
+            "signature_hex": "ab",
+            "expires_at": 9_000_000_000,
+            "created_at": 1_000_000_000,
+            "session_id": sid,
+            "consumed": False,
+        }
+
+    def test_revoke_unconsumed_then_derive_raises_keyerror(self):
+        sid = "11" * 16
+        kh = MagicMock()
+        kh.search_key.return_value = None
+        priv_i, pub_i = CryptoHelpers.generate_brainpool_keypair("brainpoolP256r1")
+        epk_hex = pub_i.public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint,
+        ).hex()
+        offer = self._minimal_offer(sid, epk_hex)
+        store = EphemeralKeyStore(keyring_helper=kh, time_fn=lambda: 2_000_000_000.0)
+        store._offers[sid] = {**offer, "_keyring_key_id": "offer_kid", "consumed": False}
+        peer_offer = {k: v for k, v in store._offers[sid].items() if k != "_keyring_key_id"}
+        _, priv_r = CryptoHelpers.generate_brainpool_keypair("brainpoolP256r1")
+        store.revoke_offer(sid)
+        kh.unlink_key.assert_any_call("offer_kid", "@s")
+        self.assertNotIn(sid, store._offers)
+        with self.assertRaises(KeyError):
+            store.derive_session_keys(sid, priv_r, peer_offer, peer_was_initiator=True)
+
+    def test_revoke_consumed_offer_succeeds(self):
+        sid = "22" * 16
+        kh = MagicMock()
+        kh.search_key.return_value = None
+        priv_i, pub_i = CryptoHelpers.generate_brainpool_keypair("brainpoolP256r1")
+        epk_hex = pub_i.public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint,
+        ).hex()
+        offer = self._minimal_offer(sid, epk_hex)
+        store = EphemeralKeyStore(keyring_helper=kh, time_fn=lambda: 2_000_000_000.0)
+        store._offers[sid] = {**offer, "_keyring_key_id": "kid", "consumed": True}
+        store.revoke_offer(sid)
+        self.assertNotIn(sid, store._offers)
+
+    def test_revoke_consumed_without_keyring_ids_succeeds(self):
+        sid = "33" * 16
+        kh = MagicMock()
+        kh.search_key.return_value = None
+        priv_i, pub_i = CryptoHelpers.generate_brainpool_keypair("brainpoolP256r1")
+        epk_hex = pub_i.public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint,
+        ).hex()
+        offer = self._minimal_offer(sid, epk_hex)
+        store = EphemeralKeyStore(keyring_helper=kh, time_fn=lambda: 2_000_000_000.0)
+        store._offers[sid] = {**offer, "consumed": True}
+        store.revoke_offer(sid)
+        kh.unlink_key.assert_not_called()
+        self.assertNotIn(sid, store._offers)
+
+    def test_revoke_unknown_session_raises_keyerror(self):
+        store = EphemeralKeyStore(keyring_helper=MagicMock())
+        store._kh.search_key.return_value = None
+        with self.assertRaises(KeyError):
+            store.revoke_offer("ff" * 16)
+
+    def test_revoke_unlinks_private_when_search_finds_it(self):
+        sid = "44" * 16
+        kh = MagicMock()
+
+        def _search(_typ, desc, _kr):
+            if PRIV_KEYRING_PREFIX in desc:
+                return "priv_kid"
+            return None
+
+        kh.search_key.side_effect = _search
+        priv_i, pub_i = CryptoHelpers.generate_brainpool_keypair("brainpoolP256r1")
+        epk_hex = pub_i.public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint,
+        ).hex()
+        offer = self._minimal_offer(sid, epk_hex)
+        store = EphemeralKeyStore(keyring_helper=kh, time_fn=lambda: 2_000_000_000.0)
+        store._offers[sid] = {**offer, "_keyring_key_id": "offer_kid", "consumed": False}
+        store.revoke_offer(sid)
+        kh.unlink_key.assert_any_call("offer_kid", "@s")
+        kh.unlink_key.assert_any_call("priv_kid", "@s")
+
+    def test_revoke_second_call_raises_keyerror(self):
+        sid = "55" * 16
+        kh = MagicMock()
+        kh.search_key.return_value = None
+        priv_i, pub_i = CryptoHelpers.generate_brainpool_keypair("brainpoolP256r1")
+        epk_hex = pub_i.public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint,
+        ).hex()
+        offer = self._minimal_offer(sid, epk_hex)
+        store = EphemeralKeyStore(keyring_helper=kh, time_fn=lambda: 2_000_000_000.0)
+        store._offers[sid] = {**offer, "_keyring_key_id": "kid", "consumed": False}
+        store.revoke_offer(sid)
+        with self.assertRaises(KeyError):
+            store.revoke_offer(sid)
+
+    def test_status_omits_revoked_offer(self):
+        sid = "66" * 16
+        kh = MagicMock()
+        kh.search_key.return_value = None
+        kh.list_keys.return_value = []
+        priv_i, pub_i = CryptoHelpers.generate_brainpool_keypair("brainpoolP256r1")
+        epk_hex = pub_i.public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint,
+        ).hex()
+        offer = self._minimal_offer(sid, epk_hex)
+        store = EphemeralKeyStore(keyring_helper=kh, time_fn=lambda: 2_000_000_000.0)
+        store._offers[sid] = {**offer, "_keyring_key_id": "kid", "consumed": False}
+        self.assertEqual(len(store.status()), 1)
+        store.revoke_offer(sid)
+        self.assertEqual(store.status(), [])
+
+
+def test_revoke_writes_audit_manual_revoke(tmp_path):
+    sid = "77" * 16
+    log = tmp_path / "ephemeral_key_audit.log"
+    kh = MagicMock()
+    kh.search_key.return_value = None
+    priv_i, pub_i = CryptoHelpers.generate_brainpool_keypair("brainpoolP256r1")
+    epk_hex = pub_i.public_bytes(
+        serialization.Encoding.X962,
+        serialization.PublicFormat.UncompressedPoint,
+    ).hex()
+    offer = {
+        "schema_version": OFFER_SCHEMA_VERSION,
+        "epk_hex": epk_hex,
+        "long_term_fingerprint": "aa" * 20,
+        "signature_hex": "ab",
+        "expires_at": 9_000_000_000,
+        "created_at": 1_000_000_000,
+        "session_id": sid,
+        "consumed": False,
+    }
+    store = EphemeralKeyStore(
+        keyring_helper=kh,
+        audit_log_path=log,
+        time_fn=lambda: 2_000_000_000.0,
+    )
+    store._offers[sid] = {**offer, "_keyring_key_id": "kid", "consumed": False}
+    store.revoke_offer(sid)
+    line = log.read_text(encoding="utf-8").strip().splitlines()[-1]
+    rec = json.loads(line)
+    assert rec["event"] == "reject"
+    assert rec["reason"] == "manual_revoke"
+    assert rec["session_id"] == sid
+    assert rec["ts"] == 2_000_000_000
+
+
+def test_cmd_expire_returns_zero():
+    import argparse
+
+    mod = _load_epk_generate_script()
+    with patch("gr_linux_crypto.ephemeral_key_store.EphemeralKeyStore") as M:
+        M.return_value.revoke_offer = MagicMock()
+        rc = mod.cmd_expire(argparse.Namespace(session_id="aa" * 16))
+    assert rc == 0
+
+
+def test_cmd_expire_returns_one_on_keyerror():
+    import argparse
+
+    mod = _load_epk_generate_script()
+    with patch("gr_linux_crypto.ephemeral_key_store.EphemeralKeyStore") as M:
+        M.return_value.revoke_offer.side_effect = KeyError("no offer")
+        rc = mod.cmd_expire(argparse.Namespace(session_id="bb" * 16))
+    assert rc == 1
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="epk_generate expire subprocess test targets POSIX shell layout",
+)
+def test_epk_expire_cli_unknown_session_subprocess():
+    env = dict(os.environ)
+    env["GR_LINUX_CRYPTO_DIR"] = str(REPO_ROOT)
+    r = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "epk_generate.py"),
+            "expire",
+            "00" * 16,
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert r.returncode == 1
+    assert r.stdout.strip() == ""
+    err = (r.stderr or "").lower()
+    assert "session_id" in err or "no offer" in err or "keyerror" in err
 
 
 @pytest.mark.slow

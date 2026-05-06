@@ -52,13 +52,21 @@ Recipients must be able to decrypt with their secret keys. The embedded OpenPGP 
 
 **Application state:** `EphemeralKeyStore` keeps in-memory `consumed` and re-checks `expires_at` on derive so policy holds even if keyring timeout semantics differ on a given system.
 
+**Manual revocation (`epk expire`):** Operators may drop an offer before use by running `python3 scripts/epk_generate.py expire <session_id>`, which calls `EphemeralKeyStore.revoke_offer`. That path unlinks the offer JSON key (`gr_linux_crypto:ephemeral_offer:{session_id}`) and any matching ephemeral private key (`gr_linux_crypto:ephemeral_priv:{session_id}`) from the configured keyring (default session keyring `@s`) via `keyctl unlink` **before** clearing in-memory state, so the payload is detached from the keyring immediately. Revoking an offer that is already `consumed` in memory is allowed and still unlinks any remaining keyring material.
+
+There is **no** host-side SQLite table like Galdralag `ephemeral_offers`. `consumed` is not written back into the keyring JSON when deriving; after a process exit, only keyring blobs (until timeout/unlink), the audit log file, and any other operator-held state survive. A **new** process can revoke by `session_id` if the keyring entries still exist; if the session keyring was cleared or the keys already expired, `revoke_offer` raises `KeyError` unless this process still holds the row in `_offers`.
+
+**Kernel note:** `keyctl unlink` removes the key from the keyring immediately and the kernel frees the key object; this is **not** documented as cryptographic zeroisation of RAM. Material may remain in freed pages until reused.
+
+**`status` after revoke:** The offer row is removed from `_offers` and keys are unlinked, so `status` no longer lists that offer once the keyring and memory are consistent (no `revoked: true` tombstone).
+
 ## 6. Audit log
 
 Append-only JSON lines (default file under `XDG_STATE_HOME/gr-linux-crypto/ephemeral_key_audit.log`). Event types include:
 
 - `import` with `session_id`, `created_at`, `expires_at`, `long_term_fingerprint`
 - `derive` with `session_id`, `consumed: true`
-- `reject` with `reason` (`bad_schema`, `already_consumed`, `expired`, `fingerprint_mismatch`, `bad_epk_signature`, `expired_at_derive`, `consumed_at_derive`)
+- `reject` with `reason` (`bad_schema`, `already_consumed`, `expired`, `fingerprint_mismatch`, `bad_epk_signature`, `expired_at_derive`, `consumed_at_derive`, `manual_revoke`)
 
 ## 7. Planned: NFC transport
 
