@@ -65,5 +65,7 @@ documentation: |-
   Imports a GnuPG-encrypted ephemeral key offer and emits the set_key PMT for
   GR-K-GDSS spreader/despreader (same layout as GDSS Set Key Source). Uses
   Galdralag session KDF for the 32-byte masking key. See docs/EPHEMERAL_KEY_EXCHANGE.md.
+  To revoke an offer before use (unlink keyring material), run
+  scripts/epk_generate.py expire <session_id> from a shell; this block does not perform revocation.
 
 file_format: 1

@@ -4,7 +4,8 @@ Out-of-band ephemeral Brainpool key offers for Galdralag-compatible session KDF.
 
 Signed JSON (per docs/EPHEMERAL_KEY_EXCHANGE.md) is armored with GnuPG sign+encrypt
 and exchanged as ``.epk.gpg`` files. Expiry is enforced in-process and optionally
-via kernel ``keyctl timeout`` on stored blobs.
+via kernel ``keyctl timeout`` on stored blobs. Offers can be dropped early with
+:meth:`EphemeralKeyStore.revoke_offer` (CLI: ``scripts/epk_generate.py expire``).
 """
 
 from __future__ import annotations
@@ -75,7 +76,7 @@ def _gpg_list_fingerprint(gpg_binary: str, key_spec: str) -> str:
 
 class EphemeralKeyStore:
     """
-    Generate, import, and derive from ephemeral key offers (``.epk.gpg``).
+    Generate, import, derive from, and optionally revoke ephemeral key offers (``.epk.gpg``).
 
     All expiry and single-use (``consumed``) checks are enforced here.
     """

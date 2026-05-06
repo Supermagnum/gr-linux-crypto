@@ -3,8 +3,12 @@
 """
 CLI for out-of-band ephemeral key offers (``.epk.gpg``).
 
+Subcommands: ``generate``, ``import``, ``status``, ``expire`` (manual revocation of an
+offer by ``session_id``; see ``docs/USAGE.md``).
+
 Requires ``gpg`` on PATH. For an uninstalled tree, set ``GR_LINUX_CRYPTO_DIR`` to the
-repository root or ``PYTHONPATH`` to its ``python/`` directory.
+repository root (recommended so ``gr_linux_crypto`` imports resolve). Alternatively
+prepend the repository root to ``PYTHONPATH`` if you use that layout instead.
 """
 
 from __future__ import annotations

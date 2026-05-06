@@ -6,7 +6,7 @@ This document supplements the top-level `README.md` with task-focused instructio
 
 Forward secrecy for GR-K-GDSS-style links is described in GR-K-GDSS documentation (ephemeral ECDH vs long-term-only ECDH). This repository provides:
 
-- `EphemeralKeyStore` (`python/ephemeral_key_store.py`) for generating, importing, and deriving Galdralag session keys from `.epk.gpg` offers.
+- `EphemeralKeyStore` (`python/ephemeral_key_store.py`) for generating, importing, deriving from, and revoking `.epk.gpg` offers (Galdralag-compatible session KDF material).
 - `scripts/epk_generate.py` for command-line generate/import/status/expire.
 - GNU Radio block **Ephemeral Key Import (Galdralag / GDSS)** (`grc/linux_crypto_ephemeral_key_import.block.yml`) emitting the same `set_key` PMT as **GDSS Set Key Source**.
 
@@ -48,7 +48,7 @@ Add **Ephemeral Key Import (Galdralag / GDSS)** under `[gr-linux-crypto]/Galdral
 
 ### Expiry model
 
-Each offer is valid for **one successful derivation** or until `expires_at`, whichever comes first. The kernel key is also removed after `expires_at - import_time` seconds via `keyctl timeout`.
+Each offer is valid for **one successful derivation** or until `expires_at`, whichever comes first. The kernel key is also removed after `expires_at - import_time` seconds via `keyctl timeout`. An operator may end the offer earlier with `epk_generate.py expire` (see above).
 
 ### NFC (planned)
 
