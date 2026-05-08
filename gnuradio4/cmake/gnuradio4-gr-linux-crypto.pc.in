@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+
+Name: gnuradio4-gr-linux-crypto
+Description: GNU Radio 4.0 gr-linux-crypto (AF_ALG, Brainpool, keyutils, optional Nitrokey)
+Version: @PROJECT_VERSION@
+Requires: openssl gnuradio4
+Libs: -L${libdir} -lgr-linux-crypto
+Libs.private: -lkeyutils -pthread
+Cflags: -I${includedir}

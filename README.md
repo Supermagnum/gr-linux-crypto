@@ -1596,6 +1596,26 @@ See `examples/brainpool_example.py` for basic operations and `docs/examples.md` 
 
 ## Installation
 
+### GNU Radio 4.0 (branch `gnuradio4`)
+
+The port is isolated under **`gnuradio4/`**; the GR3 build at the repository root is unchanged.
+
+Requirements: **Linux**, **GNU Radio 4** via **`CMAKE_PREFIX_PATH`** pointing at the same prefix where GNU Radio was installed so **`find_package(gnuradio4)`** succeeds and CMake can find **`cprConfig.cmake`** (bundled under the same prefix as **`lib/cmake/gnuradio4/`**, e.g. **`lib/cmake/cpr/`**). Typical GCC-toolchain installs land under **`/opt/gnuradio4-gcc`**; **`CMAKE_PREFIX_PATH="/opt/gnuradio4-gcc"`**. If **`/opt/gnuradio4`** alone fails with missing **cpr**, either use the **`-gcc`** path or create a symlink (**`sudo ln -s /opt/gnuradio4-gcc /opt/gnuradio4`**, only if **`/opt/gnuradio4`** does not already exist) so **`CMAKE_PREFIX_PATH="/opt/gnuradio4"`** works too. Match the GNU Radio 4 toolchain: **C++23** with **GCC 14+** (GR4 pulls in **`<print>`**); CMake tries **g++-16**, **g++-15**, then **g++-14** when **`CMAKE_CXX_COMPILER`** is unset. Also need **OpenSSL** (Crypto), **libkeyutils**, **CMake 3.22+**. Optional **`libnitrokey`** (discovered with **pkg-config**); without it, `NitrokeyInterface` still builds and outputs zeros with a one-time stderr warning.
+
+```bash
+cmake -S /path/to/gr-linux-crypto/gnuradio4 \
+      -B /path/to/gr-linux-crypto/gnuradio4/build \
+      -DCMAKE_PREFIX_PATH="/opt/gnuradio4-gcc" \
+      -DCMAKE_BUILD_TYPE=Debug
+cmake --build /path/to/gr-linux-crypto/gnuradio4/build -j$(nproc)
+ctest --test-dir /path/to/gr-linux-crypto/gnuradio4/build --output-on-failure
+cmake --install /path/to/gr-linux-crypto/gnuradio4/build --prefix /opt/gnuradio4-gcc
+```
+
+Consumers: **`find_package(gr-linux-crypto4)`**, target **`gnuradio4::gr-linux-crypto`**; **pkg-config** file **`gnuradio4-gr-linux-crypto`**. Umbrella C++ header **`#include <gnuradio-4.0/linux_crypto.hpp>`**.
+
+Python helpers for GR4 are under **`gnuradio4/python/linux_crypto/`** (add to **`PYTHONPATH`** or wrap in your package). Boost.UT tests use an explicit **`int main()`** with **`boost::ut::cfg<boost::ut::override>.run()`** as required.
+
 ### Step 1: Install System Dependencies
 
 ```bash

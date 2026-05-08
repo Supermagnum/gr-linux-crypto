@@ -1,0 +1,5 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(gnuradio4)
+find_dependency(OpenSSL)
+include("${CMAKE_CURRENT_LIST_DIR}/gr-linux-crypto4-targets.cmake")
