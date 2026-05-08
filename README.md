@@ -7,6 +7,17 @@ Please review the test data before usage.
 
 A OOT ( out-of-tree) GNU Radio module that provides **Linux-specific cryptographic infrastructure integration**, focusing on what's missing from existing crypto modules (gr-openssl, gr-nacl).
 
+## GNU Radio 4.0
+
+This **`master`** branch documents and builds **GNU Radio 3.x**. The **GNU Radio 4.0** port lives on **`gnuradio4`**: **`gnuradio4/`** is a separate CMake project (`find_package(gnuradio4)`, target **`gnuradio4::gr-linux-crypto`**, package **`gr-linux-crypto4`**). Checkout that branch for sources, install steps, **Boost.UT** tests, and Python helpers copied under **`gnuradio4/python/linux_crypto/`**:
+
+```bash
+git fetch origin gnuradio4
+git checkout gnuradio4
+```
+
+See **`README.md` on branch `gnuradio4`** (section *GNU Radio 4.0*) for **`CMAKE_PREFIX_PATH`** (typically **`/opt/gnuradio4-gcc`**) and **CPR**/CMake hints.
+
 ## Publication
 
 This project is documented in the following preprint:
@@ -27,8 +38,9 @@ Archive record timestamp: **21 March 2026**.
    - [Legal and Appropriate Uses for Amateur Radio](#legal-and-appropriate-uses-for-amateur-radio)
    - [Experimental and Research Uses](#experimental-and-research-uses)
    - [User Responsibility and Disclaimer](#user-responsibility-and-disclaimer)
-2. [What does this module do?](#what-does-this-module-do)
-3. [Getting Started for Beginners](#getting-started-for-beginners)
+2. [GNU Radio 4.0](#gnu-radio-40)
+3. [What does this module do?](#what-does-this-module-do)
+4. [Getting Started for Beginners](#getting-started-for-beginners)
    - [What Are GnuPG Keys?](#what-are-gnupg-keys)
    - [What is "Session Key Exchange"?](#what-is-session-key-exchange)
    - [What is a "GnuPG Agent"?](#what-is-a-gnupg-agent)
@@ -44,31 +56,31 @@ Archive record timestamp: **21 March 2026**.
        - [Real-World Use Cases](#real-world-use-cases)
    - [GnuPG vs Brainpool ECC: When to Use Which?](#gnupg-vs-brainpool-ecc-when-to-use-which)
    - [How It Fits Into Your SDR Workflow](#how-it-fits-into-your-sdr-workflow)
-4. [What This Module Provides (Unique Features)](#what-this-module-provides-unique-features)
+5. [What This Module Provides (Unique Features)](#what-this-module-provides-unique-features)
    - [Kernel Keyring Integration](#1-kernel-keyring-integration)
    - [Hardware Security Module Integration](#2-hardware-security-module-integration)
    - [Kernel Crypto API Integration](#3-kernel-crypto-api-integration)
    - [Multi-Recipient Encryption (Supported)](#4-multi-recipient-encryption-supported)
    - [Galdralag Support (GDSS and session KDF)](#5-galdralag-support-gdss-and-session-kdf)
-5. [What This Module Does NOT Provide (Avoiding Duplication)](#what-this-module-does-not-provide-avoiding-duplication)
+6. [What This Module Does NOT Provide (Avoiding Duplication)](#what-this-module-does-not-provide-avoiding-duplication)
    - [Basic OpenSSL Operations (Use gr-openssl)](#basic-openssl-operations-use-gr-openssl)
    - [Modern Crypto (NaCl/libsodium) - Use gr-nacl](#modern-crypto-nacllibsodium---use-gr-nacl)
    - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
-6. [Documentation](#documentation)
+7. [Documentation](#documentation)
    - [Usage (ephemeral keys, CLI)](docs/USAGE.md) - `epk_generate.py` (`generate`, `import`, `status`, `expire`)
    - [Ephemeral key exchange specification](docs/EPHEMERAL_KEY_EXCHANGE.md) - `.epk.gpg` format and threat model
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
    - [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) - Keyed GDSS GNU Radio OOT (companion project; uses gr-linux-crypto)
    - [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Baochip-1x token framework and host tools (related project)
    
-7. [Dependencies](#dependencies)
+8. [Dependencies](#dependencies)
    - [Required](#required)
    - [Python Dependencies](#python-dependencies)
    - [Optional](#optional)
-8. [Installation](#installation)
-9. [Important Note](#important-note)
-10. [Usage Flowchart](#usage-flowchart)
-11. [Usage Examples](#usage-examples)
+9. [Installation](#installation)
+10. [Important Note](#important-note)
+11. [Usage Flowchart](#usage-flowchart)
+12. [Usage Examples](#usage-examples)
    - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
    - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
    - [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss)
@@ -78,31 +90,31 @@ Archive record timestamp: **21 March 2026**.
    - [Independent use — mix and match freely](#independent-use--mix-and-match-freely)
    - [CallsignKeyStore and key groups API](#callsignkeystore-and-key-groups-api)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
-12. [Integration Architecture](#integration-architecture)
-13. [Key Design Principles](#key-design-principles)
-14. [Cryptographic Operations Overview](#cryptographic-operations-overview)
+13. [Integration Architecture](#integration-architecture)
+14. [Key Design Principles](#key-design-principles)
+15. [Cryptographic Operations Overview](#cryptographic-operations-overview)
     - [Encryption (AES block)](#1-encryption-aes-block)
     - [Signing & Key Exchange (Brainpool ECC block)](#2-signing--key-exchange-brainpool-ecc-block)
     - [Common Use Pattern](#common-use-pattern)
-15. [Supported Ciphers and Algorithms](#supported-ciphers-and-algorithms)
+16. [Supported Ciphers and Algorithms](#supported-ciphers-and-algorithms)
     - [Symmetric Encryption](#symmetric-encryption)
     - [Asymmetric Cryptography](#asymmetric-cryptography)
     - [Key Management](#key-management)
     - [Authentication Modes](#authentication-modes)
     - [Battery-Friendly Cryptography](#battery-friendly-cryptography)
     - [Benefits and Drawbacks of Ciphers and Methods](#benefits-and-drawbacks-of-ciphers-and-methods)
-16. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
+17. [What You Actually Need to Extract/Create](#what-you-actually-need-to-extractcreate)
     - [Native C++ Blocks (Implemented)](#1-native-c-blocks-implemented)
     - [Integration Helpers (Implemented)](#2-integration-helpers-implemented)
     - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
-17. [What happens if I remove my Nitrokey or GnuPG card?](#what-happens-if-i-remove-my-nitrokey-or-gnupg-card)
-18. [Why Nitrokey?](#why-nitrokey)
-19. [Where Key Functions Are Implemented (Quick Code Map)](#where-key-functions-are-implemented-quick-code-map)
-20. [Security & Testing](#security--testing)
-21. [Performance & Overhead](#performance--overhead)
-22. [Why This Approach?](#why-this-approach)
-23. [Comparison with Existing Modules](#comparison-with-existing-modules)
-24. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
+18. [What happens if I remove my Nitrokey or GnuPG card?](#what-happens-if-i-remove-my-nitrokey-or-gnupg-card)
+19. [Why Nitrokey?](#why-nitrokey)
+20. [Where Key Functions Are Implemented (Quick Code Map)](#where-key-functions-are-implemented-quick-code-map)
+21. [Security & Testing](#security--testing)
+22. [Performance & Overhead](#performance--overhead)
+23. [Why This Approach?](#why-this-approach)
+24. [Comparison with Existing Modules](#comparison-with-existing-modules)
+25. [Cryptographic Algorithm Background](#cryptographic-algorithm-background)
     - [Cryptographic Ciphers Influenced by the NSA](#cryptographic-ciphers-influenced-by-the-nsa)
     - [Cryptographic Ciphers NOT Influenced by the NSA](#cryptographic-ciphers-not-influenced-by-the-nsa)
     - [Known Scandals Involving NSA and Cryptography](#known-scandals-involving-nsa-and-cryptography)
