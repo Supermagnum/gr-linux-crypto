@@ -13,6 +13,7 @@ This document provides comprehensive examples for using the GNU Radio Linux Cryp
 7. [Brainpool ECIES Encryption](#brainpool-ecies-encryption)
 8. [Multi-Recipient ECIES](#multi-recipient-ecies)
 9. [Algorithm Boundary Enforcement (BSI TR-02102)](#algorithm-boundary-enforcement-bsi-tr-02102)
+10. [libsodium X-Wing KEM PDU blocks](#libsodium-x-wing-kem-pdu-blocks)
 
 For benefits and drawbacks of ciphers, curve sizes, multi-recipient vs Shamir, and common combinations, see the main [README: Benefits and Drawbacks of Ciphers and Methods](../README.md#benefits-and-drawbacks-of-ciphers-and-methods).
 
@@ -26,8 +27,13 @@ For benefits and drawbacks of ciphers, curve sizes, multi-recipient vs Shamir, a
 | GDSS Set Key Source | GDSS | [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss) |
 | Brainpool ECIES Encrypt/Decrypt | Crypto | [Brainpool ECIES Encryption](#brainpool-ecies-encryption) |
 | Brainpool ECIES Multi-Recipient Encrypt/Decrypt | Crypto | [Multi-Recipient ECIES](#multi-recipient-ecies) |
+| Ephemeral Key Import (Galdralag / GDSS) | Galdralag | [USAGE.md: Ephemeral key exchange](USAGE.md#ephemeral-key-exchange-out-of-band) |
+| KEM Generate Keypair / Encrypt / Decrypt | Sodium | [libsodium X-Wing KEM](#libsodium-x-wing-kem-pdu-blocks) |
+| Hash SHA3 | Sodium | [libsodium X-Wing KEM](#libsodium-x-wing-kem-pdu-blocks) |
 
 Each block's `.block.yml` also includes a `documentation` field visible in the GRC block info panel.
+
+**Python helpers and tests:** use a venv and `pip3 install -r requirements.txt` (see [README Installation](../README.md#installation)).
 
 ## Basic AES Encryption
 
@@ -212,7 +218,7 @@ masking = keys["gdss_mask_key"]
 profile_prk = keys["profile_prk"]  # for host cipher-profile HKDF-Expand, same as SessionKeys::profile_prk()
 ```
 
-CESS Mode A **K_outer** (HKDF-BLAKE3, `cess-outer-envelope-v1`), matching Galdralag `cess::derive_k_outer`, is available as `derive_galdralag_cess_k_outer_mode_a(classical_ecdh_ikm)` after `pip install blake3`. Use the same Brainpool ECDH raw `x` bytes as for session derivation. Full cipher-profile cascade encrypt/decrypt is implemented on the token in `cipher-profile`; this repo supplies the aligned KDF helpers only.
+CESS Mode A **K_outer** (HKDF-BLAKE3, `cess-outer-envelope-v1`), matching Galdralag `cess::derive_k_outer`, is available as `derive_galdralag_cess_k_outer_mode_a(classical_ecdh_ikm)` after `pip install blake3` in the project venv. Use the same Brainpool ECDH raw `x` bytes as for session derivation. Full cipher-profile cascade encrypt/decrypt is implemented on the token in `cipher-profile`; this repo supplies the aligned KDF helpers only.
 
 **gr-openssl / gr-nacl:** Use Brainpool ECDH for Galdralag IKM; do not substitute X25519 from gr-nacl. Pass derived 32-byte keys into other GNU Radio crypto blocks as your protocol requires.
 
@@ -1066,7 +1072,7 @@ Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each 
 
 **Shamir (K-of-N quorum):** With Shamir over a session key, you encrypt so that the content is only recoverable when K of N designated operators each contribute their share. No single operator, and no coalition smaller than K, can read it alone. This is qualitatively different from the pairwise model: it enforces collective decision-making cryptographically rather than just socially. Use `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)` so that any K of N recipients can combine shares to decrypt. All Brainpool curve sizes (P256r1, P384r1, P512r1) are supported; curve selects the prime field (BSI/RFC 5639). Extract a share with `get_share_from_shamir_block(block, callsign)`; decrypt with `decrypt_shamir(block, collected_shares)` when you have at least K shares.
 
-**Nitrokey / OpenPGP Card decrypt:** Use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>`. Python: `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip; `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions.
+**Nitrokey / OpenPGP Card decrypt:** Use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>`. Python: `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip; `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions. Fixed OpenPGP card operations only—not Galdralag cipher-profile mixing.
 
 ### Available APIs
 
@@ -1078,15 +1084,17 @@ Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each 
 
 **Nitrokey / card:** `get_keygrip_from_key_id(...)`, `decrypt_with_card(...)` (documented stub), C++ block with `key_source="opgp_card"`.
 
-### Independent use — mix and match freely
+### Galdralag — mix and match cipher modes
 
-| You want | Use |
-|----------|-----|
+**Only [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) / Baochip-1x** (with matching host helpers) lets you **mix and match** the constructions below. **OpenPGP Card, Nitrokey, and GnuPG smart-card stacks cannot**: they use fixed OpenPGP operations, not interchangeable ECIES / Shamir / HPKE / cipher-profile paths.
+
+| You want | Use (Galdralag-aligned host API) |
+|----------|----------------------------------|
 | ECIES only | `MultiRecipientECIES.encrypt` / `decrypt` |
 | Shamir only | `split` / `reconstruct` or `create_shamir_backed_key` / `reconstruct_session_key` |
 | ECIES + Shamir (K-of-N quorum) | `encrypt_shamir` / `decrypt_shamir` |
 | Clean high-level API | `HPKEBrainpool.seal` / `open` |
-| Hardware-backed keys | Nitrokey C++ block or `decrypt_with_card` |
+| Hardware-backed keys (on-card private key) | Nitrokey / OpenPGP C++ block (`key_source="opgp_card"`) or `decrypt_with_card` stub |
 
 ### Key Store Path (key_store_path) and callsigns
 
@@ -1112,7 +1120,7 @@ MIIC...BASE64-DATA...
 }
 ```
 
-Use a group name in **callsigns** (e.g. `net_control` or `net_control,region_east`) and the block expands it to all members and encrypts for each (max 25 after expansion). **Hardware devices with multiple keys:** store a **keygrip** (40 hex) instead of PEM; the block fetches the public key from the OpenPGP Card/Nitrokey. Use `CallsignKeyStore(...).add_keygrip(callsign, keygrip)` or put the keygrip in the keyring/file. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment**. Empty path uses default `~/.gnuradio/callsign_keys.json` when a file is used; the file can be missing and keyring-only is fine.
+Use a group name in **callsigns** (e.g. `net_control` or `net_control,region_east`) and the block expands it to all members and encrypts for each (max 25 after expansion). **Hardware devices with multiple keys:** store a **keygrip** (40 hex) instead of PEM for encrypt-side public-key lookup from the OpenPGP Card/Nitrokey (not Galdralag cipher mixing). Use `CallsignKeyStore(...).add_keygrip(callsign, keygrip)` or put the keygrip in the keyring/file. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment**. Empty path uses default `~/.gnuradio/callsign_keys.json` when a file is used; the file can be missing and keyring-only is fine.
 
 ```python
 #!/usr/bin/env python3
@@ -1347,6 +1355,36 @@ hash_if_approved(b"data", "sha256")   # OK
 | PQ KEM (if Component 2 enabled) | FrodoKEM-640/976/1344, ML-KEM-768/1024 |
 
 Non-approved algorithms (e.g. MD5, SHA-1, NIST P-256, RC4, DES) raise a clear exception citing BSI TR-02102.
+
+## libsodium X-Wing KEM PDU blocks
+
+Requires **libsodium 1.0.22+** with X-Wing KEM (`crypto_kem_enc` / `crypto_kem_dec`). CMake links `sodium::sodium` and prefers headers/libs under `/usr/local` when present.
+
+### Generate keypair (Python / GRC)
+
+```python
+from gnuradio import linux_crypto
+
+PK = "/tmp/xwing_kem_pk.bin"
+SK = "/tmp/xwing_kem_sk.bin"
+
+linux_crypto.kem_generate_keypair(PK, SK, generate_on_start=True)
+enc = linux_crypto.kem_encrypt(PK)
+dec = linux_crypto.kem_decrypt(SK)
+```
+
+In GNU Radio Companion, add blocks from **`[gr-linux-crypto]/Sodium`**, set the key file paths, and connect **message** ports (for example `pdu_strobe` or `message_strobe` to **KEM Encrypt** `in`, then **KEM Encrypt** `out` to **KEM Decrypt** `in`). PDUs are PMT u8vectors or blobs; encrypted output uses the `GKEM` framing described in [USAGE.md](USAGE.md#libsodium-pdu-blocks-x-wing-kem-sha3).
+
+### SHA3 hash PDU
+
+```python
+from gnuradio import linux_crypto
+
+h256 = linux_crypto.hash_sha3(256)
+h512 = linux_crypto.hash_sha3(512)
+```
+
+See also [USAGE.md](USAGE.md#libsodium-pdu-blocks-x-wing-kem-sha3).
 
 ## Best Practices
 

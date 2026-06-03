@@ -87,7 +87,7 @@ Archive record timestamp: **21 March 2026**.
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
    - [Multi-Recipient ECIES Encryption](#multi-recipient-ecies-encryption)
    - [Available APIs](#available-apis)
-   - [Independent use — mix and match freely](#independent-use--mix-and-match-freely)
+   - [Galdralag — mix and match cipher modes](#galdralag--mix-and-match-cipher-modes)
    - [CallsignKeyStore and key groups API](#callsignkeystore-and-key-groups-api)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
 13. [Integration Architecture](#integration-architecture)
@@ -924,7 +924,7 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 ### 5. **Galdralag Support (GDSS and session KDF)**
 - **What it is:** Optional interoperability with **[Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware)** — the open-source cryptographic framework and token stack for **Baochip-1x** (authenticated ephemeral ECDH, cipher profiles, host tools such as `galdra`). This module does not ship that firmware; it provides host-side derivation that matches Galdralag’s **`ephemeral-session`** HKDF when you want the same session subkeys on the GNU Radio / **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** side.
 - **How this module supports it:** Python helpers `derive_galdralag_session_keys` / `derive_galdralag_gdss_masking_key` (`galdralag_session_kdf.py`) implement the same salt (ordered ephemeral public keys) and domain **info** strings as Galdralag’s Rust crate. `derive_galdralag_session_keys` also returns **`profile_prk`** (the HKDF-Extract output), matching `SessionKeys::profile_prk()` for cipher-profile cascades on the host. The **GDSS Set Key Source** block can use `key_derivation=galdralag` plus hex-encoded initiator/responder EPKs so the **32-byte GDSS masking key** matches `SessionKeys.gdss_mask_key` after a Galdralag handshake. Default `key_derivation=gr_k_gdss` is unchanged for existing [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) flows.
-- **No conflict with Nitrokey / TPM / keyring:** Galdralag support is an **additional** Python/GRC path for session-key alignment with that token project. Kernel keyring, **Nitrokey** (`libnitrokey`), OpenPGP card paths, and other HSM integrations are unchanged and independent.
+- **No conflict with Nitrokey / TPM / keyring:** Galdralag support is an **additional** Python/GRC path for session-key alignment with that token project. Kernel keyring, **Nitrokey** (`libnitrokey`), OpenPGP card paths, and other HSM integrations remain available for storage and fixed OpenPGP operations, but **only Galdralag** supports mixing cipher modes (ECIES, Shamir, HPKE-style, token cipher profiles) in one stack. OpenPGP / Nitrokey / GnuPG smart cards **cannot** mix and match those paths.
 - **Current Galdralag-firmware `SessionKeys` semantics:** The token stores the raw classical ECDH IKM (Brainpool `x` coordinate) for **built-in CESS** cipher-profile cascades (`cipher-profile` HKDF-BLAKE3) and `profile_prk` from HKDF-Extract for **custom** profiles. Your host already has the ECDH bytes you pass into `derive_galdralag_session_keys`; use the same slice wherever Galdra docs refer to `cess_inner_cascade_ikm`. For CESS **Mode A `K_outer`**, `derive_galdralag_cess_k_outer_mode_a` in `galdralag_session_kdf.py` matches `cess::derive_k_outer` when the optional PyPI package **`blake3`** is installed (`hkdf_blake3_cess` is also exported for advanced use; vectors align with `crates/cess/src/hkdf_blake3.rs` tests).
 - **With [gr-openssl](https://github.com/Supermagnum/gr-openssl) and [gr-nacl](https://github.com/Supermagnum/gr-nacl):** Galdralag ephemeral ECDH is **Brainpool-only** (`SessionCurve` in Galdralag-firmware). Do **not** feed an X25519 shared secret from gr-nacl into `derive_galdralag_session_keys`. Use `CryptoHelpers.brainpool_ecdh` (or equivalent) so the IKM matches the token. Derived keys are ordinary 32-byte symmetric secrets; you can supply them to gr-openssl or other blocks according to your application. gr-nacl remains the right choice for Curve25519 / Ed25519 / NaCl-style APIs on **separate** key-agreement paths from the Galdralag handshake.
 
@@ -1330,7 +1330,7 @@ The **GDSS Set Key Source** block produces the `set_key` PMT message expected by
 
 **Requirements:** `gr_linux_crypto.CryptoHelpers` (OpenSSL/HKDF). For zero manual entry from kernel keyring, use gr-k-gdss key_injector with keyring_id instead. For Galdralag sync-burst keys (different HKDF labels than GR-K-GDSS), use `derive_galdralag_session_keys` and map `gdss_sync_key` / `gdss_timing_key` per your keyed sync design.
 
-**Python `derive_galdralag_session_keys`:** Returns a dict of seven 32-byte values, matching [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `ephemeral-session` `SessionKeys`: `profile_prk` (HKDF-Extract PRK for cipher-profile cascades on the host), `payload_key_i2r`, `payload_key_r2i`, `gdss_mask_key`, `gdss_sync_key`, `gdss_timing_key`, `mac_key`. Initiator and responder EPK arguments follow the same order as Galdralag `protocol.rs` (`InitMessage` EPK first, then response EPK). Code: `python/galdralag_session_kdf.py`. Optional **`derive_galdralag_cess_k_outer_mode_a`** (requires `pip install blake3`) matches `cess::derive_k_outer` for the same classical IKM.
+**Python `derive_galdralag_session_keys`:** Returns a dict of seven 32-byte values, matching [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `ephemeral-session` `SessionKeys`: `profile_prk` (HKDF-Extract PRK for cipher-profile cascades on the host), `payload_key_i2r`, `payload_key_r2i`, `gdss_mask_key`, `gdss_sync_key`, `gdss_timing_key`, `mac_key`. Initiator and responder EPK arguments follow the same order as Galdralag `protocol.rs` (`InitMessage` EPK first, then response EPK). Code: `python/galdralag_session_kdf.py`. Optional **`derive_galdralag_cess_k_outer_mode_a`** (requires `pip install blake3` in the project venv) matches `cess::derive_k_outer` for the same classical IKM.
 
 ```python
 from gnuradio import gr
@@ -1443,7 +1443,7 @@ plaintext = ecies.verify_and_decrypt(
 
 **Shamir secret sharing (K-of-N quorum):** With Shamir over a session key, you can encrypt a transmission so that the content is only recoverable when K of N designated operators each contribute their share. No single operator, and no coalition smaller than K, can read it alone. This is qualitatively different from the pairwise model: it enforces collective decision-making cryptographically rather than just socially. To use it, call `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)`. Each recipient gets one share in the block; use `get_share_from_shamir_block(block, callsign)` to extract it. Any K recipients pass their shares to `decrypt_shamir(block, collected_shares)`. All Brainpool curve sizes are supported (P256r1, P384r1, P512r1; BSI TR 03111 / RFC 5639). Low-level helpers: `create_shamir_backed_key`, `reconstruct_session_key`, `split`, `reconstruct`, `get_curve_prime`, `get_max_secret_bytes`, `get_share_value_bytes`, `SUPPORTED_CURVES` in `gr_linux_crypto` (see `python/shamir_secret_sharing.py`).
 
-**Nitrokey / OpenPGP Card decrypt:** For on-card decryption (private key never leaves the device), use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`). Python helper `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip. `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions to use the block.
+**Nitrokey / OpenPGP Card decrypt:** For on-card decryption (private key never leaves the device), use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`). Python helper `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip. `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions to use the block. This uses fixed OpenPGP card operations; it is **not** part of Galdralag cipher-profile mixing (see below).
 
 #### Available APIs
 
@@ -1469,15 +1469,19 @@ plaintext = ecies.verify_and_decrypt(
 
 - `get_keygrip_from_key_id(...)`, `decrypt_with_card(...)` (documented stub), C++ block with `key_source="opgp_card"`
 
-#### Independent use — mix and match freely
+#### Galdralag — mix and match cipher modes
 
-| You want | Use |
-|----------|-----|
+**Only [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) / Baochip-1x** (with matching host helpers in this module) lets you **mix and match** cipher constructions below. **OpenPGP Card, Nitrokey, and GnuPG smart-card stacks cannot** do that: they expose fixed OpenPGP operations (keygrips, on-card ECDH/decrypt, etc.), not interchangeable ECIES / Shamir / HPKE / cipher-profile paths.
+
+For amateur-radio multi-recipient ECIES without Galdralag, pick one approach (for example `encrypt` / `decrypt` only) rather than treating this table as a general OpenPGP feature matrix.
+
+| You want | Use (Galdralag-aligned host API) |
+|----------|----------------------------------|
 | ECIES only | `MultiRecipientECIES.encrypt` / `decrypt` |
 | Shamir only | `split` / `reconstruct` or `create_shamir_backed_key` / `reconstruct_session_key` |
 | ECIES + Shamir (K-of-N quorum) | `encrypt_shamir` / `decrypt_shamir` |
 | Clean high-level API | `HPKEBrainpool.seal` / `open` |
-| Hardware-backed keys | Nitrokey C++ block or `decrypt_with_card` |
+| Hardware-backed keys (on-card private key) | Nitrokey / OpenPGP C++ block (`key_source="opgp_card"`) or `decrypt_with_card` stub |
 
 **Key Store Path (key_store_path) and Recipient Callsigns (callsigns)**
 
@@ -1485,7 +1489,7 @@ The **Brainpool ECIES Multi-Recipient Encrypt** block needs a mapping from recip
 
 - **Keyring-only (no JSON file):** Add each recipient's public key to the keyring with description `callsign:CALLSIGN` (e.g. `keyctl add user "callsign:W1ABC" "$(cat pubkey.pem)"` or `CallsignKeyStore(...).add_public_key(callsign, public_key_pem)`). Set **callsigns** to the comma-separated list of recipients. Leave Key Store Path empty (`""`); the block will look up keys in the session keyring, then the user keyring. No JSON file is required.
 - **Optional JSON file:** If you set **key_store_path**, the block loads that file first (cache). For any callsign not in the file, it then looks in the keyring. So the file is an optional cache; if the file is missing or empty, the block still works using the keyring. Default when empty: `~/.gnuradio/callsign_keys.json`.
-- **Hardware keys (multiple public keys per device):** You can store a **keygrip** (40 hex chars) instead of PEM for a callsign. The block then fetches the public key from the OpenPGP Card / Nitrokey (or other GnuPG-accessible hardware). So one device with multiple keys (e.g. different slots or key grips) can supply multiple recipient keys: store one keygrip per callsign in the keyring (e.g. `keyctl add user "callsign:W1ABC" "A1B2C3D4E5F6..."`) or in the JSON file, or use `CallsignKeyStore.add_keygrip(callsign, keygrip)`. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`.
+- **Hardware keys (multiple public keys per device):** You can store a **keygrip** (40 hex chars) instead of PEM for a callsign. The block then fetches the public key from the OpenPGP Card / Nitrokey (or other GnuPG-accessible hardware) for **encrypt-side recipient lookup**. That is separate from Galdralag cipher-profile mixing; cards still cannot freely combine ECIES, Shamir, and HPKE modes like Galdralag. Store one keygrip per callsign in the keyring (e.g. `keyctl add user "callsign:W1ABC" "A1B2C3D4E5F6..."`) or in the JSON file, or use `CallsignKeyStore.add_keygrip(callsign, keygrip)`. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`.
 - **File format (when used):** One JSON object. Each key is either a callsign or a **group name**. Values can be: (a) public key in PEM (string), (b) keygrip (40 hex), or (c) a **key group**: an array of callsigns. When you set **callsigns** to a group name (e.g. `net1`), the block expands it to all members of that group (e.g. `key1`, `key2`, `key3`) and encrypts for each. Groups allow one label to refer to multiple recipients; total recipients after expansion must not exceed 25. The JSON file can contain **only group definitions** (no PEMs or keygrips); in that case, each member callsign is still resolved via the kernel keyring or hardware device.
   ```json
   {
@@ -1586,6 +1590,9 @@ See `examples/brainpool_example.py` for basic operations and `docs/examples.md` 
 - **C++17 compatible compiler** (GCC 7+ or Clang 5+)
 
 ### Python Dependencies
+
+Install from `requirements.txt` inside a **virtual environment** (do not install into the system Python):
+
 - **cryptography>=3.4.8** (for Python crypto helpers)
 - **numpy>=1.20.0** (for numerical operations)
 - **gnuradio>=3.10.12.0** (Python bindings, tested with 3.10.12.0)
@@ -1604,9 +1611,31 @@ See `examples/brainpool_example.py` for basic operations and `docs/examples.md` 
 - **OpenSSL development headers** (libssl-dev)
   - **OpenSSL 1.0.2+** required for Brainpool curve support
   - **OpenSSL 3.x** recommended for improved Brainpool support
-- **libsodium development headers** (libsodium-dev)
+- **libsodium 1.0.22+** (development headers; X-Wing KEM and SHA3 PDU blocks)
+  - If a newer build is installed under `/usr/local`, CMake prepends `/usr/local/lib/pkgconfig` and `/usr/local/include` so it is preferred over distro 1.0.18
+  - Package names: `libsodium-dev` (Debian) or a manual install to `/usr/local`
 
 ## Installation
+
+### GNU Radio 4.0 (branch `gnuradio4`)
+
+The port is isolated under **`gnuradio4/`**; the GR3 build at the repository root is unchanged.
+
+Requirements: **Linux**, **GNU Radio 4** via **`CMAKE_PREFIX_PATH`** pointing at the same prefix where GNU Radio was installed so **`find_package(gnuradio4)`** succeeds and CMake can find **`cprConfig.cmake`** (bundled under the same prefix as **`lib/cmake/gnuradio4/`**, e.g. **`lib/cmake/cpr/`**). Typical GCC-toolchain installs land under **`/opt/gnuradio4-gcc`**; **`CMAKE_PREFIX_PATH="/opt/gnuradio4-gcc"`**. If **`/opt/gnuradio4`** alone fails with missing **cpr**, either use the **`-gcc`** path or create a symlink (**`sudo ln -s /opt/gnuradio4-gcc /opt/gnuradio4`**, only if **`/opt/gnuradio4`** does not already exist) so **`CMAKE_PREFIX_PATH="/opt/gnuradio4"`** works too. Match the GNU Radio 4 toolchain: **C++23** with **GCC 14+** (GR4 pulls in **`<print>`**); CMake tries **g++-16**, **g++-15**, then **g++-14** when **`CMAKE_CXX_COMPILER`** is unset. Also need **OpenSSL** (Crypto), **libkeyutils**, **CMake 3.22+**. Optional **`libnitrokey`** (discovered with **pkg-config**); without it, `NitrokeyInterface` still builds and outputs zeros with a one-time stderr warning.
+
+```bash
+cmake -S /path/to/gr-linux-crypto/gnuradio4 \
+      -B /path/to/gr-linux-crypto/gnuradio4/build \
+      -DCMAKE_PREFIX_PATH="/opt/gnuradio4-gcc" \
+      -DCMAKE_BUILD_TYPE=Debug
+cmake --build /path/to/gr-linux-crypto/gnuradio4/build -j$(nproc)
+ctest --test-dir /path/to/gr-linux-crypto/gnuradio4/build --output-on-failure
+cmake --install /path/to/gr-linux-crypto/gnuradio4/build --prefix /opt/gnuradio4-gcc
+```
+
+Consumers: **`find_package(gr-linux-crypto4)`**, target **`gnuradio4::gr-linux-crypto`**; **pkg-config** file **`gnuradio4-gr-linux-crypto`**. Umbrella C++ header **`#include <gnuradio-4.0/linux_crypto.hpp>`**.
+
+Python helpers for GR4 are under **`gnuradio4/python/linux_crypto/`** (add to **`PYTHONPATH`** or wrap in your package). Boost.UT tests use an explicit **`int main()`** with **`boost::ut::cfg<boost::ut::override>.run()`** as required.
 
 ### Step 1: Install System Dependencies
 
@@ -1621,7 +1650,8 @@ sudo apt-get install -y \
     build-essential \
     pkg-config \
     python3-dev \
-    python3-pip
+    python3-pip \
+    python3-venv
 
 # Check GNU Radio version (optional - only needed if build fails)
 pkg-config --modversion gnuradio-runtime
@@ -1632,7 +1662,10 @@ pkg-config --modversion gnuradio-runtime
 # sudo apt update
 # sudo apt upgrade gnuradio gnuradio-dev
 
-# Install Python dependencies
+# Install Python dependencies (use a venv; see requirements.txt)
+cd /path/to/gr-linux-crypto
+python3 -m venv .venv
+source .venv/bin/activate
 pip3 install -r requirements.txt
 
 # Optional: Install existing crypto modules
@@ -1640,6 +1673,7 @@ sudo apt-get install gr-openssl gr-nacl
 
 # Optional: Install additional crypto libraries
 sudo apt-get install libssl-dev libsodium-dev
+# For X-Wing KEM blocks, use libsodium 1.0.22+ (often built to /usr/local; see CMake summary)
 
 # Optional: Install GPGME for OpenPGP Card support (recommended)
 sudo apt-get install libgpgme-dev
@@ -1735,6 +1769,8 @@ sudo ldconfig
 
 ### Step 4: Verify Installation
 
+Activate the project venv if you use one for Python helpers (`source .venv/bin/activate`).
+
 ```bash
 # Check if library was installed
 ldconfig -p | grep linux-crypto
@@ -1744,6 +1780,9 @@ python3 -c "from gnuradio import linux_crypto; print('gnuradio.linux_crypto: OK'
 
 # Test Python helper package (KeyringHelper, CryptoHelpers, etc.)
 python3 -c "from gr_linux_crypto import KeyringHelper, CryptoHelpers; print('gr_linux_crypto: OK')"
+
+# If built with libsodium (see CMake "Sodium support: ON")
+python3 -c "from gnuradio import linux_crypto; print('kem_encrypt:', hasattr(linux_crypto, 'kem_encrypt'))"
 
 # Check GRC blocks are installed (path may differ if you used a custom prefix)
 ls /usr/local/share/gnuradio/grc/blocks/gr-linux-crypto.tree.yml
@@ -2107,7 +2146,8 @@ If you want to inspect specific behavior in code, start with these files and fun
 
 - **Python bindings (C++ to Python exposure)**
   - Runtime bindings (loaded as `gnuradio.linux_crypto`):
-    - [`python/linux_crypto_python.cc`](python/linux_crypto_python.cc): pybind11 module; `bind_kernel_keyring_source`, `bind_nitrokey_interface`, `bind_kernel_crypto_aes`, Brainpool ECIES / multi-ECIES / ECDSA blocks when OpenSSL is enabled
+    - [`python/linux_crypto_python.cc`](python/linux_crypto_python.cc): pybind11 module; `bind_kernel_keyring_source`, `bind_nitrokey_interface`, `bind_kernel_crypto_aes`, Brainpool ECIES / multi-ECIES / ECDSA when OpenSSL is enabled; `kem_*` and `hash_sha3` when libsodium is enabled
+    - [`lib/kem_encrypt_impl.cc`](lib/kem_encrypt_impl.cc), [`lib/kem_decrypt_impl.cc`](lib/kem_decrypt_impl.cc), [`lib/kem_generate_keypair_impl.cc`](lib/kem_generate_keypair_impl.cc), [`lib/hash_sha3_impl.cc`](lib/hash_sha3_impl.cc): libsodium PDU blocks (X-Wing KEM, SHA3)
 
 ## Security & Testing
 
@@ -2518,6 +2558,15 @@ Blocks implemented:
 - brainpool_ecdsa_verify         # ECDSA verification
 ```
 
+When **libsodium** is found at configure time (`HAVE_SODIUM`):
+
+```
+- kem_encrypt                    # X-Wing KEM + secretbox (PDU message ports)
+- kem_decrypt                    # KEM decrypt + secretbox open (PDU)
+- kem_generate_keypair           # crypto_kem_keypair to files
+- hash_sha3                      # SHA3-256 / SHA3-512 PDU hash
+```
+
 **Note:** `keyring_key_sink` and `tpm_interface` are mentioned in design but not yet implemented.
 
 ### 2. **Integration Helpers** (Implemented)
@@ -2533,6 +2582,18 @@ Python package gr_linux_crypto:
 - multi_recipient_ecies.py    # Multi-recipient ECIES
 - m17_frame.py            # M17 frame and session key helpers
 - gdss_set_key_source.py  # set_key PMT source for gr-k-gdss spreader/despreader
+- ephemeral_key_store.py  # Out-of-band .epk.gpg offers (Galdralag KDF)
+- ephemeral_key_import_block.py  # GRC block wrapper for offer import
+- galdralag_session_kdf.py  # Galdralag-compatible session HKDF helpers
+```
+
+**CLI scripts** (run from repo root with venv active; set `GR_LINUX_CRYPTO_DIR` if not installed):
+
+```
+scripts/
+- epk_generate.py       # generate | import | status | expire for .epk.gpg offers
+- generate_sbom.py      # CycloneDX + SPDX SBOM (CMake GR_LINUX_CRYPTO_SBOM=ON)
+- verify_sbom.py        # Validate generated SBOM files
 ```
 
 ### 3. **GNU Radio Companion Blocks** (Implemented)
@@ -2549,8 +2610,15 @@ All blocks appear under category `[gr-linux-crypto]` in GRC. Each block's YAML i
 | **Brainpool ECIES Decrypt** (brainpool_ecies_decrypt) | Single-recipient ECIES decryption; key from keyring or OpenPGP Card. |
 | **Brainpool ECIES Multi-Recipient Encrypt** (brainpool_ecies_multi_encrypt) | Multi-recipient ECIES (up to 25); callsigns + key store path. |
 | **Brainpool ECIES Multi-Recipient Decrypt** (brainpool_ecies_multi_decrypt) | Multi-recipient ECIES decryption; recipient callsign + key source. |
+| **Ephemeral Key Import** (linux_crypto_ephemeral_key_import) | Import `.epk.gpg` offer; Galdralag GDSS `set_key` PMT. |
+| **KEM Generate Keypair** (linux_crypto_kem_generate_keypair) | X-Wing `crypto_kem_keypair` to files (libsodium; optional build). |
+| **KEM Encrypt** (linux_crypto_kem_encrypt) | X-Wing KEM + secretbox PDU out (libsodium). |
+| **KEM Decrypt** (linux_crypto_kem_decrypt) | Decrypt KEM PDU (libsodium). |
+| **Hash SHA3** (linux_crypto_hash_sha3) | SHA3-256/512 PDU digest (libsodium). |
 
 **Legacy GRC block names (same functionality):** `kernel_keyring_source`, `kernel_aes_encrypt`, `nitrokey_sign`.
+
+**Sodium category:** `[gr-linux-crypto]/Sodium` — see [docs/USAGE.md](docs/USAGE.md#libsodium-pdu-blocks-x-wing-kem-sha3).
 
 ## Why This Approach?
 
@@ -2568,6 +2636,8 @@ All blocks appear under category `[gr-linux-crypto]` in GRC. Each block's YAML i
 | AES (all modes) | Yes | No | Kernel API only (use gr-openssl for full features) |
 | DES, 3DES, Blowfish | Yes | No | No (use gr-openssl) |
 | ChaCha20-Poly1305 | No | Yes | No (use gr-nacl) |
+| X-Wing KEM + secretbox (PDU) | No | No | Yes (libsodium 1.0.22+, optional build) |
+| SHA3-256 / SHA3-512 (PDU) | No | No | Yes (libsodium, optional build) |
 | **Asymmetric Cryptography** | | | |
 | RSA | Yes | No | No (use gr-openssl) |
 | X25519 (Curve25519 ECDH) | No | Yes | No (use gr-nacl) |
