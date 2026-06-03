@@ -29,15 +29,67 @@ include(GrBoost)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(KEYUTILS REQUIRED libkeyutils)
 
-# Optional dependencies for integration
-pkg_check_modules(OPENSSL QUIET openssl)
-pkg_check_modules(SODIUM QUIET libsodium)
+# OpenSSL (modern imported target)
+find_package(OpenSSL QUIET)
+if(OpenSSL_FOUND)
+    if(NOT TARGET OpenSSL::Crypto)
+        message(WARNING "OpenSSL found but OpenSSL::Crypto target is missing; OpenSSL support disabled")
+        set(OpenSSL_FOUND FALSE)
+    endif()
+endif()
+
+# libsodium: prefer /usr/local (e.g. 1.0.22) over older distro headers in /usr/include
+set(_SODIUM_PKG_PC_DIR "/usr/local/lib/pkgconfig")
+if(DEFINED ENV{PKG_CONFIG_PATH} AND NOT "$ENV{PKG_CONFIG_PATH}" STREQUAL "")
+    set(ENV{PKG_CONFIG_PATH} "${_SODIUM_PKG_PC_DIR}:$ENV{PKG_CONFIG_PATH}")
+else()
+    set(ENV{PKG_CONFIG_PATH} "${_SODIUM_PKG_PC_DIR}")
+endif()
+pkg_check_modules(SODIUM QUIET IMPORTED_TARGET libsodium)
+set(LIBSODIUM_VERSION_REPORT "")
+if(SODIUM_FOUND)
+    set(LIBSODIUM_VERSION_REPORT "${SODIUM_VERSION}")
+    if(TARGET PkgConfig::SODIUM AND NOT TARGET sodium::sodium)
+        add_library(sodium::sodium ALIAS PkgConfig::SODIUM)
+    endif()
+else()
+    find_library(SODIUM_LIBRARY
+        NAMES sodium
+        PATHS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu
+        NO_DEFAULT_PATH
+    )
+    find_path(SODIUM_INCLUDE_DIR
+        NAMES sodium.h
+        PATHS /usr/local/include /usr/include
+        NO_DEFAULT_PATH
+    )
+    if(SODIUM_LIBRARY AND SODIUM_INCLUDE_DIR)
+        set(SODIUM_FOUND TRUE)
+        add_library(sodium::sodium UNKNOWN IMPORTED)
+        set_target_properties(sodium::sodium PROPERTIES
+            IMPORTED_LOCATION "${SODIUM_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${SODIUM_INCLUDE_DIR}"
+        )
+        if(EXISTS "${SODIUM_INCLUDE_DIR}/sodium/version.h")
+            file(STRINGS "${SODIUM_INCLUDE_DIR}/sodium/version.h" _SODIUM_VER_LINE
+                REGEX "^#define[ \t]+SODIUM_VERSION_STRING")
+            if(_SODIUM_VER_LINE)
+                string(REGEX REPLACE ".*\"([^\"]+)\".*" "\\1" LIBSODIUM_VERSION_REPORT "${_SODIUM_VER_LINE}")
+            endif()
+        endif()
+        if(NOT LIBSODIUM_VERSION_REPORT)
+            set(LIBSODIUM_VERSION_REPORT "unknown (manual find)")
+        endif()
+    endif()
+endif()
+if(SODIUM_FOUND AND NOT LIBSODIUM_VERSION_REPORT)
+    set(LIBSODIUM_VERSION_REPORT "${SODIUM_VERSION}")
+endif()
 
 # Optional GPGME support for OpenPGP Card operations
 pkg_check_modules(GPGME QUIET gpgme)
 
-# Optional hardware security module support
-# Try libnitrokey-1 first (actual package name), fall back to libnitrokey
+# Optional hardware security module support (silent when absent)
 pkg_check_modules(NITROKEY QUIET libnitrokey-1 libnitrokey)
 
 ########################################################################
@@ -81,7 +133,7 @@ option(GR_LINUX_CRYPTO_PQ_KEM "Enable post-quantum hybrid KEM (Brainpool + Frodo
 option(GR_LINUX_CRYPTO_SBOM "Enable SBOM generation (CycloneDX + SPDX)" OFF)
 option(GR_LINUX_CRYPTO_STRICT_BSI "Enforce BSI TR-02102 algorithm boundary (EUCC/BSZ)" OFF)
 
-if(GR_LINUX_CRYPTO_FIPS AND NOT OPENSSL_FOUND)
+if(GR_LINUX_CRYPTO_FIPS AND NOT OpenSSL_FOUND)
     message(FATAL_ERROR "GR_LINUX_CRYPTO_FIPS requires OpenSSL. Enable OpenSSL or set GR_LINUX_CRYPTO_FIPS=OFF.")
 endif()
 
@@ -121,7 +173,7 @@ set(gr_linux_crypto_sources
     lib/bsi_boundary.cc
 )
 
-if(OPENSSL_FOUND)
+if(OpenSSL_FOUND)
     list(APPEND gr_linux_crypto_sources
         lib/brainpool_ec_impl.cc
         lib/brainpool_ecies_encrypt_impl.cc
@@ -140,7 +192,7 @@ set(gr_linux_crypto_headers
     lib/kernel_crypto_aes_impl.h
 )
 
-if(OPENSSL_FOUND)
+if(OpenSSL_FOUND)
     list(APPEND gr_linux_crypto_headers
         lib/brainpool_ec_impl.h
         lib/brainpool_ecies_encrypt_impl.h
@@ -156,6 +208,11 @@ endif()
 # Create library
 ########################################################################
 add_library(gnuradio-linux-crypto SHARED ${gr_linux_crypto_sources})
+
+# Prefer /usr/local headers (e.g. libsodium 1.0.22) before system /usr/include
+if(EXISTS "/usr/local/include")
+    target_include_directories(gnuradio-linux-crypto BEFORE PRIVATE /usr/local/include)
+endif()
 
 # Ensure GNU Radio libraries are linked
 # gr_register_component should set GNURADIO_LIBRARIES, but if not, use pkg-config
@@ -182,8 +239,8 @@ target_link_libraries(gnuradio-linux-crypto
 )
 
 # Add optional dependencies
-if(OPENSSL_FOUND)
-    target_link_libraries(gnuradio-linux-crypto ${OPENSSL_LIBRARIES})
+if(OpenSSL_FOUND)
+    target_link_libraries(gnuradio-linux-crypto OpenSSL::Crypto)
     target_compile_definitions(gnuradio-linux-crypto PRIVATE HAVE_OPENSSL)
 endif()
 if(GR_LINUX_CRYPTO_FIPS)
@@ -193,8 +250,8 @@ if(GR_LINUX_CRYPTO_STRICT_BSI)
     target_compile_definitions(gnuradio-linux-crypto PRIVATE GR_LINUX_CRYPTO_STRICT_BSI)
 endif()
 
-if(SODIUM_FOUND)
-    target_link_libraries(gnuradio-linux-crypto ${SODIUM_LIBRARIES})
+if(SODIUM_FOUND AND TARGET sodium::sodium)
+    target_link_libraries(gnuradio-linux-crypto sodium::sodium)
     target_compile_definitions(gnuradio-linux-crypto PRIVATE HAVE_SODIUM)
 endif()
 
@@ -236,6 +293,10 @@ if(ENABLE_PYTHON)
     pybind11_add_module(linux_crypto_python
         python/linux_crypto_python.cc
     )
+
+    if(EXISTS "/usr/local/include")
+        target_include_directories(linux_crypto_python BEFORE PRIVATE /usr/local/include)
+    endif()
     
     target_link_libraries(linux_crypto_python PRIVATE
         gnuradio-linux-crypto
@@ -244,9 +305,14 @@ if(ENABLE_PYTHON)
     )
     
     # Add OpenSSL support to Python bindings if available
-    if(OPENSSL_FOUND)
-        target_link_libraries(linux_crypto_python PRIVATE ${OPENSSL_LIBRARIES})
+    if(OpenSSL_FOUND)
+        target_link_libraries(linux_crypto_python PRIVATE OpenSSL::Crypto)
         target_compile_definitions(linux_crypto_python PRIVATE HAVE_OPENSSL)
+    endif()
+
+    if(SODIUM_FOUND AND TARGET sodium::sodium)
+        target_link_libraries(linux_crypto_python PRIVATE sodium::sodium)
+        target_compile_definitions(linux_crypto_python PRIVATE HAVE_SODIUM)
     endif()
     
     # Set RPATH so Python module can find the library
@@ -445,10 +511,22 @@ if(DEFINED GNURADIO_RUNTIME_VERSION)
 else()
     message(STATUS "  GNU Radio version: ${GNURADIO_VERSION} (version check unavailable)")
 endif()
-message(STATUS "  OpenSSL support: ${OPENSSL_FOUND}")
-message(STATUS "  Sodium support: ${SODIUM_FOUND}")
+if(OpenSSL_FOUND)
+    message(STATUS "  OpenSSL support: ON (${OPENSSL_VERSION}, target OpenSSL::Crypto)")
+else()
+    message(STATUS "  OpenSSL support: OFF")
+endif()
+if(SODIUM_FOUND)
+    message(STATUS "  Sodium support: ON (libsodium ${LIBSODIUM_VERSION_REPORT})")
+else()
+    message(STATUS "  Sodium support: OFF")
+endif()
 message(STATUS "  GPGME support: ${GPGME_FOUND}")
-message(STATUS "  Nitrokey support: ${NITROKEY_FOUND}")
+if(NITROKEY_FOUND)
+    message(STATUS "  Nitrokey support: ON")
+else()
+    message(STATUS "  Nitrokey support: OFF (optional, libnitrokey not installed)")
+endif()
 message(STATUS "  Python bindings: ${ENABLE_PYTHON}")
 message(STATUS "  GRC blocks: ${ENABLE_GRC}")
 message(STATUS "  Examples: ${ENABLE_EXAMPLES}")
