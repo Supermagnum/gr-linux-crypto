@@ -51,6 +51,8 @@ RUN_KEYRING_SLOW_TESTS=1 pytest tests/test_ephemeral_key_store.py -v -m slow
 
 ### Coverage
 
+With the project venv activated (see **Virtual environment** above):
+
 ```bash
 pip3 install pytest-cov
 pytest tests/ --cov=python --cov-report=html
