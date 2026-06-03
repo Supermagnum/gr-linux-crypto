@@ -107,6 +107,7 @@ Archive record timestamp: **21 March 2026**.
     - [Native C++ Blocks (Implemented)](#1-native-c-blocks-implemented)
     - [Integration Helpers (Implemented)](#2-integration-helpers-implemented)
     - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
+      - [Sources, Crypto, Sodium, Hardware, GDSS, Galdralag](#sources--where-key-bytes-come-from)
 18. [What happens if I remove my Nitrokey or GnuPG card?](#what-happens-if-i-remove-my-nitrokey-or-gnupg-card)
 19. [Why Nitrokey?](#why-nitrokey)
 20. [Where Key Functions Are Implemented (Quick Code Map)](#where-key-functions-are-implemented-quick-code-map)
@@ -1793,7 +1794,7 @@ ls /usr/local/share/gnuradio/grc/blocks/linux_crypto_*.block.yml
 
 #### GRC blocks (e.g. GDSS Set Key Source) not showing
 
-GNU Radio Companion finds blocks under the same prefix as GNU Radio. If the **gr-linux-crypto** category or blocks do not appear in GRC:
+GNU Radio Companion finds blocks under the same prefix as GNU Radio. If the **gr-linux-crypto** category or blocks do not appear in GRC, see also [GNU Radio Companion Blocks](#3-gnu-radio-companion-blocks-implemented) for what each block does.
 
 1. **Use the same install prefix as GNU Radio** (usually `/usr/local`). Reconfigure and reinstall:
    ```bash
@@ -2598,23 +2599,80 @@ scripts/
 
 ### 3. **GNU Radio Companion Blocks** (Implemented)
 
-All blocks appear under category `[gr-linux-crypto]` in GRC. Each block's YAML includes a `documentation` field shown in the block info panel.
+After `sudo make install`, open **GNU Radio Companion** and find blocks under **`[gr-linux-crypto]`**. They are grouped into folders that match the tree in GRC (Sources, Crypto, Sodium, Hardware, GDSS, Galdralag). Each block also has a short **documentation** panel in GRC (from its `.block.yml` file).
 
-| Block (GRC label) | Description |
-|-------------------|-------------|
-| **Kernel Keyring Source** (linux_crypto_kernel_keyring_source) | Reads key bytes from the Linux kernel keyring by key ID; optional auto-repeat. |
-| **Kernel Crypto AES** (linux_crypto_kernel_crypto_aes) | AES encrypt/decrypt via kernel crypto API; modes CBC, ECB, CTR, GCM. |
-| **Nitrokey Interface** (linux_crypto_nitrokey_interface) | Reads key/secret from a Nitrokey password-safe slot; optional auto-repeat. |
-| **GDSS Set Key Source** (linux_crypto_gdss_set_key_source) | Outputs `set_key` PMT for gr-k-gdss spreader/despreader; HKDF + session nonce; optional Galdralag KDF mode. |
-| **Brainpool ECIES Encrypt** (brainpool_ecies_encrypt) | Single-recipient ECIES encryption; key from keyring or OpenPGP Card. |
-| **Brainpool ECIES Decrypt** (brainpool_ecies_decrypt) | Single-recipient ECIES decryption; key from keyring or OpenPGP Card. |
-| **Brainpool ECIES Multi-Recipient Encrypt** (brainpool_ecies_multi_encrypt) | Multi-recipient ECIES (up to 25); callsigns + key store path. |
-| **Brainpool ECIES Multi-Recipient Decrypt** (brainpool_ecies_multi_decrypt) | Multi-recipient ECIES decryption; recipient callsign + key source. |
-| **Ephemeral Key Import** (linux_crypto_ephemeral_key_import) | Import `.epk.gpg` offer; Galdralag GDSS `set_key` PMT. |
-| **KEM Generate Keypair** (linux_crypto_kem_generate_keypair) | X-Wing `crypto_kem_keypair` to files (libsodium; optional build). |
-| **KEM Encrypt** (linux_crypto_kem_encrypt) | X-Wing KEM + secretbox PDU out (libsodium). |
-| **KEM Decrypt** (linux_crypto_kem_decrypt) | Decrypt KEM PDU (libsodium). |
-| **Hash SHA3** (linux_crypto_hash_sha3) | SHA3-256/512 PDU digest (libsodium). |
+**Two names for some blocks:** Older flowgraphs may use legacy IDs (`kernel_keyring_source`, `kernel_aes_encrypt`, `nitrokey_sign`). Newer YAML uses the `linux_crypto_*` names. Functionality is the same; you may see **Kernel Keyring Source** listed twice in GRC if both YAML files are installed.
+
+#### Sources — where key bytes come from
+
+| GRC label | Block ID | What it does |
+|-----------|----------|--------------|
+| **Kernel Keyring Source** | `linux_crypto_kernel_keyring_source` | Reads a symmetric key (or other secret bytes) from the **Linux kernel keyring** by key serial or description, and outputs it on a byte stream. Use this to feed session keys into gr-openssl, gr-nacl, or the kernel AES blocks without storing the key in the flowgraph file. Optional **auto-repeat** keeps outputting the same key for every buffer. |
+| **Kernel Keyring Source** (legacy) | `kernel_keyring_source` | Same as above; kept for older flowgraphs. Prefer `linux_crypto_kernel_keyring_source` in new designs. |
+
+#### Crypto — Brainpool ECIES and kernel AES
+
+| GRC label | Block ID | What it does |
+|-----------|----------|--------------|
+| **Brainpool ECIES Encrypt** | `brainpool_ecies_encrypt` | **Single-recipient** encrypt: takes a plaintext byte stream, performs ephemeral Brainpool ECDH with the recipient's public key, derives a session key (HKDF), and outputs **authenticated ciphertext** (AES-GCM or ChaCha20-Poly1305). Use for one-to-one encrypted payloads (voice frames, file chunks, etc.). Recipient public key comes from the kernel keyring or an OpenPGP Card lookup. |
+| **Brainpool ECIES Decrypt** | `brainpool_ecies_decrypt` | **Single-recipient** decrypt: inverse of Encrypt. You must supply the matching **private key** (kernel keyring key ID or OpenPGP **keygrip** on-card). **KDF Info** must match the encrypt block. Outputs the recovered plaintext stream. |
+| **Brainpool ECIES Multi-Recipient Encrypt** | `brainpool_ecies_multi_encrypt` | **Up to 25 recipients** in one transmission: encrypts the payload once, then wraps the session key separately for each callsign (amateur-radio operator ID). Recipients are listed in **callsigns**; public keys are resolved from an optional JSON key store and/or kernel keyring (`callsign:CALLSIGN` entries). Supports groups, keygrips, AES-GCM or ChaCha20-Poly1305. |
+| **Brainpool ECIES Multi-Recipient Decrypt** | `brainpool_ecies_multi_decrypt` | Decrypts one layer of a multi-recipient block for **your callsign** only. Set **recipient callsign**, **key source** (keyring or `opgp_card`), and private-key identifier. Other recipients' wrapped keys in the same frame are ignored. |
+| **Kernel AES Encrypt** | `kernel_aes_encrypt` | **Legacy name** for AES via the Linux **kernel crypto API**. Encrypt or decrypt a byte stream with a fixed key/IV in the block parameters (CBC, ECB, CTR, GCM depending on build). Use when you already have raw AES key material and want kernel-accelerated crypto instead of gr-openssl in the graph. |
+| **Kernel Crypto AES** | `linux_crypto_kernel_crypto_aes` | Same role as **Kernel AES Encrypt**; preferred ID in new flowgraphs. Toggle **Encrypt Mode** for decrypt. |
+
+**ECIES in one sentence:** Encrypt generates a one-time Brainpool key pair, agrees a shared secret with each recipient's public key, encrypts your data with a symmetric cipher, and sends the ciphertext plus wrapped key material. Decrypt recovers the shared secret with your private key and verifies/decrypts the payload.
+
+#### Sodium — X-Wing KEM and SHA3 (optional; needs libsodium 1.0.22+ at build time)
+
+These blocks use **message ports (PDUs)**, not continuous byte streams. Built only when CMake reports **Sodium support: ON**.
+
+| GRC label | Block ID | What it does |
+|-----------|----------|--------------|
+| **KEM Generate Keypair (X-Wing)** | `linux_crypto_kem_generate_keypair` | Creates an **X-Wing** post-quantum/classical hybrid key pair (`crypto_kem_keypair`) and writes raw public/private key files to disk. Run once per participant before a session; share the public key file with peers. |
+| **KEM Encrypt (X-Wing / libsodium)** | `linux_crypto_kem_encrypt` | Accepts a **plaintext PDU**, runs X-Wing encapsulation plus **XSalsa20-Poly1305 secretbox**, and outputs a framed **GKEM PDU** (KEM ciphertext + nonce + box). Use for PQ-safe exchange of a single message or session blob without Brainpool ECIES. |
+| **KEM Decrypt (X-Wing / libsodium)** | `linux_crypto_kem_decrypt` | Accepts a **GKEM PDU** and your X-Wing **secret key file**; decapsulates and opens the secretbox. Outputs the plaintext PDU. |
+| **Hash SHA3 (libsodium)** | `linux_crypto_hash_sha3` | Computes **SHA3-256 or SHA3-512** over an input PDU and outputs a digest PDU. Use for integrity checks, test vectors, or protocol framing that needs SHA3 on message boundaries. |
+
+See [docs/USAGE.md](docs/USAGE.md#libsodium-pdu-blocks-x-wing-kem-sha3) for PDU layout and file formats.
+
+#### Hardware — Nitrokey password-safe slots
+
+Requires **libnitrokey** at build time and a connected Nitrokey. These blocks **read key material from the device** (or trigger device-backed operations); they do not implement Galdralag cipher-profile mixing (see [Galdralag — mix and match cipher modes](#galdralag--mix-and-match-cipher-modes)).
+
+| GRC label | Block ID | What it does |
+|-----------|----------|--------------|
+| **Nitrokey Interface** | `linux_crypto_nitrokey_interface` | Reads bytes from a selected **Nitrokey password-safe slot** (0–15) and outputs them on a stream—typically a pre-stored symmetric key or seed for downstream crypto blocks. **Auto Repeat** controls whether the same bytes fill every output buffer. |
+| **Nitrokey Sign** | `nitrokey_sign` | **Legacy alias** for the Nitrokey interface block with a default slot. Prefer **Nitrokey Interface** when you need an explicit slot parameter. |
+
+For **Brainpool decrypt with private key on an OpenPGP Card**, use **Brainpool ECIES Multi-Recipient Decrypt** (or single **Decrypt**) with `key_source=opgp_card`, not these Hardware blocks.
+
+#### GDSS — session key for spread-spectrum
+
+| GRC label | Block ID | What it does |
+|-----------|----------|--------------|
+| **GDSS Set Key Source** | `linux_crypto_gdss_set_key_source` | Derives the **32-byte GDSS masking key** from a shared secret (HKDF) and emits a **`set_key` message** (PMT) consumed by **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** spreader/despreader blocks. Also builds the **12-byte session nonce** from session ID and TX sequence so you do not type keys by hand. **Key derivation** can follow default GR-K-GDSS labels or **Galdralag** `ephemeral-session` mode when EPK hex fields are set. |
+
+Wire **set_key** to `kgdss_spreader_cc` / `kgdss_despreader_cc`. See [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss).
+
+#### Galdralag — ephemeral offers and GDSS alignment
+
+| GRC label | Block ID | What it does |
+|-----------|----------|--------------|
+| **Ephemeral Key Import (Galdralag / GDSS)** | `linux_crypto_ephemeral_key_import` | Imports a **`.epk.gpg` offer** (out-of-band file from `scripts/epk_generate.py`), verifies issuer fingerprint, combines your ephemeral private key with the peer's offer, runs **Galdralag session KDF**, and emits the same **`set_key` PMT** as **GDSS Set Key Source** for GR-K-GDSS. Use when session keys come from a Galdralag-style handshake rather than a static shared secret in the flowgraph. Revoke unused offers with `epk_generate.py expire` (see [docs/EPHEMERAL_KEY_EXCHANGE.md](docs/EPHEMERAL_KEY_EXCHANGE.md)). |
+
+#### Quick reference (all blocks)
+
+| Block (GRC label) | Folder | One-line summary |
+|-------------------|--------|------------------|
+| Kernel Keyring Source | Sources | Key bytes from kernel keyring |
+| Brainpool ECIES Encrypt / Decrypt | Crypto | One recipient, stream I/O |
+| Brainpool ECIES Multi-Recipient Encrypt / Decrypt | Crypto | Up to 25 callsigns, stream I/O |
+| Kernel AES Encrypt / Kernel Crypto AES | Crypto | Raw AES via kernel API |
+| KEM Generate / Encrypt / Decrypt, Hash SHA3 | Sodium | PDU-based X-Wing KEM and SHA3 |
+| Nitrokey Interface / Nitrokey Sign | Hardware | Key material from Nitrokey slot |
+| GDSS Set Key Source | GDSS | `set_key` for GR-K-GDSS |
+| Ephemeral Key Import | Galdralag | `.epk.gpg` offer to `set_key` |
 
 **Legacy GRC block names (same functionality):** `kernel_keyring_source`, `kernel_aes_encrypt`, `nitrokey_sign`.
 
