@@ -2113,7 +2113,7 @@ If you want to inspect specific behavior in code, start with these files and fun
 
 **Comprehensive Security Testing Completed:**
 
-**Unit Tests (latest run):** 483 passed, 33 skipped, 1 failed (517 collected; 1 failure is environment-sensitive side-channel test). See [TEST_RESULTS.md](tests/TEST_RESULTS.md) for full breakdown.
+**Unit Tests (latest run):** 506 passed, 47 skipped, 0 failed (553 collected). Includes ephemeral offer / `revoke_offer` tests (`test_ephemeral_key_store.py`) and Galdralag KDF tests. Run from a venv: see [tests/README.md](tests/README.md); historical detail in [TEST_RESULTS.md](tests/TEST_RESULTS.md).
 
 **Coverage Testing (LibFuzzer):**
 - **805+ million test executions** exploring code paths
