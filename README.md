@@ -75,7 +75,7 @@ Archive record timestamp: **21 March 2026**.
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
    - [Multi-Recipient ECIES Encryption](#multi-recipient-ecies-encryption)
    - [Available APIs](#available-apis)
-   - [Independent use — mix and match freely](#independent-use--mix-and-match-freely)
+   - [Galdralag — mix and match cipher modes](#galdralag--mix-and-match-cipher-modes)
    - [CallsignKeyStore and key groups API](#callsignkeystore-and-key-groups-api)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
 12. [Integration Architecture](#integration-architecture)
@@ -912,7 +912,7 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 ### 5. **Galdralag Support (GDSS and session KDF)**
 - **What it is:** Optional interoperability with **[Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware)** — the open-source cryptographic framework and token stack for **Baochip-1x** (authenticated ephemeral ECDH, cipher profiles, host tools such as `galdra`). This module does not ship that firmware; it provides host-side derivation that matches Galdralag’s **`ephemeral-session`** HKDF when you want the same session subkeys on the GNU Radio / **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** side.
 - **How this module supports it:** Python helpers `derive_galdralag_session_keys` / `derive_galdralag_gdss_masking_key` (`galdralag_session_kdf.py`) implement the same salt (ordered ephemeral public keys) and domain **info** strings as Galdralag’s Rust crate. `derive_galdralag_session_keys` also returns **`profile_prk`** (the HKDF-Extract output), matching `SessionKeys::profile_prk()` for cipher-profile cascades on the host. The **GDSS Set Key Source** block can use `key_derivation=galdralag` plus hex-encoded initiator/responder EPKs so the **32-byte GDSS masking key** matches `SessionKeys.gdss_mask_key` after a Galdralag handshake. Default `key_derivation=gr_k_gdss` is unchanged for existing [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) flows.
-- **No conflict with Nitrokey / TPM / keyring:** Galdralag support is an **additional** Python/GRC path for session-key alignment with that token project. Kernel keyring, **Nitrokey** (`libnitrokey`), OpenPGP card paths, and other HSM integrations are unchanged and independent.
+- **No conflict with Nitrokey / TPM / keyring:** Galdralag support is an **additional** Python/GRC path for session-key alignment with that token project. Kernel keyring, **Nitrokey** (`libnitrokey`), OpenPGP card paths, and other HSM integrations remain available for storage and fixed OpenPGP operations, but **only Galdralag** supports mixing cipher modes (ECIES, Shamir, HPKE-style, token cipher profiles) in one stack. OpenPGP / Nitrokey / GnuPG smart cards **cannot** mix and match those paths.
 - **Current Galdralag-firmware `SessionKeys` semantics:** The token stores the raw classical ECDH IKM (Brainpool `x` coordinate) for **built-in CESS** cipher-profile cascades (`cipher-profile` HKDF-BLAKE3) and `profile_prk` from HKDF-Extract for **custom** profiles. Your host already has the ECDH bytes you pass into `derive_galdralag_session_keys`; use the same slice wherever Galdra docs refer to `cess_inner_cascade_ikm`. For CESS **Mode A `K_outer`**, `derive_galdralag_cess_k_outer_mode_a` in `galdralag_session_kdf.py` matches `cess::derive_k_outer` when the optional PyPI package **`blake3`** is installed (`hkdf_blake3_cess` is also exported for advanced use; vectors align with `crates/cess/src/hkdf_blake3.rs` tests).
 - **With [gr-openssl](https://github.com/Supermagnum/gr-openssl) and [gr-nacl](https://github.com/Supermagnum/gr-nacl):** Galdralag ephemeral ECDH is **Brainpool-only** (`SessionCurve` in Galdralag-firmware). Do **not** feed an X25519 shared secret from gr-nacl into `derive_galdralag_session_keys`. Use `CryptoHelpers.brainpool_ecdh` (or equivalent) so the IKM matches the token. Derived keys are ordinary 32-byte symmetric secrets; you can supply them to gr-openssl or other blocks according to your application. gr-nacl remains the right choice for Curve25519 / Ed25519 / NaCl-style APIs on **separate** key-agreement paths from the Galdralag handshake.
 
@@ -1431,7 +1431,7 @@ plaintext = ecies.verify_and_decrypt(
 
 **Shamir secret sharing (K-of-N quorum):** With Shamir over a session key, you can encrypt a transmission so that the content is only recoverable when K of N designated operators each contribute their share. No single operator, and no coalition smaller than K, can read it alone. This is qualitatively different from the pairwise model: it enforces collective decision-making cryptographically rather than just socially. To use it, call `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)`. Each recipient gets one share in the block; use `get_share_from_shamir_block(block, callsign)` to extract it. Any K recipients pass their shares to `decrypt_shamir(block, collected_shares)`. All Brainpool curve sizes are supported (P256r1, P384r1, P512r1; BSI TR 03111 / RFC 5639). Low-level helpers: `create_shamir_backed_key`, `reconstruct_session_key`, `split`, `reconstruct`, `get_curve_prime`, `get_max_secret_bytes`, `get_share_value_bytes`, `SUPPORTED_CURVES` in `gr_linux_crypto` (see `python/shamir_secret_sharing.py`).
 
-**Nitrokey / OpenPGP Card decrypt:** For on-card decryption (private key never leaves the device), use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`). Python helper `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip. `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions to use the block.
+**Nitrokey / OpenPGP Card decrypt:** For on-card decryption (private key never leaves the device), use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`). Python helper `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip. `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions to use the block. This uses fixed OpenPGP card operations; it is **not** part of Galdralag cipher-profile mixing (see below).
 
 #### Available APIs
 
@@ -1457,15 +1457,19 @@ plaintext = ecies.verify_and_decrypt(
 
 - `get_keygrip_from_key_id(...)`, `decrypt_with_card(...)` (documented stub), C++ block with `key_source="opgp_card"`
 
-#### Independent use — mix and match freely
+#### Galdralag — mix and match cipher modes
 
-| You want | Use |
-|----------|-----|
+**Only [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) / Baochip-1x** (with matching host helpers in this module) lets you **mix and match** cipher constructions below. **OpenPGP Card, Nitrokey, and GnuPG smart-card stacks cannot** do that: they expose fixed OpenPGP operations (keygrips, on-card ECDH/decrypt, etc.), not interchangeable ECIES / Shamir / HPKE / cipher-profile paths.
+
+For amateur-radio multi-recipient ECIES without Galdralag, pick one approach (for example `encrypt` / `decrypt` only) rather than treating this table as a general OpenPGP feature matrix.
+
+| You want | Use (Galdralag-aligned host API) |
+|----------|----------------------------------|
 | ECIES only | `MultiRecipientECIES.encrypt` / `decrypt` |
 | Shamir only | `split` / `reconstruct` or `create_shamir_backed_key` / `reconstruct_session_key` |
 | ECIES + Shamir (K-of-N quorum) | `encrypt_shamir` / `decrypt_shamir` |
 | Clean high-level API | `HPKEBrainpool.seal` / `open` |
-| Hardware-backed keys | Nitrokey C++ block or `decrypt_with_card` |
+| Hardware-backed keys (on-card private key) | Nitrokey / OpenPGP C++ block (`key_source="opgp_card"`) or `decrypt_with_card` stub |
 
 **Key Store Path (key_store_path) and Recipient Callsigns (callsigns)**
 
@@ -1473,7 +1477,7 @@ The **Brainpool ECIES Multi-Recipient Encrypt** block needs a mapping from recip
 
 - **Keyring-only (no JSON file):** Add each recipient's public key to the keyring with description `callsign:CALLSIGN` (e.g. `keyctl add user "callsign:W1ABC" "$(cat pubkey.pem)"` or `CallsignKeyStore(...).add_public_key(callsign, public_key_pem)`). Set **callsigns** to the comma-separated list of recipients. Leave Key Store Path empty (`""`); the block will look up keys in the session keyring, then the user keyring. No JSON file is required.
 - **Optional JSON file:** If you set **key_store_path**, the block loads that file first (cache). For any callsign not in the file, it then looks in the keyring. So the file is an optional cache; if the file is missing or empty, the block still works using the keyring. Default when empty: `~/.gnuradio/callsign_keys.json`.
-- **Hardware keys (multiple public keys per device):** You can store a **keygrip** (40 hex chars) instead of PEM for a callsign. The block then fetches the public key from the OpenPGP Card / Nitrokey (or other GnuPG-accessible hardware). So one device with multiple keys (e.g. different slots or key grips) can supply multiple recipient keys: store one keygrip per callsign in the keyring (e.g. `keyctl add user "callsign:W1ABC" "A1B2C3D4E5F6..."`) or in the JSON file, or use `CallsignKeyStore.add_keygrip(callsign, keygrip)`. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`.
+- **Hardware keys (multiple public keys per device):** You can store a **keygrip** (40 hex chars) instead of PEM for a callsign. The block then fetches the public key from the OpenPGP Card / Nitrokey (or other GnuPG-accessible hardware) for **encrypt-side recipient lookup**. That is separate from Galdralag cipher-profile mixing; cards still cannot freely combine ECIES, Shamir, and HPKE modes like Galdralag. Store one keygrip per callsign in the keyring (e.g. `keyctl add user "callsign:W1ABC" "A1B2C3D4E5F6..."`) or in the JSON file, or use `CallsignKeyStore.add_keygrip(callsign, keygrip)`. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`.
 - **File format (when used):** One JSON object. Each key is either a callsign or a **group name**. Values can be: (a) public key in PEM (string), (b) keygrip (40 hex), or (c) a **key group**: an array of callsigns. When you set **callsigns** to a group name (e.g. `net1`), the block expands it to all members of that group (e.g. `key1`, `key2`, `key3`) and encrypts for each. Groups allow one label to refer to multiple recipients; total recipients after expansion must not exceed 25. The JSON file can contain **only group definitions** (no PEMs or keygrips); in that case, each member callsign is still resolved via the kernel keyring or hardware device.
   ```json
   {

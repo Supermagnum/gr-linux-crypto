@@ -106,7 +106,7 @@ Uses `MultiRecipientECIES` under the hood with configurable curve and symmetric 
 
 **File:** `python/nitrokey_bridge.py`
 
-When the recipient's private key is on an OpenPGP Card (e.g. Nitrokey), decryption can be performed with the key never leaving the device. The C++ block `brainpool_ecies_multi_decrypt` supports this: set `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`).
+When the recipient's private key is on an OpenPGP Card (e.g. Nitrokey), decryption can be performed with the key never leaving the device. The C++ block `brainpool_ecies_multi_decrypt` supports this: set `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>` (40 hex chars from `gpg --list-secret-keys --with-keygrip`). This uses fixed OpenPGP card semantics; it does **not** provide Galdralag-style cipher-profile mixing.
 
 - `decrypt_with_card(encrypted_block, recipient_callsign, keygrip)` raises `NotImplementedError` in standalone Python with instructions to use the C++ block.
 - `get_keygrip_from_key_id(key_identifier)` resolves a GnuPG key ID or fingerprint to a keygrip via `gpg`.
@@ -168,15 +168,17 @@ When the recipient's private key is on an OpenPGP Card (e.g. Nitrokey), decrypti
 
 - `get_keygrip_from_key_id(...)`, `decrypt_with_card(...)` (documented stub), C++ block with `key_source="opgp_card"`
 
-## Independent use — mix and match freely
+## Galdralag — mix and match cipher modes
 
-| You want | Use |
-|----------|-----|
+**Only [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) / Baochip-1x** (with matching host helpers in gr-linux-crypto) supports **mixing** the cipher constructions below. **OpenPGP Card, Nitrokey, and GnuPG smart-card stacks cannot** mix and match ECIES, Shamir, HPKE-style, and cipher-profile paths; they expose fixed OpenPGP operations only.
+
+| You want | Use (Galdralag-aligned host API) |
+|----------|----------------------------------|
 | ECIES only | `MultiRecipientECIES.encrypt` / `decrypt` |
 | Shamir only | `split` / `reconstruct` or `create_shamir_backed_key` / `reconstruct_session_key` |
 | ECIES + Shamir (K-of-N quorum) | `encrypt_shamir` / `decrypt_shamir` |
 | Clean high-level API | `HPKEBrainpool.seal` / `open` |
-| Hardware-backed keys | Nitrokey C++ block or `decrypt_with_card` |
+| Hardware-backed keys (on-card private key) | Nitrokey / OpenPGP C++ block (`key_source="opgp_card"`) or `decrypt_with_card` stub |
 
 ## Security Properties
 

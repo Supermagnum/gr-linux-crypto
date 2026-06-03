@@ -1072,7 +1072,7 @@ Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each 
 
 **Shamir (K-of-N quorum):** With Shamir over a session key, you encrypt so that the content is only recoverable when K of N designated operators each contribute their share. No single operator, and no coalition smaller than K, can read it alone. This is qualitatively different from the pairwise model: it enforces collective decision-making cryptographically rather than just socially. Use `MultiRecipientECIES.encrypt_shamir(plaintext, callsigns, threshold_k, curve=...)` so that any K of N recipients can combine shares to decrypt. All Brainpool curve sizes (P256r1, P384r1, P512r1) are supported; curve selects the prime field (BSI/RFC 5639). Extract a share with `get_share_from_shamir_block(block, callsign)`; decrypt with `decrypt_shamir(block, collected_shares)` when you have at least K shares.
 
-**Nitrokey / OpenPGP Card decrypt:** Use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>`. Python: `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip; `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions.
+**Nitrokey / OpenPGP Card decrypt:** Use the C++ block `brainpool_ecies_multi_decrypt` with `key_source="opgp_card"` and `recipient_key_identifier=<keygrip>`. Python: `get_keygrip_from_key_id(key_id)` resolves a key ID to keygrip; `decrypt_with_card()` in standalone Python raises `NotImplementedError` with instructions. Fixed OpenPGP card operations only—not Galdralag cipher-profile mixing.
 
 ### Available APIs
 
@@ -1084,15 +1084,17 @@ Multi-recipient ECIES allows encrypting a message for up to 25 recipients. Each 
 
 **Nitrokey / card:** `get_keygrip_from_key_id(...)`, `decrypt_with_card(...)` (documented stub), C++ block with `key_source="opgp_card"`.
 
-### Independent use — mix and match freely
+### Galdralag — mix and match cipher modes
 
-| You want | Use |
-|----------|-----|
+**Only [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) / Baochip-1x** (with matching host helpers) lets you **mix and match** the constructions below. **OpenPGP Card, Nitrokey, and GnuPG smart-card stacks cannot**: they use fixed OpenPGP operations, not interchangeable ECIES / Shamir / HPKE / cipher-profile paths.
+
+| You want | Use (Galdralag-aligned host API) |
+|----------|----------------------------------|
 | ECIES only | `MultiRecipientECIES.encrypt` / `decrypt` |
 | Shamir only | `split` / `reconstruct` or `create_shamir_backed_key` / `reconstruct_session_key` |
 | ECIES + Shamir (K-of-N quorum) | `encrypt_shamir` / `decrypt_shamir` |
 | Clean high-level API | `HPKEBrainpool.seal` / `open` |
-| Hardware-backed keys | Nitrokey C++ block or `decrypt_with_card` |
+| Hardware-backed keys (on-card private key) | Nitrokey / OpenPGP C++ block (`key_source="opgp_card"`) or `decrypt_with_card` stub |
 
 ### Key Store Path (key_store_path) and callsigns
 
@@ -1118,7 +1120,7 @@ MIIC...BASE64-DATA...
 }
 ```
 
-Use a group name in **callsigns** (e.g. `net_control` or `net_control,region_east`) and the block expands it to all members and encrypts for each (max 25 after expansion). **Hardware devices with multiple keys:** store a **keygrip** (40 hex) instead of PEM; the block fetches the public key from the OpenPGP Card/Nitrokey. Use `CallsignKeyStore(...).add_keygrip(callsign, keygrip)` or put the keygrip in the keyring/file. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment**. Empty path uses default `~/.gnuradio/callsign_keys.json` when a file is used; the file can be missing and keyring-only is fine.
+Use a group name in **callsigns** (e.g. `net_control` or `net_control,region_east`) and the block expands it to all members and encrypts for each (max 25 after expansion). **Hardware devices with multiple keys:** store a **keygrip** (40 hex) instead of PEM for encrypt-side public-key lookup from the OpenPGP Card/Nitrokey (not Galdralag cipher mixing). Use `CallsignKeyStore(...).add_keygrip(callsign, keygrip)` or put the keygrip in the keyring/file. Get keygrips with `gpg --list-secret-keys --keyid-format=long --with-keygrip`. When generating keys (GnuPG or Nitrokey), use the **callsign as the name or as the comment**. Empty path uses default `~/.gnuradio/callsign_keys.json` when a file is used; the file can be missing and keyring-only is fine.
 
 ```python
 #!/usr/bin/env python3
