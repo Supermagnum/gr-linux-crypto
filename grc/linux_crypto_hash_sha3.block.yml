@@ -1,0 +1,31 @@
+id: linux_crypto_hash_sha3
+label: Hash SHA3 (libsodium)
+category: '[gr-linux-crypto]/Sodium'
+flags: [python, cpp]
+templates:
+  imports: |-
+    from gnuradio import linux_crypto
+  make: linux_crypto.hash_sha3(${digest_bits})
+  callbacks:
+  - set_digest_bits(${digest_bits})
+parameters:
+- id: digest_bits
+  label: Digest size (bits)
+  dtype: int
+  default: '256'
+  options: ['256', '512']
+  hide: none
+inputs:
+- label: in
+  domain: message
+  id: in
+outputs:
+- label: out
+  domain: message
+  id: out
+
+documentation: |-
+  PDU block: SHA3-256 (crypto_hash_sha3256) or SHA3-512 (crypto_hash_sha3512) over
+  the input PDU. Output PDU is a byte vector containing the digest only.
+
+file_format: 1

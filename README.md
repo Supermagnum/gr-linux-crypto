@@ -55,7 +55,7 @@ Archive record timestamp: **21 March 2026**.
    - [Modern Crypto (NaCl/libsodium) - Use gr-nacl](#modern-crypto-nacllibsodium---use-gr-nacl)
    - [GnuPG/OpenPGP Operations](#gnupgopenpgp-operations)
 6. [Documentation](#documentation)
-   - [Usage (ephemeral keys, CLI)](docs/USAGE.md) - `epk_generate.py` (`generate`, `import`, `status`, `expire`)
+   - [Usage notes](docs/USAGE.md) - venv, libsodium KEM/SHA3 PDU blocks, `epk_generate.py` (`generate`, `import`, `status`, `expire`)
    - [Ephemeral key exchange specification](docs/EPHEMERAL_KEY_EXCHANGE.md) - `.epk.gpg` format and threat model
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
    - [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) - Keyed GDSS GNU Radio OOT (companion project; uses gr-linux-crypto)
@@ -1318,7 +1318,7 @@ The **GDSS Set Key Source** block produces the `set_key` PMT message expected by
 
 **Requirements:** `gr_linux_crypto.CryptoHelpers` (OpenSSL/HKDF). For zero manual entry from kernel keyring, use gr-k-gdss key_injector with keyring_id instead. For Galdralag sync-burst keys (different HKDF labels than GR-K-GDSS), use `derive_galdralag_session_keys` and map `gdss_sync_key` / `gdss_timing_key` per your keyed sync design.
 
-**Python `derive_galdralag_session_keys`:** Returns a dict of seven 32-byte values, matching [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `ephemeral-session` `SessionKeys`: `profile_prk` (HKDF-Extract PRK for cipher-profile cascades on the host), `payload_key_i2r`, `payload_key_r2i`, `gdss_mask_key`, `gdss_sync_key`, `gdss_timing_key`, `mac_key`. Initiator and responder EPK arguments follow the same order as Galdralag `protocol.rs` (`InitMessage` EPK first, then response EPK). Code: `python/galdralag_session_kdf.py`. Optional **`derive_galdralag_cess_k_outer_mode_a`** (requires `pip install blake3`) matches `cess::derive_k_outer` for the same classical IKM.
+**Python `derive_galdralag_session_keys`:** Returns a dict of seven 32-byte values, matching [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `ephemeral-session` `SessionKeys`: `profile_prk` (HKDF-Extract PRK for cipher-profile cascades on the host), `payload_key_i2r`, `payload_key_r2i`, `gdss_mask_key`, `gdss_sync_key`, `gdss_timing_key`, `mac_key`. Initiator and responder EPK arguments follow the same order as Galdralag `protocol.rs` (`InitMessage` EPK first, then response EPK). Code: `python/galdralag_session_kdf.py`. Optional **`derive_galdralag_cess_k_outer_mode_a`** (requires `pip install blake3` in the project venv) matches `cess::derive_k_outer` for the same classical IKM.
 
 ```python
 from gnuradio import gr
@@ -1574,6 +1574,9 @@ See `examples/brainpool_example.py` for basic operations and `docs/examples.md` 
 - **C++17 compatible compiler** (GCC 7+ or Clang 5+)
 
 ### Python Dependencies
+
+Install from `requirements.txt` inside a **virtual environment** (do not install into the system Python):
+
 - **cryptography>=3.4.8** (for Python crypto helpers)
 - **numpy>=1.20.0** (for numerical operations)
 - **gnuradio>=3.10.12.0** (Python bindings, tested with 3.10.12.0)
@@ -1592,7 +1595,9 @@ See `examples/brainpool_example.py` for basic operations and `docs/examples.md` 
 - **OpenSSL development headers** (libssl-dev)
   - **OpenSSL 1.0.2+** required for Brainpool curve support
   - **OpenSSL 3.x** recommended for improved Brainpool support
-- **libsodium development headers** (libsodium-dev)
+- **libsodium 1.0.22+** (development headers; X-Wing KEM and SHA3 PDU blocks)
+  - If a newer build is installed under `/usr/local`, CMake prepends `/usr/local/lib/pkgconfig` and `/usr/local/include` so it is preferred over distro 1.0.18
+  - Package names: `libsodium-dev` (Debian) or a manual install to `/usr/local`
 
 ## Installation
 
@@ -1629,7 +1634,8 @@ sudo apt-get install -y \
     build-essential \
     pkg-config \
     python3-dev \
-    python3-pip
+    python3-pip \
+    python3-venv
 
 # Check GNU Radio version (optional - only needed if build fails)
 pkg-config --modversion gnuradio-runtime
@@ -1640,7 +1646,10 @@ pkg-config --modversion gnuradio-runtime
 # sudo apt update
 # sudo apt upgrade gnuradio gnuradio-dev
 
-# Install Python dependencies
+# Install Python dependencies (use a venv; see requirements.txt)
+cd /path/to/gr-linux-crypto
+python3 -m venv .venv
+source .venv/bin/activate
 pip3 install -r requirements.txt
 
 # Optional: Install existing crypto modules
@@ -1648,6 +1657,7 @@ sudo apt-get install gr-openssl gr-nacl
 
 # Optional: Install additional crypto libraries
 sudo apt-get install libssl-dev libsodium-dev
+# For X-Wing KEM blocks, use libsodium 1.0.22+ (often built to /usr/local; see CMake summary)
 
 # Optional: Install GPGME for OpenPGP Card support (recommended)
 sudo apt-get install libgpgme-dev
@@ -1743,6 +1753,8 @@ sudo ldconfig
 
 ### Step 4: Verify Installation
 
+Activate the project venv if you use one for Python helpers (`source .venv/bin/activate`).
+
 ```bash
 # Check if library was installed
 ldconfig -p | grep linux-crypto
@@ -1752,6 +1764,9 @@ python3 -c "from gnuradio import linux_crypto; print('gnuradio.linux_crypto: OK'
 
 # Test Python helper package (KeyringHelper, CryptoHelpers, etc.)
 python3 -c "from gr_linux_crypto import KeyringHelper, CryptoHelpers; print('gr_linux_crypto: OK')"
+
+# If built with libsodium (see CMake "Sodium support: ON")
+python3 -c "from gnuradio import linux_crypto; print('kem_encrypt:', hasattr(linux_crypto, 'kem_encrypt'))"
 
 # Check GRC blocks are installed (path may differ if you used a custom prefix)
 ls /usr/local/share/gnuradio/grc/blocks/gr-linux-crypto.tree.yml
@@ -2115,13 +2130,14 @@ If you want to inspect specific behavior in code, start with these files and fun
 
 - **Python bindings (C++ to Python exposure)**
   - Runtime bindings (loaded as `gnuradio.linux_crypto`):
-    - [`python/linux_crypto_python.cc`](python/linux_crypto_python.cc): pybind11 module; `bind_kernel_keyring_source`, `bind_nitrokey_interface`, `bind_kernel_crypto_aes`, Brainpool ECIES / multi-ECIES / ECDSA blocks when OpenSSL is enabled
+    - [`python/linux_crypto_python.cc`](python/linux_crypto_python.cc): pybind11 module; `bind_kernel_keyring_source`, `bind_nitrokey_interface`, `bind_kernel_crypto_aes`, Brainpool ECIES / multi-ECIES / ECDSA when OpenSSL is enabled; `kem_*` and `hash_sha3` when libsodium is enabled
+    - [`lib/kem_encrypt_impl.cc`](lib/kem_encrypt_impl.cc), [`lib/kem_decrypt_impl.cc`](lib/kem_decrypt_impl.cc), [`lib/kem_generate_keypair_impl.cc`](lib/kem_generate_keypair_impl.cc), [`lib/hash_sha3_impl.cc`](lib/hash_sha3_impl.cc): libsodium PDU blocks (X-Wing KEM, SHA3)
 
 ## Security & Testing
 
 **Comprehensive Security Testing Completed:**
 
-**Unit Tests (latest run):** 483 passed, 33 skipped, 1 failed (517 collected; 1 failure is environment-sensitive side-channel test). See [TEST_RESULTS.md](tests/TEST_RESULTS.md) for full breakdown.
+**Unit Tests (latest run):** 506 passed, 47 skipped, 0 failed (553 collected). Includes ephemeral offer / `revoke_offer` tests (`test_ephemeral_key_store.py`) and Galdralag KDF tests. Run from a venv: see [tests/README.md](tests/README.md); historical detail in [TEST_RESULTS.md](tests/TEST_RESULTS.md).
 
 **Coverage Testing (LibFuzzer):**
 - **805+ million test executions** exploring code paths
@@ -2526,6 +2542,15 @@ Blocks implemented:
 - brainpool_ecdsa_verify         # ECDSA verification
 ```
 
+When **libsodium** is found at configure time (`HAVE_SODIUM`):
+
+```
+- kem_encrypt                    # X-Wing KEM + secretbox (PDU message ports)
+- kem_decrypt                    # KEM decrypt + secretbox open (PDU)
+- kem_generate_keypair           # crypto_kem_keypair to files
+- hash_sha3                      # SHA3-256 / SHA3-512 PDU hash
+```
+
 **Note:** `keyring_key_sink` and `tpm_interface` are mentioned in design but not yet implemented.
 
 ### 2. **Integration Helpers** (Implemented)
@@ -2541,6 +2566,18 @@ Python package gr_linux_crypto:
 - multi_recipient_ecies.py    # Multi-recipient ECIES
 - m17_frame.py            # M17 frame and session key helpers
 - gdss_set_key_source.py  # set_key PMT source for gr-k-gdss spreader/despreader
+- ephemeral_key_store.py  # Out-of-band .epk.gpg offers (Galdralag KDF)
+- ephemeral_key_import_block.py  # GRC block wrapper for offer import
+- galdralag_session_kdf.py  # Galdralag-compatible session HKDF helpers
+```
+
+**CLI scripts** (run from repo root with venv active; set `GR_LINUX_CRYPTO_DIR` if not installed):
+
+```
+scripts/
+- epk_generate.py       # generate | import | status | expire for .epk.gpg offers
+- generate_sbom.py      # CycloneDX + SPDX SBOM (CMake GR_LINUX_CRYPTO_SBOM=ON)
+- verify_sbom.py        # Validate generated SBOM files
 ```
 
 ### 3. **GNU Radio Companion Blocks** (Implemented)
@@ -2557,8 +2594,15 @@ All blocks appear under category `[gr-linux-crypto]` in GRC. Each block's YAML i
 | **Brainpool ECIES Decrypt** (brainpool_ecies_decrypt) | Single-recipient ECIES decryption; key from keyring or OpenPGP Card. |
 | **Brainpool ECIES Multi-Recipient Encrypt** (brainpool_ecies_multi_encrypt) | Multi-recipient ECIES (up to 25); callsigns + key store path. |
 | **Brainpool ECIES Multi-Recipient Decrypt** (brainpool_ecies_multi_decrypt) | Multi-recipient ECIES decryption; recipient callsign + key source. |
+| **Ephemeral Key Import** (linux_crypto_ephemeral_key_import) | Import `.epk.gpg` offer; Galdralag GDSS `set_key` PMT. |
+| **KEM Generate Keypair** (linux_crypto_kem_generate_keypair) | X-Wing `crypto_kem_keypair` to files (libsodium; optional build). |
+| **KEM Encrypt** (linux_crypto_kem_encrypt) | X-Wing KEM + secretbox PDU out (libsodium). |
+| **KEM Decrypt** (linux_crypto_kem_decrypt) | Decrypt KEM PDU (libsodium). |
+| **Hash SHA3** (linux_crypto_hash_sha3) | SHA3-256/512 PDU digest (libsodium). |
 
 **Legacy GRC block names (same functionality):** `kernel_keyring_source`, `kernel_aes_encrypt`, `nitrokey_sign`.
+
+**Sodium category:** `[gr-linux-crypto]/Sodium` — see [docs/USAGE.md](docs/USAGE.md#libsodium-pdu-blocks-x-wing-kem-sha3).
 
 ## Why This Approach?
 
@@ -2576,6 +2620,8 @@ All blocks appear under category `[gr-linux-crypto]` in GRC. Each block's YAML i
 | AES (all modes) | Yes | No | Kernel API only (use gr-openssl for full features) |
 | DES, 3DES, Blowfish | Yes | No | No (use gr-openssl) |
 | ChaCha20-Poly1305 | No | Yes | No (use gr-nacl) |
+| X-Wing KEM + secretbox (PDU) | No | No | Yes (libsodium 1.0.22+, optional build) |
+| SHA3-256 / SHA3-512 (PDU) | No | No | Yes (libsodium, optional build) |
 | **Asymmetric Cryptography** | | | |
 | RSA | Yes | No | No (use gr-openssl) |
 | X25519 (Curve25519 ECDH) | No | Yes | No (use gr-nacl) |

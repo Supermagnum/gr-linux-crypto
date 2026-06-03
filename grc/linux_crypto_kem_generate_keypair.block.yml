@@ -1,0 +1,45 @@
+id: linux_crypto_kem_generate_keypair
+label: KEM Generate Keypair (X-Wing)
+category: '[gr-linux-crypto]/Sodium'
+flags: [python, cpp]
+templates:
+  imports: |-
+    from gnuradio import linux_crypto
+  make: linux_crypto.kem_generate_keypair(${public_key_file}, ${secret_key_file}, ${generate_on_start})
+  callbacks:
+  - set_public_key_file(${public_key_file})
+  - set_secret_key_file(${secret_key_file})
+parameters:
+- id: public_key_file
+  label: Public key output file
+  dtype: string
+  default: '"/tmp/xwing_kem_pk.bin"'
+  hide: none
+- id: secret_key_file
+  label: Secret key output file
+  dtype: string
+  default: '"/tmp/xwing_kem_sk.bin"'
+  hide: none
+- id: generate_on_start
+  label: Generate on start
+  dtype: bool
+  default: 'True'
+  hide: none
+inputs:
+- label: generate
+  domain: message
+  id: generate
+  optional: true
+outputs:
+- label: status
+  domain: message
+  id: status
+  optional: true
+
+documentation: |-
+  Generates an X-Wing KEM keypair with crypto_kem_keypair and writes raw public and
+  secret keys to the configured paths. Keys are written at flowgraph start when
+  Generate on start is true, or when a message is sent to the generate port.
+  Status port publishes "ok" or "error".
+
+file_format: 1

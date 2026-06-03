@@ -14,10 +14,9 @@ if ! pkg-config --exists gnuradio-runtime; then
     exit 1
 fi
 
-# Check for OpenSSL
+# Check for OpenSSL (CMake uses find_package(OpenSSL); pkg-config is a coarse pre-check)
 if ! pkg-config --exists openssl; then
-    echo "ERROR: OpenSSL not found. Please install OpenSSL development packages."
-    exit 1
+    echo "WARNING: OpenSSL pkg-config not found. Brainpool blocks need OpenSSL (libssl-dev)."
 fi
 
 # Check for keyutils
@@ -25,9 +24,18 @@ if ! ldconfig -p | grep -q libkeyutils; then
     echo "WARNING: libkeyutils not found. Kernel keyring features may not work."
 fi
 
-# Check for libnitrokey
-if ! pkg-config --exists libnitrokey; then
-    echo "WARNING: libnitrokey not found. Nitrokey features may not work."
+# Prefer /usr/local libsodium when present (X-Wing KEM requires 1.0.22+)
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+if pkg-config --exists libsodium 2>/dev/null; then
+    echo "libsodium: $(pkg-config --modversion libsodium) (via pkg-config)"
+else
+    echo "WARNING: libsodium not found. Sodium PDU blocks (KEM, SHA3) will be disabled."
+    echo "         Install libsodium 1.0.22+ or set PKG_CONFIG_PATH to /usr/local/lib/pkgconfig."
+fi
+
+# Check for libnitrokey (optional)
+if ! pkg-config --exists libnitrokey-1 2>/dev/null && ! pkg-config --exists libnitrokey 2>/dev/null; then
+    echo "NOTE: libnitrokey not found. Nitrokey block builds with stub behaviour."
 fi
 
 echo "Dependencies check completed."
@@ -55,8 +63,11 @@ echo ""
 echo "To uninstall:"
 echo "  sudo make uninstall"
 echo ""
-echo "To run examples:"
-echo "  cd ../examples"
-echo "  python3 basic_aes_encryption.py"
-echo "  python3 kernel_keyring_example.py"
-
+echo "Python tests and scripts (recommended):"
+echo "  cd .. && python3 -m venv .venv && source .venv/bin/activate"
+echo "  pip3 install -r requirements.txt"
+echo "  pytest tests/ -v"
+echo ""
+echo "Ephemeral key CLI:"
+echo "  export GR_LINUX_CRYPTO_DIR=\$(pwd)/.."
+echo "  python3 scripts/epk_generate.py --help"

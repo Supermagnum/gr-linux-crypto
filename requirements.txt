@@ -1,4 +1,10 @@
 # Python dependencies for gr-linux-crypto
+#
+# Install inside a virtual environment (from the repository root):
+#   python3 -m venv .venv
+#   source .venv/bin/activate
+#   pip3 install -r requirements.txt
+#
 # Note: gnuradio should be installed via system packages (apt) for full functionality
 # The PyPI package may not provide all required components and requires Python 3.11+
 # For CI/CD, gnuradio is installed via apt from the GNU Radio PPA

@@ -13,6 +13,7 @@ This document provides comprehensive examples for using the GNU Radio Linux Cryp
 7. [Brainpool ECIES Encryption](#brainpool-ecies-encryption)
 8. [Multi-Recipient ECIES](#multi-recipient-ecies)
 9. [Algorithm Boundary Enforcement (BSI TR-02102)](#algorithm-boundary-enforcement-bsi-tr-02102)
+10. [libsodium X-Wing KEM PDU blocks](#libsodium-x-wing-kem-pdu-blocks)
 
 For benefits and drawbacks of ciphers, curve sizes, multi-recipient vs Shamir, and common combinations, see the main [README: Benefits and Drawbacks of Ciphers and Methods](../README.md#benefits-and-drawbacks-of-ciphers-and-methods).
 
@@ -26,8 +27,13 @@ For benefits and drawbacks of ciphers, curve sizes, multi-recipient vs Shamir, a
 | GDSS Set Key Source | GDSS | [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss) |
 | Brainpool ECIES Encrypt/Decrypt | Crypto | [Brainpool ECIES Encryption](#brainpool-ecies-encryption) |
 | Brainpool ECIES Multi-Recipient Encrypt/Decrypt | Crypto | [Multi-Recipient ECIES](#multi-recipient-ecies) |
+| Ephemeral Key Import (Galdralag / GDSS) | Galdralag | [USAGE.md: Ephemeral key exchange](USAGE.md#ephemeral-key-exchange-out-of-band) |
+| KEM Generate Keypair / Encrypt / Decrypt | Sodium | [libsodium X-Wing KEM](#libsodium-x-wing-kem-pdu-blocks) |
+| Hash SHA3 | Sodium | [libsodium X-Wing KEM](#libsodium-x-wing-kem-pdu-blocks) |
 
 Each block's `.block.yml` also includes a `documentation` field visible in the GRC block info panel.
+
+**Python helpers and tests:** use a venv and `pip3 install -r requirements.txt` (see [README Installation](../README.md#installation)).
 
 ## Basic AES Encryption
 
@@ -212,7 +218,7 @@ masking = keys["gdss_mask_key"]
 profile_prk = keys["profile_prk"]  # for host cipher-profile HKDF-Expand, same as SessionKeys::profile_prk()
 ```
 
-CESS Mode A **K_outer** (HKDF-BLAKE3, `cess-outer-envelope-v1`), matching Galdralag `cess::derive_k_outer`, is available as `derive_galdralag_cess_k_outer_mode_a(classical_ecdh_ikm)` after `pip install blake3`. Use the same Brainpool ECDH raw `x` bytes as for session derivation. Full cipher-profile cascade encrypt/decrypt is implemented on the token in `cipher-profile`; this repo supplies the aligned KDF helpers only.
+CESS Mode A **K_outer** (HKDF-BLAKE3, `cess-outer-envelope-v1`), matching Galdralag `cess::derive_k_outer`, is available as `derive_galdralag_cess_k_outer_mode_a(classical_ecdh_ikm)` after `pip install blake3` in the project venv. Use the same Brainpool ECDH raw `x` bytes as for session derivation. Full cipher-profile cascade encrypt/decrypt is implemented on the token in `cipher-profile`; this repo supplies the aligned KDF helpers only.
 
 **gr-openssl / gr-nacl:** Use Brainpool ECDH for Galdralag IKM; do not substitute X25519 from gr-nacl. Pass derived 32-byte keys into other GNU Radio crypto blocks as your protocol requires.
 
@@ -1347,6 +1353,36 @@ hash_if_approved(b"data", "sha256")   # OK
 | PQ KEM (if Component 2 enabled) | FrodoKEM-640/976/1344, ML-KEM-768/1024 |
 
 Non-approved algorithms (e.g. MD5, SHA-1, NIST P-256, RC4, DES) raise a clear exception citing BSI TR-02102.
+
+## libsodium X-Wing KEM PDU blocks
+
+Requires **libsodium 1.0.22+** with X-Wing KEM (`crypto_kem_enc` / `crypto_kem_dec`). CMake links `sodium::sodium` and prefers headers/libs under `/usr/local` when present.
+
+### Generate keypair (Python / GRC)
+
+```python
+from gnuradio import linux_crypto
+
+PK = "/tmp/xwing_kem_pk.bin"
+SK = "/tmp/xwing_kem_sk.bin"
+
+linux_crypto.kem_generate_keypair(PK, SK, generate_on_start=True)
+enc = linux_crypto.kem_encrypt(PK)
+dec = linux_crypto.kem_decrypt(SK)
+```
+
+In GNU Radio Companion, add blocks from **`[gr-linux-crypto]/Sodium`**, set the key file paths, and connect **message** ports (for example `pdu_strobe` or `message_strobe` to **KEM Encrypt** `in`, then **KEM Encrypt** `out` to **KEM Decrypt** `in`). PDUs are PMT u8vectors or blobs; encrypted output uses the `GKEM` framing described in [USAGE.md](USAGE.md#libsodium-pdu-blocks-x-wing-kem-sha3).
+
+### SHA3 hash PDU
+
+```python
+from gnuradio import linux_crypto
+
+h256 = linux_crypto.hash_sha3(256)
+h512 = linux_crypto.hash_sha3(512)
+```
+
+See also [USAGE.md](USAGE.md#libsodium-pdu-blocks-x-wing-kem-sha3).
 
 ## Best Practices
 

@@ -15,6 +15,11 @@ description: Linux kernel crypto, keyring, and hardware security integration for
   - brainpool_ecies_decrypt
   - brainpool_ecies_multi_encrypt
   - brainpool_ecies_multi_decrypt
+- Sodium:
+  - linux_crypto_kem_generate_keypair
+  - linux_crypto_kem_encrypt
+  - linux_crypto_kem_decrypt
+  - linux_crypto_hash_sha3
 - Hardware:
   - linux_crypto_nitrokey_interface
   - nitrokey_sign

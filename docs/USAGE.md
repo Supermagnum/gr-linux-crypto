@@ -2,6 +2,43 @@
 
 This document supplements the top-level `README.md` with task-focused instructions.
 
+## Python environment
+
+Install test and helper dependencies from `requirements.txt` in a **virtual environment**:
+
+```bash
+cd /path/to/gr-linux-crypto
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install -r requirements.txt
+```
+
+GNU Radio itself should still come from system packages (`gnuradio-dev`, `python3-gnuradio`). Use the venv when running `pytest`, `scripts/epk_generate.py`, and examples that import `gr_linux_crypto` helpers.
+
+## libsodium PDU blocks (X-Wing KEM, SHA3)
+
+Built when CMake finds **libsodium** (prefer `/usr/local` 1.0.22 via `PKG_CONFIG_PATH`; see README). Blocks are under **`[gr-linux-crypto]/Sodium`** in GRC and exposed in Python as `linux_crypto.kem_*` and `linux_crypto.hash_sha3`.
+
+| Block | Message ports | Role |
+|-------|---------------|------|
+| **KEM Generate Keypair** | `generate` (in), `status` (out) | `crypto_kem_keypair()`; writes raw pk/sk files |
+| **KEM Encrypt** | `in`, `out` | `crypto_kem_enc()` + `crypto_secretbox_easy()` on plaintext PDU |
+| **KEM Decrypt** | `in`, `out` | Inverse of encrypt (`crypto_kem_dec`, `crypto_secretbox_open_easy`) |
+| **Hash SHA3** | `in`, `out` | SHA3-256 or SHA3-512 digest PDU (`digest_bits` 256 or 512) |
+
+**Key files:** raw binary — public key `crypto_kem_PUBLICKEYBYTES` (1216 B), secret key `crypto_kem_SECRETKEYBYTES` (32 B). **Encrypt output PDU** uses framing magic `GKEM`, then length-prefixed KEM ciphertext, nonce (24 B), and secretbox ciphertext.
+
+```python
+from gnuradio import linux_crypto
+
+linux_crypto.kem_generate_keypair("/tmp/xwing_pk.bin", "/tmp/xwing_sk.bin")
+enc = linux_crypto.kem_encrypt("/tmp/xwing_pk.bin")
+dec = linux_crypto.kem_decrypt("/tmp/xwing_sk.bin")
+h = linux_crypto.hash_sha3(256)
+```
+
+Connect message ports to PDU blocks (for example GNU Radio `pdu_*` blocks). Complements Brainpool ECIES under **`[gr-linux-crypto]/Crypto`** for post-quantum-safe encapsulation with libsodium X-Wing.
+
 ## Ephemeral key exchange (out-of-band)
 
 Forward secrecy for GR-K-GDSS-style links is described in GR-K-GDSS documentation (ephemeral ECDH vs long-term-only ECDH). This repository provides:
@@ -53,3 +90,13 @@ Each offer is valid for **one successful derivation** or until `expires_at`, whi
 ### NFC (planned)
 
 See Section 7 of `docs/EPHEMERAL_KEY_EXCHANGE.md`. No code changes are required to the envelope when NFC transport is added.
+
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/epk_generate.py` | Ephemeral offer CLI: `generate`, `import`, `status`, `expire` (requires `gpg`, `GR_LINUX_CRYPTO_DIR` or install) |
+| `scripts/generate_sbom.py` | SBOM output when built with `-DGR_LINUX_CRYPTO_SBOM=ON` |
+| `scripts/verify_sbom.py` | Validate `build/sbom.cdx.json` and `build/sbom.spdx.json` |
+
+Run from the repository root with the venv activated (see [Python environment](#python-environment)).

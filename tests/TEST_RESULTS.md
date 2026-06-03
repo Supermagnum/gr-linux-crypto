@@ -1,9 +1,10 @@
 # gr-linux-crypto Test Results
 
-**Test Date:** 2026-01-26  
-**Last Test Run:** 483 passed, 33 skipped, 1 failed (side-channel timing test environment-sensitive; see Known Limitations)  
-**Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.x  
-**Test Framework:** pytest 7.4.4
+**Test Date:** 2026-06-03  
+**Last Test Run:** 506 passed, 47 skipped, 0 failed (553 collected)  
+**Test Environment:** Linux x86_64, Python 3.12.3, OpenSSL 3.0.x, libsodium 1.0.22 (`/usr/local`) when Sodium blocks enabled  
+**Test Framework:** pytest 7.4.4  
+**Install:** project venv + `pip3 install -r requirements.txt` (see `tests/README.md`)
 
 ## Table of Contents
 
@@ -45,7 +46,7 @@
 11. [Executive Summary](#executive-summary)
 
 **Summary:**
-- **Functional Tests:** 483 passed / 517 total (33 skipped, 1 environment-sensitive failure)
+- **Functional Tests:** 506 passed / 553 collected (47 skipped, 0 failed in last full run)
 - **Cross-Validation:** Compatible with OpenSSL, Python cryptography
 - **OpenSSL CLI Integration:** Fixed and working (temporary file approach for OpenSSL 3.0+)
 - **BSI TR-03111 Compliance:** 20 tests passed (all compliance requirements validated)
@@ -75,6 +76,8 @@
 - Side-channel analysis: Framework ready (conceptual tests)
 - Memory/CPU monitoring: All passed
 - Hardware acceleration: Detected (AES-NI, kernel crypto API)
+- **Ephemeral key exchange:** `test_ephemeral_key_store.py` — 20 passed, 1 skipped (`RUN_KEYRING_SLOW_TESTS` for slow keyctl timeout); covers `revoke_offer`, `epk_generate.py expire`, audit `manual_revoke`
+- **Galdralag session KDF:** `test_galdralag_session_kdf.py` — passed (optional `blake3` / CESS tests skipped without `pip install blake3` in venv)
 
 **Underlying Libraries:**
 - Uses certified cryptographic libraries (OpenSSL, Python cryptography)
@@ -96,10 +99,10 @@
 ## Test Coverage Summary
 
 ### Functional Tests
-- **Total Tests:** 517 collected (including NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy, Multi-Recipient ECIES, FIPS, zeroization, SBOM, algorithm boundary, Shamir/HPKE/Nitrokey)
-- **Passed:** 483 functional tests (33 skipped)
-- **Skipped:** 33 (optional features, external dependencies)
-- **Failed:** 1 (test_auth_tag_constant_time_comparison; environment-sensitive)
+- **Total Tests:** 553 collected (NIST, RFC8439, BSI TR-03111, ECTester, RFC compliance, ECGDSA, Scapy, multi-recipient ECIES, ephemeral offers, Galdralag KDF, FIPS, zeroization, SBOM, algorithm boundary, Shamir/HPKE/Nitrokey, and related modules)
+- **Passed:** 506
+- **Skipped:** 47 (optional features, external dependencies, `slow` keyring test, missing `blake3`, Nitrokey hardware, etc.)
+- **Failed:** 0 in last full run (`pytest tests/`). Earlier runs may show 1 failure for `test_auth_tag_constant_time_comparison` (environment-sensitive; see Known Limitations)
 
 **Detailed Breakdown:**
 - `test_linux_crypto.py`: 248 passed, 24 skipped (100% core functionality)
@@ -118,7 +121,11 @@
 - `test_ecgdsa.py`: 12 passed (ECGDSA framework tests - implementation framework ready)
 - `test_multi_recipient_ecies.py`: 33 passed (Multi-recipient ECIES; recipient counts 1-25; ChaCha20-Poly1305; callsign group isolation; Brainpool ECKA-EG; sender encrypt_and_sign/verify_and_decrypt; TestKeyStoreFileScenarios: empty file, file with only callsigns, file with callsigns+groups, file with groups only)
 - `test_algorithm_boundary.py`: 16 passed, 1 skipped (BSI TR-02102 algorithm boundary; approved algorithms accepted; MD5, SHA-1, NIST P-256, RC4, DES rejected with correct exception)
-- Other tests: Various framework and integration tests
+- `test_ephemeral_key_store.py`: 20 passed, 1 skipped (`test_offer_keyring_timeout_removes_key` unless `RUN_KEYRING_SLOW_TESTS=1`); offer validation, derive/consumed, `revoke_offer`, audit `manual_revoke`, `epk_generate.py` CLI exit codes
+- `test_galdralag_session_kdf.py`: passed with skips for optional CESS/blake3 paths
+- `test_sbom.py`, `test_fips.py`, `test_pq_kem.py`, `test_zeroization.py`: optional build components (see Test Infrastructure)
+
+**C++ libsodium PDU blocks** (`kem_encrypt`, `kem_decrypt`, `kem_generate_keypair`, `hash_sha3`): built when CMake reports `Sodium support: ON`; not covered by a dedicated pytest module yet. Validate after `make install` via GRC or Python bindings (`linux_crypto.kem_*`, `hash_sha3`).
 
 #### Scapy Attack Vector Tests
 - **Goal:** Ensure Scapy helpers correctly craft packets for common attack vectors without transmitting any traffic.
@@ -1180,10 +1187,28 @@ pytest tests/test_side_channel.py -v -s
 12. **Algorithm Boundary Tests** (`test_algorithm_boundary.py`)
     - check_algorithm_compliance/require_bsi_approved; BSI TR-02102 approved/rejected lists
 
+13. **Ephemeral Key Exchange Tests** (`test_ephemeral_key_store.py`)
+    - `validate_offer_expiry` / `validate_offer_consumed`
+    - `EphemeralKeyStore.derive_session_keys` (consumed, expiry, EPK mismatch)
+    - `revoke_offer` (unconsumed, consumed, unknown session, mock `unlink_key`)
+    - Audit log `reason: manual_revoke`
+    - `scripts/epk_generate.py` `expire` subprocess and `cmd_expire` exit codes
+    - Slow: real `keyctl timeout` (~11s) with `RUN_KEYRING_SLOW_TESTS=1`
+
+14. **Galdralag Session KDF Tests** (`test_galdralag_session_kdf.py`)
+    - `derive_galdralag_session_keys` / GDSS mask agreement
+    - Optional CESS / `blake3` tests skipped without optional dependency
+
+15. **libsodium C++ blocks (manual / GRC)**
+    - X-Wing KEM PDU encrypt/decrypt and SHA3 PDU hash blocks have no pytest file; verify with installed `linux_crypto` bindings and message-port flowgraphs
+
 ### Running All Tests
 
 ```bash
-# Install dependencies
+# Install dependencies (venv recommended; see README Installation)
+cd /path/to/gr-linux-crypto
+python3 -m venv .venv
+source .venv/bin/activate
 pip3 install -r requirements.txt
 
 # Run all tests
@@ -1196,6 +1221,10 @@ pytest tests/ --cov=python --cov-report=html
 pytest tests/test_linux_crypto.py -v
 pytest tests/test_performance.py -v
 pytest tests/test_brainpool_comprehensive.py -v
+pytest tests/test_ephemeral_key_store.py tests/test_galdralag_session_kdf.py -v
+
+# Slow keyring timeout (optional)
+RUN_KEYRING_SLOW_TESTS=1 pytest tests/test_ephemeral_key_store.py -v -m slow
 ```
 
 ---
@@ -1304,7 +1333,7 @@ The gr-linux-crypto module demonstrates:
 3. **Solid Implementation:**
    - Cross-implementation compatibility verified (OpenSSL, Python cryptography)
    - Memory safety confirmed (fuzzing + performance tests)
-   - Comprehensive test coverage (483 passed, 33 skipped, 1 environment-sensitive failure)
+   - Comprehensive test coverage (506 passed, 47 skipped, 0 failed in last full run)
    - Well-documented codebase
 
 4. **Appropriate Use Cases (High Confidence):**
@@ -1345,8 +1374,8 @@ The gr-linux-crypto module demonstrates:
 
 **Test Status:** **READY FOR USE** (Amateur Radio, Experimental, Research)
 
-**Test Results (Latest Run - 2026-01-26):**
-- 483 tests passed, 33 skipped, 1 failure (side-channel timing test environment-sensitive)
+**Test Results (Latest Run - 2026-06-03):**
+- 506 tests passed, 47 skipped, 0 failed (553 collected)
 - Core functionality: 100% passing (248/248 core crypto tests, 19/19 performance tests)
 - Multi-recipient ECIES: 100% passing (33/33 tests, all recipient counts 1-25; key store file scenarios: empty, callsigns only, callsigns+groups, groups only)
 - Performance: All benchmarks exceeded (mean latency 8.7-11.5μs, target <100μs)
@@ -1356,7 +1385,7 @@ The gr-linux-crypto module demonstrates:
 - Side-Channel Analysis: dudect tests passed (no timing leakage detected)
 
 **Test Failures (Non-Critical):**
-- 1: test_auth_tag_constant_time_comparison (environment-sensitive; see Known Limitations / Side-Channel Resistance)
+- None in last full run. `test_auth_tag_constant_time_comparison` may fail on some hosts (environment-sensitive; see Known Limitations / Side-Channel Resistance)
 
 **Certification Status:**
 - Uses certified cryptographic libraries (OpenSSL, Python cryptography)
@@ -1374,8 +1403,8 @@ The gr-linux-crypto module demonstrates:
 
 ---
 
-*Last Updated: 2026-01-26*  
+*Last Updated: 2026-06-03*  
 *Test Framework: pytest 7.4.4*  
 *Fuzzing: LibFuzzer (805+ million executions, 374 edges covered)*  
-*Test Execution: 517 tests collected, 483 passed, 33 skipped, 1 failed (environment-sensitive)*
+*Test Execution: 553 collected, 506 passed, 47 skipped, 0 failed (see `tests/README.md` for venv and optional `RUN_KEYRING_SLOW_TESTS`)*
 

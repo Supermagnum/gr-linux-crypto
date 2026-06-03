@@ -80,6 +80,17 @@ The generated API documentation includes:
 7. **Key Lifecycle** ([key_lifecycle.md](key_lifecycle.md))
    - Key generation, usage, storage, and destruction per block (BSZ AIS-B2)
 
+8. **Usage notes** ([USAGE.md](USAGE.md))
+   - Python venv and `requirements.txt`
+   - libsodium X-Wing KEM and SHA3 PDU blocks
+   - Ephemeral `.epk.gpg` CLI (`scripts/epk_generate.py`)
+
+9. **Examples** ([examples.md](examples.md))
+   - Flowgraphs, Python helpers, Brainpool ECIES, libsodium KEM
+
+10. **Ephemeral key exchange** ([EPHEMERAL_KEY_EXCHANGE.md](EPHEMERAL_KEY_EXCHANGE.md))
+    - Offer format, expiry, manual `expire`, audit log
+
 ## Documentation Standards
 
 This documentation follows GNU Radio standards:

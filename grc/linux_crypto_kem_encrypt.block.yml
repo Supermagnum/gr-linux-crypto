@@ -1,0 +1,33 @@
+id: linux_crypto_kem_encrypt
+label: KEM Encrypt (X-Wing / libsodium)
+category: '[gr-linux-crypto]/Sodium'
+flags: [python, cpp]
+templates:
+  imports: |-
+    from gnuradio import linux_crypto
+  make: linux_crypto.kem_encrypt(${public_key_file})
+  callbacks:
+  - set_public_key_file(${public_key_file})
+parameters:
+- id: public_key_file
+  label: Recipient public key file
+  dtype: string
+  default: '""'
+  hide: none
+  comment: "Raw X-Wing public key (crypto_kem_PUBLICKEYBYTES bytes)"
+inputs:
+- label: in
+  domain: message
+  id: in
+outputs:
+- label: out
+  domain: message
+  id: out
+
+documentation: |-
+  PDU block: X-Wing hybrid KEM (crypto_kem_enc) plus XSalsa20-Poly1305 secretbox
+  (crypto_secretbox_easy). Input is a plaintext PDU (u8vector or blob). Output PDU
+  is a framed byte vector (magic GKEM, KEM ciphertext, nonce, box ciphertext).
+  Complements Brainpool ECIES encrypt for post-quantum-safe exchange.
+
+file_format: 1

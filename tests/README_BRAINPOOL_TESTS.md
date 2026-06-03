@@ -4,6 +4,18 @@ Complete test suite for Brainpool elliptic curve cryptography in gr-linux-crypto
 
 ## Quick Start
 
+### 0. Python environment
+
+From the repository root:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install -r requirements.txt
+```
+
+See `tests/README.md` for full pytest usage.
+
 ### 1. Download Test Vectors
 
 ```bash
@@ -18,6 +30,8 @@ This downloads test vectors from:
 - mbedTLS test suite
 
 ### 2. Run Tests
+
+Activate the venv first (`source .venv/bin/activate`).
 
 ```bash
 # Run all Brainpool tests

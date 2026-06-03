@@ -185,6 +185,15 @@ if(OpenSSL_FOUND)
     )
 endif()
 
+if(SODIUM_FOUND)
+    list(APPEND gr_linux_crypto_sources
+        lib/kem_encrypt_impl.cc
+        lib/kem_decrypt_impl.cc
+        lib/kem_generate_keypair_impl.cc
+        lib/hash_sha3_impl.cc
+    )
+endif()
+
 set(gr_linux_crypto_headers
     lib/kernel_keyring_source_impl.h
     lib/openpgp_card_helper.h
@@ -201,6 +210,15 @@ if(OpenSSL_FOUND)
         lib/brainpool_ecies_multi_decrypt_impl.h
         lib/brainpool_ecdsa_sign_impl.h
         lib/brainpool_ecdsa_verify_impl.h
+    )
+endif()
+
+if(SODIUM_FOUND)
+    list(APPEND gr_linux_crypto_headers
+        lib/kem_encrypt_impl.h
+        lib/kem_decrypt_impl.h
+        lib/kem_generate_keypair_impl.h
+        lib/hash_sha3_impl.h
     )
 endif()
 
@@ -365,7 +383,7 @@ endif()
 if(ENABLE_GRC)
     set(GRC_BLOCKS_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/gnuradio/grc/blocks")
     message(STATUS "  GRC blocks install dir: ${GRC_BLOCKS_INSTALL_DIR}")
-    install(FILES
+    set(_gr_linux_crypto_grc_blocks
         grc/gr-linux-crypto.tree.yml
         grc/linux_crypto_gdss_set_key_source.block.yml
         grc/linux_crypto_ephemeral_key_import.block.yml
@@ -379,6 +397,16 @@ if(ENABLE_GRC)
         grc/brainpool_ecies_decrypt.block.yml
         grc/brainpool_ecies_multi_encrypt.block.yml
         grc/brainpool_ecies_multi_decrypt.block.yml
+    )
+    if(SODIUM_FOUND)
+        list(APPEND _gr_linux_crypto_grc_blocks
+            grc/linux_crypto_kem_generate_keypair.block.yml
+            grc/linux_crypto_kem_encrypt.block.yml
+            grc/linux_crypto_kem_decrypt.block.yml
+            grc/linux_crypto_hash_sha3.block.yml
+        )
+    endif()
+    install(FILES ${_gr_linux_crypto_grc_blocks}
         DESTINATION ${GRC_BLOCKS_INSTALL_DIR}
     )
 endif()

@@ -27,6 +27,12 @@
 #include <gnuradio/linux_crypto/kernel_keyring_source.h>
 #include <gnuradio/linux_crypto/nitrokey_interface.h>
 #include <gnuradio/linux_crypto/kernel_crypto_aes.h>
+#ifdef HAVE_SODIUM
+#include <gnuradio/linux_crypto/kem_encrypt.h>
+#include <gnuradio/linux_crypto/kem_decrypt.h>
+#include <gnuradio/linux_crypto/kem_generate_keypair.h>
+#include <gnuradio/linux_crypto/hash_sha3.h>
+#endif
 #ifdef HAVE_OPENSSL
 #include <gnuradio/linux_crypto/brainpool_ecies_encrypt.h>
 #include <gnuradio/linux_crypto/brainpool_ecies_decrypt.h>
@@ -222,6 +228,55 @@ void bind_brainpool_ecdsa_verify(py::module& m)
 }
 #endif
 
+#ifdef HAVE_SODIUM
+void bind_kem_encrypt(py::module& m)
+{
+    using kem_encrypt = gr::linux_crypto::kem_encrypt;
+
+    py::class_<kem_encrypt, gr::block, std::shared_ptr<kem_encrypt>>(m, "kem_encrypt")
+        .def(py::init(&kem_encrypt::make), py::arg("public_key_file"))
+        .def("set_public_key_file", &kem_encrypt::set_public_key_file)
+        .def("public_key_file", &kem_encrypt::public_key_file);
+}
+
+void bind_kem_decrypt(py::module& m)
+{
+    using kem_decrypt = gr::linux_crypto::kem_decrypt;
+
+    py::class_<kem_decrypt, gr::block, std::shared_ptr<kem_decrypt>>(m, "kem_decrypt")
+        .def(py::init(&kem_decrypt::make), py::arg("secret_key_file"))
+        .def("set_secret_key_file", &kem_decrypt::set_secret_key_file)
+        .def("secret_key_file", &kem_decrypt::secret_key_file);
+}
+
+void bind_kem_generate_keypair(py::module& m)
+{
+    using kem_generate_keypair = gr::linux_crypto::kem_generate_keypair;
+
+    py::class_<kem_generate_keypair, gr::block, std::shared_ptr<kem_generate_keypair>>(
+        m, "kem_generate_keypair")
+        .def(py::init(&kem_generate_keypair::make),
+             py::arg("public_key_file"),
+             py::arg("secret_key_file"),
+             py::arg("generate_on_start") = true)
+        .def("generate_keypair", &kem_generate_keypair::generate_keypair)
+        .def("set_public_key_file", &kem_generate_keypair::set_public_key_file)
+        .def("set_secret_key_file", &kem_generate_keypair::set_secret_key_file)
+        .def("public_key_file", &kem_generate_keypair::public_key_file)
+        .def("secret_key_file", &kem_generate_keypair::secret_key_file);
+}
+
+void bind_hash_sha3(py::module& m)
+{
+    using hash_sha3 = gr::linux_crypto::hash_sha3;
+
+    py::class_<hash_sha3, gr::block, std::shared_ptr<hash_sha3>>(m, "hash_sha3")
+        .def(py::init(&hash_sha3::make), py::arg("digest_bits") = 256)
+        .def("set_digest_bits", &hash_sha3::set_digest_bits)
+        .def("digest_bits", &hash_sha3::digest_bits);
+}
+#endif
+
 PYBIND11_MODULE(linux_crypto_python, m)
 {
     m.doc() = "GNU Radio Linux Crypto Python bindings";
@@ -230,6 +285,12 @@ PYBIND11_MODULE(linux_crypto_python, m)
     bind_kernel_keyring_source(m);
     bind_nitrokey_interface(m);
     bind_kernel_crypto_aes(m);
+#ifdef HAVE_SODIUM
+    bind_kem_encrypt(m);
+    bind_kem_decrypt(m);
+    bind_kem_generate_keypair(m);
+    bind_hash_sha3(m);
+#endif
 #ifdef HAVE_OPENSSL
     bind_brainpool_ecies_encrypt(m);
     bind_brainpool_ecies_decrypt(m);
@@ -245,6 +306,11 @@ PYBIND11_MODULE(linux_crypto_python, m)
         status["kernel_keyring_available"] = true;
         status["nitrokey_available"] = true;
         status["kernel_crypto_available"] = true;
+#ifdef HAVE_SODIUM
+        status["sodium_available"] = true;
+#else
+        status["sodium_available"] = false;
+#endif
         return status;
     });
 }
