@@ -71,6 +71,7 @@ class MultiRecipientECIES:
         key_store_path: Optional[str] = None,
         symmetric_cipher: str = "aes-gcm",
         use_keyring: bool = True,
+        key_store_client: Optional[object] = None,
     ):
         """
         Initialize multi-recipient ECIES.
@@ -81,6 +82,9 @@ class MultiRecipientECIES:
             symmetric_cipher: Symmetric cipher for payload encryption
                              ("aes-gcm" or "chacha20-poly1305")
             use_keyring: Whether to resolve keys from the kernel keyring (default True)
+            key_store_client: Optional ZMQ key store client (ZmqKeyStoreClient). When
+                set, encrypt() resolves callsigns via the client instead of the local
+                JSON/keyring store. Decrypt and other paths are unchanged.
         """
         self.curve = curve
         self.curve_id = self.CURVE_IDS.get(curve, 0x01)
@@ -95,6 +99,29 @@ class MultiRecipientECIES:
         self.key_store = CallsignKeyStore(
             store_path=key_store_path, use_keyring=use_keyring
         )
+        self.key_store_client = key_store_client
+
+    def _list_recipient_callsigns(self) -> List[str]:
+        if self.key_store_client is not None:
+            return self.key_store_client.list()
+        return self.key_store.list_callsigns()
+
+    def _has_recipient_callsign(self, callsign: str) -> bool:
+        if self.key_store_client is not None:
+            try:
+                self.key_store_client.get(callsign)
+                return True
+            except Exception:
+                return False
+        return self.key_store.has_callsign(callsign)
+
+    def _get_recipient_public_key(self, callsign: str) -> Optional[str]:
+        if self.key_store_client is not None:
+            try:
+                return self.key_store_client.get(callsign)
+            except Exception:
+                return None
+        return self.key_store.get_public_key(callsign)
 
     def encrypt(self, plaintext: bytes, callsigns: Optional[List[str]] = None) -> bytes:
         """
@@ -115,7 +142,7 @@ class MultiRecipientECIES:
         if callsigns is None:
             callsigns = []
         if not callsigns:
-            callsigns = self.key_store.list_callsigns()[: self.MAX_RECIPIENTS]
+            callsigns = self._list_recipient_callsigns()[: self.MAX_RECIPIENTS]
         if not callsigns:
             raise ValueError(
                 "No recipients: provide a non-empty callsign list or add keys to the key store."
@@ -131,7 +158,7 @@ class MultiRecipientECIES:
         for callsign in callsigns:
             if len(callsign) > self.MAX_CALLSIGN_LEN:
                 raise ValueError(f"Callsign too long: {callsign}")
-            if not self.key_store.has_callsign(callsign):
+            if not self._has_recipient_callsign(callsign):
                 raise ValueError(f"Public key not found for callsign: {callsign}")
 
         symmetric_key = secrets.token_bytes(self.AES_KEY_SIZE)
@@ -148,7 +175,7 @@ class MultiRecipientECIES:
 
         recipient_blocks = []
         for callsign in callsigns:
-            public_key_pem = self.key_store.get_public_key(callsign)
+            public_key_pem = self._get_recipient_public_key(callsign)
             if not public_key_pem:
                 raise ValueError(f"Public key not found for callsign: {callsign}")
 
@@ -337,7 +364,7 @@ class MultiRecipientECIES:
             Encrypted block in Shamir format (version 0x02, 9-byte header with curve_id)
         """
         if not callsigns:
-            callsigns = self.key_store.list_callsigns()[: self.MAX_RECIPIENTS]
+            callsigns = self._list_recipient_callsigns()[: self.MAX_RECIPIENTS]
         if not callsigns:
             raise ValueError(
                 "No recipients: provide a non-empty callsign list or add keys to the key store."

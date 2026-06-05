@@ -1660,6 +1660,10 @@ The Python helper `CallsignKeyStore` (from `gr_linux_crypto` or `gr_linux_crypto
   - `remove_group(group_name)` — Remove the group; returns `True` if it existed.
 - **Constructor:** `CallsignKeyStore(store_path=None, use_keyring=True)`. Default path: `~/.gnuradio/callsign_keys.json`.
 
+### ZeroMQ key store
+
+For flowgraphs or scripts that must resolve callsign public keys at runtime without editing a static JSON file, run the optional ZMQ REP server (`python/zmq_key_store_server.py`) and pass a `ZmqKeyStoreClient` into `MultiRecipientECIES(key_store_client=...)`. Only **public** Brainpool PEM keys and callsign strings cross the socket; private keys and plaintext never leave the existing ECIES blocks. The ZMQ channel has **no transport-layer authentication or encryption**; the server accepts **loopback bind only** (`127.0.0.1` default). Network-visible key store access is out of scope for this module. Requires optional **pyzmq** (`pip install pyzmq` in your venv). Full setup, security model, and systemd unit: **[docs/ZMQ_KEY_STORE.md](docs/ZMQ_KEY_STORE.md)**. The ZMQ channel is unauthenticated at the transport layer; network deployments require additional security measures documented in [docs/ZMQ_TRANSPORT_SECURITY.md](docs/ZMQ_TRANSPORT_SECURITY.md).
+
 **GNU Radio C++ Blocks:**
 ```python
 from gnuradio import linux_crypto
@@ -1739,6 +1743,7 @@ Install from `requirements.txt` inside a **virtual environment** (do not install
 - **gnuradio>=3.10.12.0** (Python bindings, tested with 3.10.12.0)
 
 ### Optional
+- **pyzmq** (ZMQ callsign key store server and client; `pip install pyzmq` in your venv)
 - **gr-openssl** (for OpenSSL integration)
   - GitHub: https://github.com/Supermagnum/gr-openssl
 - **gr-nacl** (for modern crypto integration)
