@@ -80,3 +80,12 @@ Append-only JSON lines (default file under `XDG_STATE_HOME/gr-linux-crypto/ephem
 - Manage recipient lists carefully; any recipient can decrypt the offer.
 - If no Galdralag token is present, hosts rely on GnuPG and Brainpool implementations in software.
 - Do not mix X25519 shared secrets from other modules with this Brainpool-only KDF path.
+
+## 9. Galdralag-firmware alignment
+
+Host offers and session KDF in gr-linux-crypto are aligned with
+[Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) `galdra-core-host` and
+`ephemeral-session` as documented in **[GALDRALAG_COMPATIBILITY.md](GALDRALAG_COMPATIBILITY.md)**.
+Automated cross-verification (session subkeys, Brainpool ECDH IKM, CESS HKDF-BLAKE3 vectors) does
+not require physical Baochip hardware; token wire handshake and on-device cipher profiles remain
+integration tests for when hardware is available.

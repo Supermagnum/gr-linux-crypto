@@ -3,7 +3,9 @@
 
 import hashlib
 import hmac
+import json
 import unittest
+from pathlib import Path
 
 try:
     from gnuradio.gr import pmt as gr_pmt
@@ -17,6 +19,9 @@ from gr_linux_crypto.galdralag_session_kdf import (
     hkdf_extract_sha256,
     ordered_epk_salt,
 )
+
+_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "galdralag_session_kdf_vectors.json"
+
 
 try:
     import blake3 as _blake3_check  # noqa: F401
@@ -105,6 +110,62 @@ class TestGaldralagOrderedSalt(unittest.TestCase):
         key = bytes(32)
         expect = hmac.new(key, ikm, hashlib.sha256).digest()
         self.assertEqual(prk, expect)
+
+
+class TestGaldralagRustGoldenVectors(unittest.TestCase):
+    """Cross-verify against Galdralag-firmware ephemeral-session export vectors."""
+
+    @classmethod
+    def setUpClass(cls):
+        if not _FIXTURES.is_file():
+            raise unittest.SkipTest(f"missing fixture {_FIXTURES}")
+        with _FIXTURES.open(encoding="utf-8") as fh:
+            cls._fixture = json.load(fh)
+
+    def test_session_keys_match_rust_export(self):
+        for vec in self._fixture["vectors"]:
+            with self.subTest(description=vec["description"]):
+                ikm = bytes.fromhex(vec["ecdh_ikm_hex"])
+                epk_i = bytes.fromhex(vec["epk_initiator_hex"])
+                epk_r = bytes.fromhex(vec["epk_responder_hex"])
+                keys = derive_galdralag_session_keys(ikm, epk_i, epk_r)
+                self.assertEqual(keys["profile_prk"].hex(), vec["profile_prk_hex"])
+                self.assertEqual(keys["payload_key_i2r"].hex(), vec["payload_key_i2r_hex"])
+                self.assertEqual(keys["payload_key_r2i"].hex(), vec["payload_key_r2i_hex"])
+                self.assertEqual(keys["gdss_mask_key"].hex(), vec["gdss_mask_key_hex"])
+                self.assertEqual(keys["gdss_sync_key"].hex(), vec["gdss_sync_key_hex"])
+                self.assertEqual(keys["gdss_timing_key"].hex(), vec["gdss_timing_key_hex"])
+                self.assertEqual(keys["mac_key"].hex(), vec["mac_key_hex"])
+
+    def test_brainpool_ecdh_ikm_matches_rust(self):
+        try:
+            from cryptography.hazmat.backends import default_backend
+            from cryptography.hazmat.primitives.asymmetric import ec
+        except ImportError:
+            raise unittest.SkipTest("cryptography not installed")
+
+        for vec in self._fixture["vectors"]:
+            if vec.get("curve") != "brainpoolP256r1":
+                continue
+            scalar_a = vec.get("initiator_scalar_hex")
+            scalar_b = vec.get("responder_scalar_hex")
+            if not scalar_a or not scalar_b:
+                raise unittest.SkipTest("fixture missing scalar hex for ECDH cross-check")
+            with self.subTest(description=vec["description"]):
+                sk_a = ec.derive_private_key(
+                    int.from_bytes(bytes.fromhex(scalar_a), "big"),
+                    ec.BrainpoolP256R1(),
+                    default_backend(),
+                )
+                sk_b = ec.derive_private_key(
+                    int.from_bytes(bytes.fromhex(scalar_b), "big"),
+                    ec.BrainpoolP256R1(),
+                    default_backend(),
+                )
+                shared = CryptoHelpers.brainpool_ecdh(sk_a, sk_b.public_key())
+                self.assertEqual(shared.hex(), vec["ecdh_ikm_hex"])
+                shared_ba = CryptoHelpers.brainpool_ecdh(sk_b, sk_a.public_key())
+                self.assertEqual(shared_ba, shared)
 
 
 @unittest.skipUnless(_HAVE_BLAKE3, "blake3 PyPI package not installed")

@@ -84,6 +84,8 @@ Archive record timestamp: **21 March 2026**.
    - [Kernel Keyring as Key Source for gr-openssl](#kernel-keyring-as-key-source-for-gr-openssl)
    - [Hardware Security Module with gr-nacl](#hardware-security-module-with-gr-nacl)
    - [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss)
+   - [Ephemeral Key Import (Galdralag / GDSS)](#ephemeral-key-import-galdralag--gdss)
+   - [Obtaining parameters (GDSS and ephemeral GRC blocks)](#obtaining-parameters-gdss-set-key-source-and-ephemeral-key-import)
    - [Brainpool Elliptic Curve Cryptography](#brainpool-elliptic-curve-cryptography)
    - [Multi-Recipient ECIES Encryption](#multi-recipient-ecies-encryption)
    - [Available APIs](#available-apis)
@@ -924,6 +926,7 @@ The `nitrokey_interface` block provides full Nitrokey hardware security module i
 
 ### 5. **Galdralag Support (GDSS and session KDF)**
 - **What it is:** Optional interoperability with **[Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware)** — the open-source cryptographic framework and token stack for **Baochip-1x** (authenticated ephemeral ECDH, cipher profiles, host tools such as `galdra`). This module does not ship that firmware; it provides host-side derivation that matches Galdralag’s **`ephemeral-session`** HKDF when you want the same session subkeys on the GNU Radio / **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** side.
+- **Compatibility reference:** See **[docs/GALDRALAG_COMPATIBILITY.md](docs/GALDRALAG_COMPATIBILITY.md)** for a feature matrix, host-vs-token signing differences, and what is verified **without Baochip hardware** (Rust golden-vector tests for session KDF and Brainpool ECDH IKM).
 - **How this module supports it:** Python helpers `derive_galdralag_session_keys` / `derive_galdralag_gdss_masking_key` (`galdralag_session_kdf.py`) implement the same salt (ordered ephemeral public keys) and domain **info** strings as Galdralag’s Rust crate. `derive_galdralag_session_keys` also returns **`profile_prk`** (the HKDF-Extract output), matching `SessionKeys::profile_prk()` for cipher-profile cascades on the host. The **GDSS Set Key Source** block can use `key_derivation=galdralag` plus hex-encoded initiator/responder EPKs so the **32-byte GDSS masking key** matches `SessionKeys.gdss_mask_key` after a Galdralag handshake. Default `key_derivation=gr_k_gdss` is unchanged for existing [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) flows.
 - **No conflict with Nitrokey / TPM / keyring:** Galdralag support is an **additional** Python/GRC path for session-key alignment with that token project. Kernel keyring, **Nitrokey** (`libnitrokey`), OpenPGP card paths, and other HSM integrations remain available for storage and fixed OpenPGP operations, but **only Galdralag** supports mixing cipher modes (ECIES, Shamir, HPKE-style, token cipher profiles) in one stack. OpenPGP / Nitrokey / GnuPG smart cards **cannot** mix and match those paths.
 - **Current Galdralag-firmware `SessionKeys` semantics:** The token stores the raw classical ECDH IKM (Brainpool `x` coordinate) for **built-in CESS** cipher-profile cascades (`cipher-profile` HKDF-BLAKE3) and `profile_prk` from HKDF-Extract for **custom** profiles. Your host already has the ECDH bytes you pass into `derive_galdralag_session_keys`; use the same slice wherever Galdra docs refer to `cess_inner_cascade_ikm`. For CESS **Mode A `K_outer`**, `derive_galdralag_cess_k_outer_mode_a` in `galdralag_session_kdf.py` matches `cess::derive_k_outer` when the optional PyPI package **`blake3`** is installed (`hkdf_blake3_cess` is also exported for advanced use; vectors align with `crates/cess/src/hkdf_blake3.rs` tests).
@@ -1360,6 +1363,143 @@ gdss_src = gdss_set_key_source_block(
 ```
 
 **GRC:** Block is under category `[gr-linux-crypto]/GDSS` as "GDSS Set Key Source". If the block does not appear in the block list, ensure you have run `sudo make install` from the build directory (so that `gr-linux-crypto.tree.yml` and the block YAML are installed), then restart GNU Radio Companion.
+
+### Ephemeral Key Import (Galdralag / GDSS)
+
+The **Ephemeral Key Import** block imports a peer `.epk.gpg` offer, runs Brainpool ephemeral ECDH plus Galdralag session KDF, and emits the same **`set_key` PMT** as **GDSS Set Key Source**. Use it when both stations exchanged ephemeral offers out-of-band (`scripts/epk_generate.py`) instead of typing a shared secret into the flowgraph.
+
+**GRC:** Block is under `[gr-linux-crypto]/Galdralag` as "Ephemeral Key Import (Galdralag / GDSS)". Connect `set_key_out` to GR-K-GDSS spreader/despreader `set_key` ports.
+
+Full format: [docs/EPHEMERAL_KEY_EXCHANGE.md](docs/EPHEMERAL_KEY_EXCHANGE.md). CLI workflow: [docs/USAGE.md](docs/USAGE.md#ephemeral-key-exchange-out-of-band).
+
+### Obtaining parameters (GDSS Set Key Source and Ephemeral Key Import)
+
+Both blocks output the same `set_key` message (`key` = 32-byte GDSS masking key, `nonce` = 12 bytes). Several fields sound similar but come from different places.
+
+#### Two different "session ID" meanings
+
+| Name in GRC | Type | Meaning | Must match peer? |
+|-------------|------|---------|------------------|
+| **Offer session ID** (`our_session_id` on Ephemeral Key Import) | 32-char **hex** string | Random id inside the `.epk.gpg` JSON (`session_id` field). Identifies that offer and keyring entries. | N/A (comes from the file you import) |
+| **GDSS session ID** (`session_id` on both blocks) | **Integer** (default `1`) | First 4 bytes of the 12-byte GDSS **nonce** passed to GR-K-GDSS spreader/despreader. | **Yes** — both stations must use the same integer for the same radio session |
+| **TX sequence** (`tx_seq` on both blocks) | **Integer** (default `0`) | Last 8 bytes of the GDSS nonce; increment when you change transmission sequence. | **Yes** — both stations must agree per burst or QSO segment |
+
+The **offer session ID** is not the same as the **GDSS session ID**. Confusing them is a common setup mistake.
+
+#### Issuer fingerprint (`verify_fingerprint` on Ephemeral Key Import)
+
+The **issuer** is the operator whose **long-term GnuPG key** signed the ephemeral public key inside the offer (`long_term_fingerprint` in the JSON). You must verify this fingerprint **out-of-band** (phone, in-person key-signing party, etc.) before trusting the offer.
+
+**Get the expected fingerprint before import** (issuer's machine):
+
+```bash
+# Full fingerprint for the signing key (40 hex chars, no spaces)
+gpg --list-keys --with-colons YOUR_KEY_ID | grep "^fpr" | cut -d: -f10
+
+# Human-readable form (remove spaces for the GRC field)
+gpg --fingerprint YOUR_KEY_ID
+```
+
+**After you receive `peer.epk.gpg`**, the fingerprint is also embedded in the offer. You can confirm it matches what the issuer told you (decrypt with your GnuPG recipient key):
+
+```bash
+gpg --decrypt peer.epk.gpg | python3 -c "import sys,json; print(json.load(sys.stdin)['long_term_fingerprint'])"
+```
+
+Put the **lowercase hex string without spaces** into **Issuer fingerprint (hex)** in GRC, or pass `--verify-fingerprint` to `epk_generate.py import`.
+
+#### Offer session ID (`our_session_id` on Ephemeral Key Import)
+
+This is the **`session_id` field inside the decrypted offer JSON** (16 random bytes = **32 hex characters**). It is **not** the GDSS integer `session_id`.
+
+**After import (recommended):**
+
+```bash
+python3 scripts/epk_generate.py import \
+  --offer peer.epk.gpg \
+  --verify-fingerprint ISSUER_FINGERPRINT_HEX
+# Prints: {"imported": true, "session_id": "a1b2c3..."}
+```
+
+Copy that hex string into **Session ID (hex from offer)** in GRC.
+
+**From `status`** (same machine, after import in an earlier step):
+
+```bash
+python3 scripts/epk_generate.py status
+# JSON list includes "session_id" and "long_term_fingerprint" per offer
+```
+
+**If you generate the offer yourself**, `epk_generate.py generate` prints `session_id` in its JSON output; that id labels **your** offer file, not the peer's file you import on the other station.
+
+#### Offer file path (`offer_gpg_path`)
+
+Absolute or relative path to the peer's **`.epk.gpg`** file (from USB, email, NFC later, etc.). Generated with:
+
+```bash
+python3 scripts/epk_generate.py generate \
+  --long-term-key ISSUER_KEY_ID \
+  --recipient YOUR_RECIPIENT_KEY_ID \
+  --expires-in 86400 \
+  --output peer_offer.epk.gpg
+```
+
+#### Your ephemeral private key (`our_epk_private_hex`)
+
+The block needs **your** BrainpoolP256r1 ephemeral **private** key and the **peer's ephemeral public key** from their offer (inside `epk_hex`) to run ECDH.
+
+- **Typical two-station link:** You ran `generate` on your machine (your `session_id` differs from the peer offer's `session_id`). Import the **peer's** `.epk.gpg`, set **our_session_id** to the **peer offer's** session id, and supply your private key as **PEM or DER hex** in **our_epk_private_hex** (export PKCS#8 PEM from your generate step or Python helper).
+- **Leave empty:** The block loads PKCS#8 PEM from the kernel keyring at `gr_linux_crypto:ephemeral_priv:{our_session_id}`. That only works when the private key was stored with `store_private_in_keyring` using the **same** hex `session_id` as the imported offer (for example single-machine testing right after `generate`, before handing the file to the peer).
+
+#### Peer was initiator (`peer_was_initiator`)
+
+| Your role | Set to |
+|-----------|--------|
+| You **import** an offer the peer **generated and sent first** | `true` (default) — peer's `epk_hex` is the Galdralag **initiator** EPK |
+| You **generated** the offer and the peer is responding | `false` — your side was initiator |
+
+Both stations must pick the opposite role consistently so `derive_galdralag_session_keys` uses the same initiator/responder EPK order.
+
+#### GDSS Set Key Source — shared secret (`shared_secret_hex`)
+
+Raw **Brainpool ECDH shared secret** as hex. Minimum **32 bytes** (64 hex chars for Brainpool P256r1); use 96 / 128 hex chars for P384 / P512 if your ECDH output is longer. **Both stations must compute the same bytes** from their private key and the peer's ephemeral public key.
+
+**Python (after you have both EPKs):**
+
+```python
+from gr_linux_crypto.crypto_helpers import CryptoHelpers
+
+crypto = CryptoHelpers()
+shared = crypto.brainpool_ecdh(our_ephemeral_private, peer_ephemeral_public)
+shared_secret_hex = shared.hex()  # use the same slice both sides agree on (typically full x coordinate)
+```
+
+**When `key_derivation=gr_k_gdss` (default):** HKDF uses a **32-byte zero salt** and info `gdss-chacha20-masking-v1` (matches [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)).
+
+**When `key_derivation=galdralag`:** You must also set **Galdralag initiator EPK (hex)** and **Galdralag responder EPK (hex)** to the uncompressed SEC1 public keys (65-byte points as hex, same as `epk_hex` in offers). Initiator is whoever sent the first ephemeral move in your handshake. Salt is the lexicographic ordering of those two EPK byte strings (matches Galdralag-firmware `ordered_epk_salt`).
+
+**Get EPK hex from an offer:**
+
+```bash
+gpg --decrypt peer.epk.gpg | python3 -c "import sys,json; print(json.load(sys.stdin)['epk_hex'])"
+```
+
+#### GDSS session ID and TX sequence (both blocks)
+
+Choose these for the **radio session**, not from the `.epk.gpg` file:
+
+- **GDSS session ID:** Start at `1` for the first keyed QSO on a net; change when you intentionally start a new logical session.
+- **TX sequence:** Start at `0` for the first transmission; increment for each new burst if your operating procedure requires it (must match the other station's despreader).
+
+Both operators must use the **same** GDSS `session_id` and `tx_seq` when they expect to decode each other's GR-K-GDSS traffic.
+
+#### End-to-end example (two stations)
+
+1. **Operator A** runs `epk_generate.py generate`, sends `offer_A.epk.gpg` to B, and communicates A's long-term fingerprint out-of-band.
+2. **Operator B** runs `generate`, sends `offer_B.epk.gpg` to A, and communicates B's fingerprint.
+3. **Operator B** imports A's offer (`verify-fingerprint` = A's fingerprint). GRC: `offer_gpg_path` = path to `offer_A.epk.gpg`, `our_session_id` = session id from that import, `peer_was_initiator` = `true`, plus B's private key in `our_epk_private_hex` or keyring as above. Set GDSS `session_id` / `tx_seq` to values agreed with A.
+4. **Operator A** imports B's offer symmetrically (`peer_was_initiator` = `false` on A's side).
+5. Alternatively, after ECDH in Python, either side can use **GDSS Set Key Source** with `shared_secret_hex` and `key_derivation=galdralag` plus both EPK hex strings instead of the Ephemeral Key Import block.
 
 ### Brainpool Elliptic Curve Cryptography
 ```python
@@ -2653,13 +2793,13 @@ For **Brainpool decrypt with private key on an OpenPGP Card**, use **Brainpool E
 |-----------|----------|--------------|
 | **GDSS Set Key Source** | `linux_crypto_gdss_set_key_source` | Derives the **32-byte GDSS masking key** from a shared secret (HKDF) and emits a **`set_key` message** (PMT) consumed by **[GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS)** spreader/despreader blocks. Also builds the **12-byte session nonce** from session ID and TX sequence so you do not type keys by hand. **Key derivation** can follow default GR-K-GDSS labels or **Galdralag** `ephemeral-session` mode when EPK hex fields are set. |
 
-Wire **set_key** to `kgdss_spreader_cc` / `kgdss_despreader_cc`. See [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss).
+Wire **set_key** to `kgdss_spreader_cc` / `kgdss_despreader_cc`. See [GDSS Set Key Source (gr-k-gdss)](#gdss-set-key-source-gr-k-gdss) and [Obtaining parameters (GDSS and ephemeral GRC blocks)](#obtaining-parameters-gdss-set-key-source-and-ephemeral-key-import).
 
 #### Galdralag — ephemeral offers and GDSS alignment
 
 | GRC label | Block ID | What it does |
 |-----------|----------|--------------|
-| **Ephemeral Key Import (Galdralag / GDSS)** | `linux_crypto_ephemeral_key_import` | Imports a **`.epk.gpg` offer** (out-of-band file from `scripts/epk_generate.py`), verifies issuer fingerprint, combines your ephemeral private key with the peer's offer, runs **Galdralag session KDF**, and emits the same **`set_key` PMT** as **GDSS Set Key Source** for GR-K-GDSS. Use when session keys come from a Galdralag-style handshake rather than a static shared secret in the flowgraph. Revoke unused offers with `epk_generate.py expire` (see [docs/EPHEMERAL_KEY_EXCHANGE.md](docs/EPHEMERAL_KEY_EXCHANGE.md)). |
+| **Ephemeral Key Import (Galdralag / GDSS)** | `linux_crypto_ephemeral_key_import` | Imports a **`.epk.gpg` offer** (out-of-band file from `scripts/epk_generate.py`), verifies issuer fingerprint, combines your ephemeral private key with the peer's offer, runs **Galdralag session KDF**, and emits the same **`set_key` PMT** as **GDSS Set Key Source** for GR-K-GDSS. See [Ephemeral Key Import](#ephemeral-key-import-galdralag--gdss) and [parameter guide](#obtaining-parameters-gdss-set-key-source-and-ephemeral-key-import). |
 
 #### Quick reference (all blocks)
 
