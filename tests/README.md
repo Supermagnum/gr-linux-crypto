@@ -81,7 +81,7 @@ pytest tests/ --cov=python --cov-report=html
 | `test_ectester.py` | ECTester-style curve checks |
 | `test_rfc_compliance.py`, `test_rfc_vectors.py` | RFC 7027/6954/8734 Brainpool usage |
 | `test_ecgdsa.py` | ECGDSA framework (NotImplemented where expected) |
-| `test_galdralag_session_kdf.py` | Galdralag HKDF labels, GDSS mask agreement, optional blake3 CESS |
+| `test_galdralag_session_kdf.py` | Galdralag HKDF labels, Rust golden vectors (`fixtures/galdralag_session_kdf_vectors.json`), Brainpool ECDH IKM, GDSS mask, optional blake3 CESS |
 | `test_ephemeral_key_store.py` | `.epk.gpg` offer validation, `revoke_offer`, `epk_generate.py` CLI, audit `manual_revoke` |
 | `test_shamir_hpke_nitrokey.py` | Shamir, HPKE Brainpool, Nitrokey bridge stubs |
 | `test_m17_integration.py` | M17 frame and session helpers |

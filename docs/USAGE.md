@@ -81,7 +81,23 @@ Multiple `--recipient` flags encrypt to a group.
 
 ### GRC
 
-Add **Ephemeral Key Import (Galdralag / GDSS)** under `[gr-linux-crypto]/Galdralag`. Set `offer_gpg_path`, `verify_fingerprint`, `our_session_id` (hex from the offer JSON), and either `our_epk_private_hex` or leave it blank to load PKCS#8 PEM from the keyring (`store_private_in_keyring` after generate). Connect `set_key_out` to GR-K-GDSS spreader/despreader `set_key` ports.
+Add **Ephemeral Key Import (Galdralag / GDSS)** under `[gr-linux-crypto]/Galdralag`. Parameter sources (issuer fingerprint, offer session id vs GDSS session id, `peer_was_initiator`, private key): see [README — Obtaining parameters](README.md#obtaining-parameters-gdss-set-key-source-and-ephemeral-key-import).
+
+Minimum fields:
+
+| GRC parameter | Where to get it |
+|---------------|-----------------|
+| `offer_gpg_path` | Path to peer `.epk.gpg` |
+| `verify_fingerprint` | Issuer long-term GnuPG fingerprint (40 hex chars); `gpg --fingerprint` or `import` / decrypted JSON |
+| `our_session_id` | **32 hex chars** from `epk_generate.py import` output or `status` — **not** the GDSS integer |
+| `our_epk_private_hex` | Your ephemeral PKCS#8 PEM/DER as hex; empty only if private key is in keyring under the same offer `session_id` |
+| `session_id` (int) | Agreed GDSS nonce value with the other station (default `1`) |
+| `tx_seq` (int) | Agreed TX sequence for this burst (default `0`) |
+| `peer_was_initiator` | `true` if you imported the peer's offer they sent first; `false` if you generated first |
+
+Connect `set_key_out` to GR-K-GDSS spreader/despreader `set_key` ports.
+
+**GDSS Set Key Source** (`[gr-linux-crypto]/GDSS`) uses `shared_secret_hex` from Brainpool ECDH (or the same ECDH implied by two offers), optional `key_derivation=galdralag` with both EPK hex strings, and the same integer `session_id` / `tx_seq`. See the same [parameter guide](README.md#obtaining-parameters-gdss-set-key-source-and-ephemeral-key-import).
 
 ### Expiry model
 

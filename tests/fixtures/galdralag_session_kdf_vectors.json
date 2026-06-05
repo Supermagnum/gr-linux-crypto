@@ -1,0 +1,23 @@
+{
+  "source": "Galdralag-firmware ephemeral-session",
+  "vectors": [
+    {
+      "curve": "brainpoolP256r1",
+      "description": "FakeTrng seeds 7 (initiator) and 8 (responder), BrainpoolP256r1",
+      "ecdh_ikm_hex": "29851e00a3a58c7bbd88eeb61d1124652ef81974a408f988ba1219988fef38d9",
+      "epk_initiator_hex": "045691c30be6a392e9ba38f4e96b0e6679867898a2371f46a93878a14621f9b8b9153b483546496bb73156117f96ab7ecbd47bec047e1050912e464b8ddfb609df",
+      "epk_responder_hex": "048b92a6803ab574502828e4575d4420dcc09e5d645349d49c88ff9403cfee78b2a97ac9cf727e28f51f6a478628a644dab4a0224abfe3b180a8a9c4a5a9606fe9",
+      "gdss_mask_key_hex": "99da8708752c2537ba360850cd8a8beb24edb0ae3c4105b8db8546cc4bffea8b",
+      "gdss_sync_key_hex": "66b93f12faa39e01d3854e0bd4a22ddd9107b1e033f3668909acbaa163e3fd44",
+      "gdss_timing_key_hex": "c0324b50e4c6a2424043e67317672b38ed4aaa66f5e0fe6bfb52ae131e8693fb",
+      "initiator_scalar_hex": "4d9077199ed61e353f4969558737e806eab6256211ab7f54093cee480a25f039",
+      "initiator_seed": 7,
+      "mac_key_hex": "fee55f6324adfd6652b122d52e6b40a79c74b60bb3d993e72fe37fa7d6e11a04",
+      "payload_key_i2r_hex": "73ff9fbe9a3a785a82d1980536795f4ea6c28887ad0ad3e90375b1547daceae8",
+      "payload_key_r2i_hex": "f063bffbaee3a527d418158470d97f93f8e7e40d285dee2b35dd5bd5e1e0994e",
+      "profile_prk_hex": "f281d6155832462e37c965913b7bb1d3651d7a9039a0e87d38f40de8549076ed",
+      "responder_scalar_hex": "9e5ca74db5d04761b1e60f53436c6a0c42386c5afe3f36093929bd23ec35b776",
+      "responder_seed": 8
+    }
+  ]
+}
