@@ -1,0 +1,20 @@
+[Unit]
+Description=gr-linux-crypto ZMQ callsign key store server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/lib/gr-linux-crypto
+ExecStart=/usr/bin/python3 /usr/local/share/gr-linux-crypto/scripts/zmq_key_store_server.py \
+    --key-store /var/lib/gr-linux-crypto/callsign_keys.json \
+    --bind 127.0.0.1 \
+    --port 5557
+Restart=on-failure
+RestartSec=2
+
+# Public keys and callsigns only; no secrets in logs (see docs/ZMQ_KEY_STORE.md).
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
