@@ -70,6 +70,7 @@ Archive record timestamp: **21 March 2026**.
    - [Usage (ephemeral keys, CLI)](docs/USAGE.md) - `epk_generate.py` (`generate`, `import`, `status`, `expire`)
    - [Ephemeral key exchange specification](docs/EPHEMERAL_KEY_EXCHANGE.md) - `.epk.gpg` format and threat model
    - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions
+   - [QR key cards and signed log verification](docs/QR_KEYCARDS.md) - OpenPGP fingerprint QR codes (`gpg_qr_gen.py`); `CallsignVerifier` for signed ADIF/QSO records
    - [GR-K-GDSS](https://github.com/Supermagnum/GR-K-GDSS) - Keyed GDSS GNU Radio OOT (companion project; uses gr-linux-crypto)
    - [Galdralag-firmware](https://github.com/Supermagnum/Galdralag-firmware) - Baochip-1x token framework and host tools (related project)
    
@@ -91,6 +92,7 @@ Archive record timestamp: **21 March 2026**.
    - [Available APIs](#available-apis)
    - [Galdralag — mix and match cipher modes](#galdralag--mix-and-match-cipher-modes)
    - [CallsignKeyStore and key groups API](#callsignkeystore-and-key-groups-api)
+   - [QR key cards and signed log verification](#qr-key-cards-and-signed-log-verification)
    - [How to add a signing frame at the end of a transmission](https://github.com/Supermagnum/gr-linux-crypto/blob/master/examples/SIGNING_VERIFICATION_README.md#adding-a-signature-frame-to-the-end-of-a-transmission)
 13. [Integration Architecture](#integration-architecture)
 14. [Key Design Principles](#key-design-principles)
@@ -1240,6 +1242,7 @@ See [Usage Flowchart](docs/USAGE_FLOWCHART.md) for a detailed flowchart showing 
 ## Documentation
 
 - [Glossary](docs/GLOSSARY.md) - Technical terms and definitions (ECIES, Brainpool, keygrip, Shamir, etc.)
+- [QR key cards and signed log verification](docs/QR_KEYCARDS.md) - Print OpenPGP fingerprint QR codes for QSL cards and badges (`scripts/gpg_qr_gen.py`); verify token-signed log entries with `CallsignVerifier`
 - [Usage Flowchart](docs/USAGE_FLOWCHART.md) - Integration patterns and workflows
 - [GnuPG Integration Guide](docs/gnupg_integration.md) - GnuPG setup, PIN handling, and examples
 - [Architecture Documentation](docs/architecture.md) - Module architecture and design
@@ -1660,6 +1663,27 @@ The Python helper `CallsignKeyStore` (from `gr_linux_crypto` or `gr_linux_crypto
   - `list_groups()` — Return a sorted list of all group names in the store.
   - `remove_group(group_name)` — Remove the group; returns `True` if it existed.
 - **Constructor:** `CallsignKeyStore(store_path=None, use_keyring=True)`. Default path: `~/.gnuradio/callsign_keys.json`.
+
+### QR key cards and signed log verification
+
+Print OpenPGP **public-key discovery** QR codes on QSL cards, business cards, or badges so contacts can import your key at hamfests and signing parties. The QR encodes a fingerprint URI or keyserver search link only; the private key stays on a Nitrokey or Galdralag OpenPGP card.
+
+```bash
+python3 scripts/gpg_qr_gen.py W1ABC -o w1abc-key.svg
+python3 scripts/gpg_qr_gen.py --style keyserver your@email.com -o key.svg
+python3 scripts/gpg_qr_gen.py --style callsign W1ABC -o w1abc-search.svg
+```
+
+Logging software can sign each QSO or ADIF block on the hardware token; peers verify entries against the operator's public key (from QR, keyserver, or web-of-trust):
+
+```python
+from gr_linux_crypto.callsign_verifier import CallsignVerifier
+
+verifier = CallsignVerifier()
+ok = verifier.verify_signed_log_entry(entry_bytes, detached_sig_bytes, "W1ABC")
+```
+
+Optional QR dependencies: `pip install 'qrcode[pil]' lxml`. Full workflows, minimum print sizes, and anti-piracy notes: **[docs/QR_KEYCARDS.md](docs/QR_KEYCARDS.md)**.
 
 ### ZeroMQ key store
 
