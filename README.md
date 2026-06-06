@@ -98,6 +98,7 @@ Archive record timestamp: **21 March 2026**.
     - [Integration Helpers (Implemented)](#2-integration-helpers-implemented)
     - [GNU Radio Companion Blocks (Implemented)](#3-gnu-radio-companion-blocks-implemented)
       - [Sources, Crypto, Sodium, Hardware, GDSS, Galdralag](#sources--where-key-bytes-come-from)
+      - [Status icons (`icons/`)](#status-icons-icons)
 17. [What happens if I remove my Nitrokey or GnuPG card?](#what-happens-if-i-remove-my-nitrokey-or-gnupg-card)
 18. [Why Nitrokey?](#why-nitrokey)
 19. [Where Key Functions Are Implemented (Quick Code Map)](#where-key-functions-are-implemented-quick-code-map)
@@ -2810,6 +2811,17 @@ Wire **set_key** to `kgdss_spreader_cc` / `kgdss_despreader_cc`. See [GDSS Set K
 **Legacy GRC block names (same functionality):** `kernel_keyring_source`, `kernel_aes_encrypt`, `nitrokey_sign`.
 
 **Sodium category:** `[gr-linux-crypto]/Sodium` — see [docs/USAGE.md](docs/USAGE.md#libsodium-pdu-blocks-x-wing-kem-sha3).
+
+#### Status icons (`icons/`)
+
+The [`icons/`](icons/) directory holds four SVG status symbols for GnuPG and on-air crypto state (see also [`icons/readme.md`](icons/readme.md)). They are reference graphics for flowgraphs, logging software, or documentation; they are not wired into GRC block YAML in this repository.
+
+| Icon | File | Meaning |
+|------|------|---------|
+| Key | [`icons/key.svg`](icons/key.svg) | GnuPG signing keys are loaded and available |
+| Open padlock | [`icons/open.svg`](icons/open.svg) | Transmissions are **signed** (authentication/integrity) |
+| Closed padlock | [`icons/locked.svg`](icons/locked.svg) | Transmissions are **encrypted** (confidentiality) |
+| Key with red X | [`icons/key-error.svg`](icons/key-error.svg) | Key error (missing key, bad PIN, card removed, verification failure, etc.) |
 
 ## Why This Approach?
 
