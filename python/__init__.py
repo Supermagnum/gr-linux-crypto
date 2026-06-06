@@ -9,6 +9,7 @@ integration, hardware security modules, and cryptographic operations.
 from .crypto_helpers import CryptoHelpers, GNURadioCryptoUtils, secure_zero
 from .keyring_helper import KeyringHelper
 from .callsign_key_store import CallsignKeyStore
+from .callsign_verifier import CallsignVerifier
 from .multi_recipient_ecies import MultiRecipientECIES
 from .hpke_brainpool import HPKEBrainpool
 from .shamir_secret_sharing import (
@@ -65,6 +66,7 @@ __all__ = [
     "CryptoHelpers",
     "GNURadioCryptoUtils",
     "CallsignKeyStore",
+    "CallsignVerifier",
     "MultiRecipientECIES",
     "HPKEBrainpool",
     "split",

@@ -9,4 +9,5 @@ pytest>=7.0.0
 psutil>=5.9.0
 # Optional: pip install blake3  (Galdralag CESS Mode A K_outer; see derive_galdralag_cess_k_outer_mode_a)
 # Optional: pip install pyzmq  (ZMQ callsign key store; see docs/ZMQ_KEY_STORE.md)
+# Optional: pip install 'qrcode[pil]' lxml  (QR key cards; see docs/QR_KEYCARDS.md)
 

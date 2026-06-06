@@ -338,6 +338,7 @@ if(ENABLE_PYTHON)
         python/keyring_helper.py
         python/crypto_helpers.py
         python/callsign_key_store.py
+        python/callsign_verifier.py
         python/zmq_key_store_server.py
         python/zmq_key_store_client.py
         python/multi_recipient_ecies.py
@@ -356,6 +357,10 @@ if(ENABLE_PYTHON)
         DESTINATION ${LINUX_CRYPTO_PYTHON_INSTALL_DIR}/gr_linux_crypto
     )
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/scripts/epk_generate.py"
+        DESTINATION "${CMAKE_INSTALL_PREFIX}/share/gr-linux-crypto/scripts"
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+    )
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/scripts/gpg_qr_gen.py"
         DESTINATION "${CMAKE_INSTALL_PREFIX}/share/gr-linux-crypto/scripts"
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
     )
